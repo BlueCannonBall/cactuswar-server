@@ -64,6 +64,7 @@ class Entity {
 class Tank: public Entity {
     public:
         string name = "Unnamed";
+        Vector2 velocity = Vector2(0, 0);
         ws28::Client *client = nullptr;
 };
 
@@ -75,21 +76,65 @@ class Arena {
 
         Arena(int message_size) {
             server.SetMaxMessageSize(message_size);
-            server.SetClientDataCallback
+            // server.SetClientConnectedCallback(on_connect);
+            // server.SetClientDataCallback([this](ws28::Client *client, char *data, size_t len, int opcode){
+                // StreamPeerBuffer buf(false);
+                // buf.data_array = vector<unsigned char>(data, data+len);
+                // unsigned char packet_id = buf.get_u8();
+                // switch (packet_id) {
+                    // case 0:
+                        // this->handle_init_packet(buf, client);
+                // }
+            // });
+        }
+        
+        void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
+            string player_name = buf.get_utf8();
+            Tank new_player;
+            new_player.name = player_name;
+            new_player.client = client;
+            this->players.push_back(&new_player);
+            this->entities.push_back(&new_player);
         }
 
-        static void on_connect(ws28::Client *client, ws28::HTTPRequest ) {
-            puts("======> [INFO] Client connected");
-            client->SetUserData(reinterpret_cast<void*>(get_uuid()));
-        }
+        // static void on_connect(ws28::Client *client, ws28::HTTPRequest &) {
+            // puts("======> [INFO] Client connected");
+            // client->SetUserData(reinterpret_cast<void*>(get_uuid()));
+        // }
+// 
+        // static void on_data(ws28::Client *client, char *data, size_t len, int opcode) {
+            // StreamPeerBuffer buf(false);
+            // buf.data_array = vector<unsigned char>(data, data+len);
+            // unsigned char packet_id = buf.get_u8();
+            // switch (packet_id) {
+                // case 0:
+                    // handle_init_packet(buf, client);
+            // }
+        // }
 
-        static void on_data(ws28::Client *client, char *data, size_t len, int opcode) {
-            StreamPeerBuffer buf(false);
-            buf.data_array = vector<unsigned char>(data, data+len);
+        void listen(int port) {
+            uv_timer_t timer;
+            uv_timer_init(uv_default_loop(), &timer);
+            timer.data = &server;
+            uv_timer_start(&timer, [](uv_timer_t *timer) {
+                if (quit) {
+                    puts("======> [INFO] Waiting for clients to disconnect, send another SIGINT to force quit");
+                    auto &s = *(ws28::Server*)(timer->data);
+                    s.StopListening();
+                    uv_timer_stop(timer);
+                    uv_close((uv_handle_t*) timer, nullptr);
+                }
+            }, 10, 10);
+        
+            assert(server.Listen(port));
+                    
+            cout << "======> [INFO] Listening on port " << port << endl;
+            uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+            assert(uv_loop_close(uv_default_loop()) == 0);
         }
 };
 
-int main() {
+int main(int argc, char **argv) {
     signal(SIGINT, [](int) {
         if (quit) {
             exit(1);
@@ -98,7 +143,29 @@ int main() {
         }
     });
 
-
+    static Arena arena(64000);
+    
+    arena.server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest &) {
+        puts("======> [INFO] Client connected");
+        client->SetUserData(reinterpret_cast<void*>(get_uuid()));
+    });
+    
+    arena.server.SetClientDataCallback([](ws28::Client *client, char *data, size_t len, int opcode) {
+        StreamPeerBuffer buf(false);
+        buf.data_array = vector<unsigned char>(data, data+len);
+        unsigned char packet_id = buf.get_u8();
+        switch (packet_id) {
+            case 0:
+                arena.handle_init_packet(buf, client);
+        }
+    });
+    
+    if (argc >= 2) {
+        arena.listen(atoi(argv[1]));
+    } else {
+        cerr << "======> [ERR] Please supply a port number" << endl;
+        return 1;
+    }
     
     return 0;
 }
