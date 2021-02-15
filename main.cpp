@@ -76,16 +76,6 @@ class Arena {
 
         Arena(int message_size) {
             server.SetMaxMessageSize(message_size);
-            // server.SetClientConnectedCallback(on_connect);
-            // server.SetClientDataCallback([this](ws28::Client *client, char *data, size_t len, int opcode){
-                // StreamPeerBuffer buf(false);
-                // buf.data_array = vector<unsigned char>(data, data+len);
-                // unsigned char packet_id = buf.get_u8();
-                // switch (packet_id) {
-                    // case 0:
-                        // this->handle_init_packet(buf, client);
-                // }
-            // });
         }
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
@@ -96,21 +86,6 @@ class Arena {
             this->players.push_back(&new_player);
             this->entities.push_back(&new_player);
         }
-
-        // static void on_connect(ws28::Client *client, ws28::HTTPRequest &) {
-            // puts("======> [INFO] Client connected");
-            // client->SetUserData(reinterpret_cast<void*>(get_uuid()));
-        // }
-// 
-        // static void on_data(ws28::Client *client, char *data, size_t len, int opcode) {
-            // StreamPeerBuffer buf(false);
-            // buf.data_array = vector<unsigned char>(data, data+len);
-            // unsigned char packet_id = buf.get_u8();
-            // switch (packet_id) {
-                // case 0:
-                    // handle_init_packet(buf, client);
-            // }
-        // }
 
         void listen(int port) {
             uv_timer_t timer;
@@ -157,6 +132,7 @@ int main(int argc, char **argv) {
         switch (packet_id) {
             case 0:
                 arena.handle_init_packet(buf, client);
+                break;
         }
     });
     
