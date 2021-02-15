@@ -71,8 +71,8 @@ class Tank: public Entity {
 class Arena {
     public:
     	ws28::Server server{uv_default_loop()};
-        vector<Entity*> entities;
-        vector<Tank*> players;
+        map<unsigned int, Entity*> entities;
+        map<unsigned int, Tank*> players;
 
         Arena(int message_size) {
             server.SetMaxMessageSize(message_size);
@@ -83,8 +83,10 @@ class Arena {
             Tank new_player;
             new_player.name = player_name;
             new_player.client = client;
-            this->players.push_back(&new_player);
-            this->entities.push_back(&new_player);
+            client->SetUserData(reinterpret_cast<void*>(get_uuid()));
+            this->players[(unsigned int) (uintptr_t) client->GetUserData()] = &new_player;
+            this->entities[(unsigned int) (uintptr_t) client->GetUserData()] = &new_player;
+            cout << "======> [INFO] New player with name \"" << player_name << "\" and id " << (unsigned int) (uintptr_t) client->GetUserData() << " joined" << endl;
         }
 
         void listen(int port) {
@@ -118,15 +120,22 @@ int main(int argc, char **argv) {
         }
     });
 
+    int port;
+    if (argc >= 2) {
+        port = atoi(argv[1]);
+    } else {
+        cerr << "======> [ERR] Please supply a port number" << endl;
+        return 1;
+    }
+    
     static Arena arena(64000);
     
     arena.server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest &) {
         puts("======> [INFO] Client connected");
-        client->SetUserData(reinterpret_cast<void*>(get_uuid()));
     });
     
     arena.server.SetClientDataCallback([](ws28::Client *client, char *data, size_t len, int opcode) {
-        StreamPeerBuffer buf(false);
+        StreamPeerBuffer buf(true);
         buf.data_array = vector<unsigned char>(data, data+len);
         unsigned char packet_id = buf.get_u8();
         switch (packet_id) {
@@ -136,12 +145,7 @@ int main(int argc, char **argv) {
         }
     });
     
-    if (argc >= 2) {
-        arena.listen(atoi(argv[1]));
-    } else {
-        cerr << "======> [ERR] Please supply a port number" << endl;
-        return 1;
-    }
+    arena.listen(port);
     
     return 0;
 }
