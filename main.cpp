@@ -6,6 +6,7 @@
 #include <cmath>
 #include <vector>
 #include <map>
+#include <typeinfo>
 
 using namespace std;
 
@@ -81,6 +82,7 @@ class Entity {
     public:
         Vector2 position = Vector2(0, 0);
         Vector2 velocity = Vector2(0, 0);
+        float friction = 0.9f;
         float& x = position.x;
         float& y = position.y;
         string name = "Entity";
@@ -103,6 +105,7 @@ class Tank: public Entity {
 class Arena {
     public:
     	ws28::Server server{uv_default_loop()};
+    	bool server_listening = true;
         map<unsigned int, Entity*> entities;
         map<unsigned int, Tank*> players;
 
@@ -142,29 +145,41 @@ class Arena {
         
         void update() {
             for (const auto &entity : entities) {
+                if (typeid(entity.second) == typeid(Tank*)) {
+                    // movement code here
+                }
+                
+                entity.second->velocity *= Vector2(entity.second->friction, entity.second->friction);
                 entity.second->position += entity.second->velocity;
             }
         }
         
         void mainloop() {
-            uv_timer_t timer;
+            static uv_timer_t timer;
             uv_timer_init(uv_default_loop(), &timer);
             timer.data = this;
             uv_timer_start(&timer, [](uv_timer_t *timer) {
                 auto &arena = *(Arena*)(timer->data);
+                if (!arena.server_listening) {
+                    puts("======> [INFO] Mainloop closing");
+                    uv_timer_stop(timer);
+                    uv_close((uv_handle_t*) timer, nullptr);
+                }
                 arena.update();
             }, 10, 1000/30);
         }
 
         void listen(int port) {
-            uv_timer_t timer;
+            static uv_timer_t timer;
             uv_timer_init(uv_default_loop(), &timer);
-            timer.data = &server;
+            timer.data = this;
             uv_timer_start(&timer, [](uv_timer_t *timer) {
                 if (quit) {
                     puts("======> [INFO] Waiting for clients to disconnect, send another SIGINT to force quit");
-                    auto &s = *(ws28::Server*)(timer->data);
+                    auto &arena = *(Arena*)(timer->data);
+                    auto &s = arena.server;
                     s.StopListening();
+                    arena.server_listening = false;
                     uv_timer_stop(timer);
                     uv_close((uv_handle_t*) timer, nullptr);
                 }
@@ -173,8 +188,6 @@ class Arena {
             assert(server.Listen(port));
                     
             cout << "======> [INFO] Listening on port " << port << endl;
-            // uv_run(uv_default_loop(), UV_RUN_DEFAULT);
-            // assert(uv_loop_close(uv_default_loop()) == 0);
         }
 };
 
@@ -221,6 +234,7 @@ int main(int argc, char **argv) {
     
     uv_run(uv_default_loop(), UV_RUN_DEFAULT);
     assert(uv_loop_close(uv_default_loop()) == 0);
+    //arena.mainloop();
     
     return 0;
 }
