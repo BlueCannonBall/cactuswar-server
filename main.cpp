@@ -8,7 +8,10 @@
 #include <map>
 #include <typeinfo>
 
+#define UNUSED(expr) do { (void)(expr); } while (0)
+
 using namespace std;
+using namespace spb;
 
 static volatile sig_atomic_t quit = false;
 unsigned int uuid = 0;
@@ -86,6 +89,7 @@ class Entity {
         float& x = position.x;
         float& y = position.y;
         string name = "Entity";
+        virtual ~Entity() {}
 };
 
 class Tank: public Entity {
@@ -99,6 +103,7 @@ class Tank: public Entity {
         string name = "Unnamed";
         ws28::Client *client = nullptr;
         Keys keys = Keys {w: false, a: false, s: false, d: false};
+        float movement_speed = 1;
         
 };
 
@@ -146,7 +151,20 @@ class Arena {
         void update() {
             for (const auto &entity : entities) {
                 if (typeid(entity.second) == typeid(Tank*)) {
-                    // movement code here
+                    Tank *tank = nullptr;
+                    if ((tank = dynamic_cast<Tank* const>(entity.second))) {
+                        if (tank->keys.w) {
+                            tank->velocity.y -= tank->movement_speed;
+                        } else if (tank->keys.s) {
+                            tank->velocity.y += tank->movement_speed;
+                        }
+                        
+                        if (tank->keys.a) {
+                            tank->velocity.x -= tank->movement_speed;
+                        } else if (tank->keys.d) {
+                            tank->velocity.x += tank->movement_speed;
+                        }
+                    }
                 }
                 
                 entity.second->velocity *= Vector2(entity.second->friction, entity.second->friction);
@@ -211,10 +229,12 @@ int main(int argc, char **argv) {
     static Arena arena(64000);
     
     arena.server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest &) {
+        UNUSED(client);
         puts("======> [INFO] Client connected");
     });
     
     arena.server.SetClientDataCallback([](ws28::Client *client, char *data, size_t len, int opcode) {
+        UNUSED(opcode);
         StreamPeerBuffer buf(true);
         buf.data_array = vector<unsigned char>(data, data+len);
         unsigned char packet_id = buf.get_u8();
