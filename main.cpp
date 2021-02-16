@@ -7,6 +7,7 @@
 #include <vector>
 #include <map>
 #include <typeinfo>
+#include <variant>
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
@@ -81,6 +82,7 @@ class Vector2 {
         }
 };
 
+/// Base entity
 class Entity {
     public:
         Vector2 position = Vector2(0, 0);
@@ -92,6 +94,7 @@ class Entity {
         //virtual ~Entity() {}
 };
 
+/// A domtank, stats vary based on mockups.
 class Tank: public Entity {
     public:
         struct Keys {
@@ -136,18 +139,18 @@ class Arena {
             
             if (0b1000 & movement_byte) {
                 players[player_id]->keys.W = true;
-                puts("w");
+                //puts("w");
             } else if (0b0010 & movement_byte) {
                 players[player_id]->keys.S = true;
-                puts("s");
+                //puts("s");
             }
             
             if (0b0100 & movement_byte) {
                 players[player_id]->keys.A = true;
-                puts("a");
+                //puts("a");
             } else if (0b0001 & movement_byte) {
                 players[player_id]->keys.D = true;
-                puts("d");
+                //puts("d");
             }
         }
         
