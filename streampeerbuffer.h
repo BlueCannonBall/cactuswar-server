@@ -92,7 +92,7 @@ namespace spb
     {
         if (endian_swap)
         {
-            number = __builtin_bswap16(number);
+            number = bswap(number);
         }
         const auto bytes = to_bytes(number);
         for (unsigned char b : bytes)
@@ -105,7 +105,7 @@ namespace spb
     {
         if (endian_swap)
         {
-            number = __builtin_bswap32(number);
+            number = bswap(number);
         }
         const auto bytes = to_bytes(number);
         for (unsigned char b : bytes)
@@ -127,7 +127,7 @@ namespace spb
     {
         if (endian_swap)
         {
-            number = __builtin_bswap16(number);
+            number = bswap(number);
         }
         const auto bytes = to_bytes(number);
         for (unsigned char b : bytes)
@@ -140,7 +140,7 @@ namespace spb
     {
         if (endian_swap)
         {
-            number = __builtin_bswap32(number);
+            number = bswap(number);
         }
         const auto bytes = to_bytes(number);
         for (unsigned char b : bytes)
@@ -163,7 +163,7 @@ namespace spb
         offset += 2;
         if (endian_swap)
         {
-            number = __builtin_bswap16(number);
+            number = bswap(number);
         }
         return number;
     }
@@ -174,7 +174,7 @@ namespace spb
         offset += 4;
         if (endian_swap)
         {
-            number = __builtin_bswap32(number);
+            number = bswap(number);
         }
         return number;
     }
@@ -192,7 +192,7 @@ namespace spb
         offset += 2;
         if (endian_swap)
         {
-            number = __builtin_bswap16(number);
+            number = bswap(number);
         }
         return number;
     }
@@ -203,7 +203,7 @@ namespace spb
         offset += 4;
         if (endian_swap)
         {
-            number = __builtin_bswap32(number);
+            number = bswap(number);
         }
         return number;
     }

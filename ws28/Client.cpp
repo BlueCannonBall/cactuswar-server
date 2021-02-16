@@ -615,11 +615,11 @@ void Client::OnSocketData(char *data, size_t len){
 		
 		std::string securityKey = websocketKey;
 		
-		//if(m_pServer->m_fnCheckConnection && !m_pServer->m_fnCheckConnection(this, req)){
-		//	Write("HTTP/1.1 403 Forbidden\r\n\r\n");
-		//	Destroy();
-		//	return;
-		//}
+		// if(m_pServer->m_fnCheckConnection && !m_pServer->m_fnCheckConnection(this, req)){
+			// Write("HTTP/1.1 403 Forbidden\r\n\r\n");
+			// Destroy();
+			// return;
+		// }
 		
 		
 		securityKey += "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
