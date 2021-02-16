@@ -1,1 +1,72 @@
-[]
+[
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-std=c++14",
+            "-Wall",
+            "-O1",
+            "-o",
+            "dbserver",
+            "ws28/Server.cpp"
+        ],
+        "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
+        "file": "ws28/Server.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-std=c++14",
+            "-Wall",
+            "-O1",
+            "-o",
+            "dbserver",
+            "ws28/sha1.cpp"
+        ],
+        "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
+        "file": "ws28/sha1.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-std=c++14",
+            "-Wall",
+            "-O1",
+            "-o",
+            "dbserver",
+            "ws28/Client.cpp"
+        ],
+        "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
+        "file": "ws28/Client.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-std=c++14",
+            "-Wall",
+            "-O1",
+            "-o",
+            "dbserver",
+            "main.cpp"
+        ],
+        "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
+        "file": "main.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-std=c++14",
+            "-Wall",
+            "-O1",
+            "-o",
+            "dbserver",
+            "ws28/base64.cpp"
+        ],
+        "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
+        "file": "ws28/base64.cpp"
+    }
+]

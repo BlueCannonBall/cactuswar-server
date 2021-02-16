@@ -13,7 +13,7 @@
 using namespace std;
 using namespace spb;
 
-static volatile sig_atomic_t quit = false;
+// static volatile sig_atomic_t quit = false;
 unsigned int uuid = 0;
 
 // unsigned int get_uuid() {
@@ -89,7 +89,7 @@ class Entity {
         float& x = position.x;
         float& y = position.y;
         string name = "Entity";
-        virtual ~Entity() {}
+        //virtual ~Entity() {}
 };
 
 class Tank: public Entity {
@@ -104,13 +104,12 @@ class Tank: public Entity {
         ws28::Client *client = nullptr;
         Keys keys = Keys {W: false, A: false, S: false, D: false};
         float movement_speed = 1;
-        
+        float friction = 0.1f;
 };
 
 class Arena {
     public:
     	ws28::Server server{uv_default_loop(), nullptr};
-    	bool server_listening = true;
         map<unsigned int, Entity*> entities;
         map<unsigned int, Tank*> players;
 
@@ -120,12 +119,12 @@ class Arena {
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
             string player_name = buf.get_utf8();
-            Tank new_player;
-            new_player.name = player_name;
-            new_player.client = client;
+            Tank* new_player = new Tank;
+            new_player->name = player_name;
+            new_player->client = client;
             client->SetUserData(reinterpret_cast<void*>(uuid++));
-            this->players[(unsigned int) (uintptr_t) client->GetUserData()] = &new_player;
-            this->entities[(unsigned int) (uintptr_t) client->GetUserData()] = &new_player;
+            this->players[(unsigned int) (uintptr_t) client->GetUserData()] = new_player;
+            this->entities[(unsigned int) (uintptr_t) client->GetUserData()] = new_player;
             cout << "======> [INFO] New player with name \"" << player_name << "\" and id " << (unsigned int) (uintptr_t) client->GetUserData() << " joined" << endl;
         }
         
@@ -158,20 +157,19 @@ class Arena {
                     entities.erase(entity.first);
                     continue;
                 }
-                if (typeid(entity.second) == typeid(Tank*)) {
-                    Tank *tank = nullptr;
-                    if ((tank = dynamic_cast<Tank* const>(entity.second))) {
-                        if (tank->keys.W) {
-                            tank->velocity.y -= tank->movement_speed;
-                        } else if (tank->keys.S) {
-                            tank->velocity.y += tank->movement_speed;
-                        }
+                
+                Tank* tank = nullptr;
+                if ((tank = reinterpret_cast<Tank*>(entity.second))) {
+                    if (tank->keys.W) {
+                        tank->velocity.y -= tank->movement_speed;
+                    } else if (tank->keys.S) {
+                        tank->velocity.y += tank->movement_speed;
+                    }
                         
-                        if (tank->keys.A) {
-                            tank->velocity.x -= tank->movement_speed;
-                        } else if (tank->keys.D) {
-                            tank->velocity.x += tank->movement_speed;
-                        }
+                    if (tank->keys.A) {
+                        tank->velocity.x -= tank->movement_speed;
+                    } else if (tank->keys.D) {
+                        tank->velocity.x += tank->movement_speed;
                     }
                 }
                 
@@ -180,7 +178,11 @@ class Arena {
             }
             
             for (const auto &player : players) {
-                if (player.second == nullptr || player.second->client == nullptr) {
+                if (player.second == nullptr) {
+                    players.erase(player.first);
+                    continue;
+                }
+                if (player.second->client == nullptr) {
                     players.erase(player.first);
                     continue;
                 }
@@ -193,29 +195,14 @@ class Arena {
                         continue;
                     }
                     buf.put_u8(0);
-                    buf.put_u8(entity.first);
-                    buf.put_16(entity.second->x);
-                    buf.put_16(entity.second->y);
-                    buf.put_16(0);
+                    buf.put_u32(entity.first);
+                    buf.put_16(entity.second->position.x);
+                    buf.put_16(entity.second->position.y);
+                    buf.put_float(0);
                     player.second->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
                 }
             }
         }
-        
-        // void mainloop() {
-            // static uv_timer_t timer;
-            // uv_timer_init(uv_default_loop(), &timer);
-            // timer.data = this;
-            // uv_timer_start(&timer, [](uv_timer_t *timer) {
-                // auto &arena = *(Arena*)(timer->data);
-                // if (!arena.server_listening) {
-                    // puts("======> [INFO] Mainloop closing");
-                    // uv_timer_stop(timer);
-                    // uv_close((uv_handle_t*) timer, nullptr);
-                // }
-                // arena.update();
-            // }, 10, 1000/30);
-        // }
 
         void listen(int port) {
             static uv_timer_t timer;
@@ -224,14 +211,13 @@ class Arena {
             uv_timer_start(&timer, [](uv_timer_t *timer) {
                 auto &arena = *(Arena*)(timer->data);
                 arena.update();
-                if (quit) {
-                    puts("======> [INFO] Waiting for clients to disconnect, send another SIGINT to force quit");
-                    auto &s = arena.server;
-                    s.StopListening();
-                    uv_timer_stop(timer);
-                    uv_close((uv_handle_t*) timer, nullptr);
-                    arena.server_listening = false;
-                }
+                // if (quit) {
+                    // puts("======> [INFO] Waiting for clients to disconnect, send another SIGINT to force quit");
+                    // auto &s = arena.server;
+                    // s.StopListening();
+                    // uv_timer_stop(timer);
+                    // uv_close((uv_handle_t*) timer, nullptr);
+                // }
             }, 10, 1000/30);
         
             assert(server.Listen(port));
@@ -241,13 +227,13 @@ class Arena {
 };
 
 int main(int argc, char **argv) {
-    signal(SIGINT, [](int) {
-        if (quit) {
-            exit(1);
-        } else {
-            quit = true;
-        }
-    });
+    // signal(SIGINT, [](int) {
+        // if (quit) {
+            // exit(1);
+        // } else {
+            // quit = true;
+        // }
+    // });
 
     int port;
     if (argc >= 2) {
