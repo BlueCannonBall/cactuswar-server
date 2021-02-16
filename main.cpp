@@ -12,10 +12,10 @@ using namespace std;
 static volatile sig_atomic_t quit = false;
 unsigned int uuid = 0;
 
-unsigned int get_uuid() {
-    uuid++;
-    return uuid - 1;
-}
+// unsigned int get_uuid() {
+    // uuid++;
+    // return uuid - 1;
+// }
 
 class Vector2 {
     public:
@@ -43,6 +43,30 @@ class Vector2 {
             return Vector2(this->x/v.x, this->y/v.y);
         }
         
+        Vector2& operator+=(const Vector2& v) {
+            this->x += v.x;
+            this->y += v.y;
+            return *this;
+        }
+        
+        Vector2& operator-=(const Vector2& v) {
+            this->x -= v.x;
+            this->y -= v.y;
+            return *this;
+        }
+        
+        Vector2& operator*=(const Vector2& v) {
+            this->x *= v.x;
+            this->y *= v.y;
+            return *this;
+        }
+        
+        Vector2& operator/=(const Vector2& v) {
+            this->x /= v.x;
+            this->y /= v.y;
+            return *this;
+        }
+        
         friend ostream &operator<<(ostream &output, const Vector2 &v) {
             output << "(" << v.x << ", " << v.y << ")";
             return output;
@@ -56,6 +80,7 @@ class Vector2 {
 class Entity {
     public:
         Vector2 position = Vector2(0, 0);
+        Vector2 velocity = Vector2(0, 0);
         float& x = position.x;
         float& y = position.y;
         string name = "Entity";
@@ -63,9 +88,16 @@ class Entity {
 
 class Tank: public Entity {
     public:
+        struct Keys {
+            bool w;
+            bool a;
+            bool s;
+            bool d;
+        };
         string name = "Unnamed";
-        Vector2 velocity = Vector2(0, 0);
         ws28::Client *client = nullptr;
+        Keys keys = Keys {w: false, a: false, s: false, d: false};
+        
 };
 
 class Arena {
@@ -83,10 +115,45 @@ class Arena {
             Tank new_player;
             new_player.name = player_name;
             new_player.client = client;
-            client->SetUserData(reinterpret_cast<void*>(get_uuid()));
+            client->SetUserData(reinterpret_cast<void*>(uuid++));
             this->players[(unsigned int) (uintptr_t) client->GetUserData()] = &new_player;
             this->entities[(unsigned int) (uintptr_t) client->GetUserData()] = &new_player;
             cout << "======> [INFO] New player with name \"" << player_name << "\" and id " << (unsigned int) (uintptr_t) client->GetUserData() << " joined" << endl;
+        }
+        
+        void handle_input_packet(StreamPeerBuffer& buf, ws28::Client *client) {
+            unsigned char movement_byte = buf.get_u8();
+            unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
+            
+            players[player_id]->keys = Tank::Keys {w: false, a: false, s: false, d: false};
+            
+            if (0b1000 & movement_byte) {
+                players[player_id]->keys.w = true;
+            } else if (0b0010 & movement_byte) {
+                players[player_id]->keys.s = true;
+            }
+            
+            if (0b0100 & movement_byte) {
+                players[player_id]->keys.a = true;
+            } else if (0b0001 & movement_byte) {
+                players[player_id]->keys.d = true;
+            }
+        }
+        
+        void update() {
+            for (const auto &entity : entities) {
+                entity.second->position += entity.second->velocity;
+            }
+        }
+        
+        void mainloop() {
+            uv_timer_t timer;
+            uv_timer_init(uv_default_loop(), &timer);
+            timer.data = this;
+            uv_timer_start(&timer, [](uv_timer_t *timer) {
+                auto &arena = *(Arena*)(timer->data);
+                arena.update();
+            }, 10, 1000/30);
         }
 
         void listen(int port) {
@@ -106,8 +173,8 @@ class Arena {
             assert(server.Listen(port));
                     
             cout << "======> [INFO] Listening on port " << port << endl;
-            uv_run(uv_default_loop(), UV_RUN_DEFAULT);
-            assert(uv_loop_close(uv_default_loop()) == 0);
+            // uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+            // assert(uv_loop_close(uv_default_loop()) == 0);
         }
 };
 
@@ -142,10 +209,18 @@ int main(int argc, char **argv) {
             case 0:
                 arena.handle_init_packet(buf, client);
                 break;
+            
+            case 1:
+                arena.handle_input_packet(buf, client);
+                break;
         }
     });
     
     arena.listen(port);
+    arena.mainloop();
+    
+    uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+    assert(uv_loop_close(uv_default_loop()) == 0);
     
     return 0;
 }
