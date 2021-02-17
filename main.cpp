@@ -84,6 +84,7 @@ class Entity {
     public:
         Vector2 position = Vector2(0, 0);
         Vector2 velocity = Vector2(0, 0);
+        float angular_velocity = 0;
         float friction = 0.9f;
         float& x = position.x;
         float& y = position.y;
