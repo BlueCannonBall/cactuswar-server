@@ -130,15 +130,18 @@ class Arena {
             Tank* new_player = new Tank;
             new_player->name = player_name;
             new_player->client = client;
-            client->SetUserData(reinterpret_cast<void*>(uuid++));
-            this->entities.players[(unsigned int) (uintptr_t) client->GetUserData()] = new_player;
-            this->entities.entities[(unsigned int) (uintptr_t) client->GetUserData()] = new_player;
-            cout << "======> [INFO] New player with name \"" << player_name << "\" and id " << (unsigned int) (uintptr_t) client->GetUserData() << " joined" << endl;
+
+            unsigned int player_id = uuid++;
+            client->SetUserData(reinterpret_cast<void*>(player_id));
+            this->entities.players[player_id] = new_player;
+            this->entities.entities[player_id] = new_player;
+
+            cout << "======> [INFO] New player with name \"" << player_name << "\" and id " << player_id << " joined" << endl;
             
             buf.data_array = vector<unsigned char>();
             buf.offset = 0;
             buf.put_u8(3);
-            buf.put_u32((unsigned int) (uintptr_t) client->GetUserData());
+            buf.put_u32(player_id);
             client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
         }
         
