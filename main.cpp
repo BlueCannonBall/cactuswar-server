@@ -84,7 +84,6 @@ class Entity {
     public:
         Vector2 position = Vector2(0, 0);
         Vector2 velocity = Vector2(0, 0);
-        float angular_velocity = 0;
         float rotation = 0;
         float friction = 0.9f;
         float& x = position.x;
@@ -272,7 +271,7 @@ int main(int argc, char **argv) {
         cout << "======> [INFO] Got packet with id " << +packet_id << endl;
         switch (packet_id) {
             case 0:
-                if (len < 2) {
+                if (len < 3) {
                     client->Destroy();
                     arena.entities.players.erase(player_id);
                     return;
@@ -280,6 +279,11 @@ int main(int argc, char **argv) {
                 arena.handle_init_packet(buf, client);
                 break;
             case 1:
+                if (len < 3) {
+                    client->Destroy();
+                    arena.entities.players.erase(player_id);
+                    return;
+                }
                 arena.handle_input_packet(buf, client);
                 break;
         }
