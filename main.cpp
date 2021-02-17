@@ -13,13 +13,11 @@
 using namespace std;
 using namespace spb;
 
-// static volatile sig_atomic_t quit = false;
 unsigned int uuid = 0;
 
-// unsigned int get_uuid() {
-    // uuid++;
-    // return uuid - 1;
-// }
+unsigned int get_uuid() {
+    return uuid++;
+}
 
 class Vector2 {
     public:
