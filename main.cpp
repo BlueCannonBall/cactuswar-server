@@ -2,7 +2,7 @@
 #include <uv.h>
 #include "ws28/Server.h"
 #include <string>
-#include "streampeerbuffer.h"
+#include "streampeerbuffer.hpp"
 #include <cmath>
 #include <vector>
 #include <map>
@@ -85,6 +85,7 @@ class Entity {
         Vector2 position = Vector2(0, 0);
         Vector2 velocity = Vector2(0, 0);
         float angular_velocity = 0;
+        float rotation = 0;
         float friction = 0.9f;
         float& x = position.x;
         float& y = position.y;
@@ -105,7 +106,7 @@ class Tank: public Entity {
         ws28::Client *client = nullptr;
         Keys keys = Keys {.W = false, .A = false, .S = false, .D = false};
         float movement_speed = 1;
-        float friction = 0.1f;
+        float friction = 0.3f;
 };
 
 class Arena {
@@ -133,7 +134,6 @@ class Arena {
             unsigned int player_id = uuid++;
             client->SetUserData(reinterpret_cast<void*>(player_id));
             this->entities.players[player_id] = new_player;
-            this->entities.entities[player_id] = new_player;
 
             cout << "======> [INFO] New player with name \"" << player_name << "\" and id " << player_id << " joined" << endl;
             
@@ -211,17 +211,28 @@ class Arena {
                         entities.entities.erase(entity.first);
                         continue;
                     }
-                    buf.put_u8(0);
-                    buf.put_u32(entity.first);
-                    buf.put_16(entity.second->position.x);
+                    buf.put_u8(0); // id
+                    buf.put_u32(entity.first); // game id
+                    buf.put_16(entity.second->position.x); // position
                     buf.put_16(entity.second->position.y);
-                    buf.put_float(0);
-                    player.second->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
+                    buf.put_float(entity.second->rotation); // rotation
                 }
+                for (const auto &player : entities.players) {
+                    if (player.second == nullptr) {
+                        entities.players.erase(player.first);
+                        continue;
+                    }
+                    buf.put_u8(0); // id
+                    buf.put_u32(player.first); // game id
+                    buf.put_16(player.second->position.x); // position
+                    buf.put_16(player.second->position.y);
+                    buf.put_float(player.second->rotation); // rotation
+                }
+                player.second->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2); // send census!
             }
         }
 
-        void listen(int port) {
+        void run(int port) {
             uv_timer_t* timer = new uv_timer_t();
             uv_timer_init(uv_default_loop(), timer);
             timer->data = this;
@@ -257,9 +268,15 @@ int main(int argc, char **argv) {
         StreamPeerBuffer buf(true);
         buf.data_array = vector<unsigned char>(data, data+len);
         unsigned char packet_id = buf.get_u8();
+        unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
         cout << "======> [INFO] Got packet with id " << +packet_id << endl;
         switch (packet_id) {
             case 0:
+                if (len < 2) {
+                    client->Destroy();
+                    arena.entities.players.erase(player_id);
+                    return;
+                }
                 arena.handle_init_packet(buf, client);
                 break;
             case 1:
@@ -272,10 +289,9 @@ int main(int argc, char **argv) {
 		cout << "======> [INFO] Client disconnected" << endl;
 		unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
 		arena.entities.players.erase(player_id);
-		arena.entities.entities.erase(player_id);
 	});
     
-    arena.listen(port);
+    arena.run(port);
     
     uv_run(uv_default_loop(), UV_RUN_DEFAULT);
     assert(uv_loop_close(uv_default_loop()) == 0);
