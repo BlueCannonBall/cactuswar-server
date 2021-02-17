@@ -3,35 +3,7 @@
         "arguments": [
             "g++",
             "-c",
-            "-std=c++17",
-            "-Wall",
-            "-O1",
-            "-o",
-            "build/dbserver",
-            "ws28/base64.cpp"
-        ],
-        "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
-        "file": "ws28/base64.cpp"
-    },
-    {
-        "arguments": [
-            "g++",
-            "-c",
-            "-std=c++17",
-            "-Wall",
-            "-O1",
-            "-o",
-            "build/dbserver",
-            "ws28/Server.cpp"
-        ],
-        "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
-        "file": "ws28/Server.cpp"
-    },
-    {
-        "arguments": [
-            "g++",
-            "-c",
-            "-std=c++17",
+            "-std=c++14",
             "-Wall",
             "-O1",
             "-o",
@@ -45,7 +17,7 @@
         "arguments": [
             "g++",
             "-c",
-            "-std=c++17",
+            "-std=c++14",
             "-Wall",
             "-O1",
             "-o",
@@ -59,7 +31,7 @@
         "arguments": [
             "g++",
             "-c",
-            "-std=c++17",
+            "-std=c++14",
             "-Wall",
             "-O1",
             "-o",
@@ -68,5 +40,33 @@
         ],
         "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
         "file": "main.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-std=c++14",
+            "-Wall",
+            "-O1",
+            "-o",
+            "build/dbserver",
+            "ws28/base64.cpp"
+        ],
+        "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
+        "file": "ws28/base64.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-std=c++14",
+            "-Wall",
+            "-O1",
+            "-o",
+            "build/dbserver",
+            "ws28/Server.cpp"
+        ],
+        "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
+        "file": "ws28/Server.cpp"
     }
 ]

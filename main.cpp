@@ -7,7 +7,6 @@
 #include <vector>
 #include <map>
 #include <typeinfo>
-#include <variant>
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
@@ -105,16 +104,22 @@ class Tank: public Entity {
         };
         string name = "Unnamed";
         ws28::Client *client = nullptr;
-        Keys keys = Keys {W: false, A: false, S: false, D: false};
+        Keys keys = Keys {.W = false, .A = false, .S = false, .D = false};
         float movement_speed = 1;
         float friction = 0.1f;
 };
 
 class Arena {
     public:
+        struct Entities {
+            map<unsigned int, Entity*> entities;
+            map<unsigned int, Tank*> players;
+        };
+
     	ws28::Server server{uv_default_loop(), nullptr};
-        map<unsigned int, Entity*> entities;
-        map<unsigned int, Tank*> players;
+        Entities entities;
+        // map<unsigned int, Entity*> entities;
+        // map<unsigned int, Tank*> entities.players;
 
         Arena(int message_size) {
             server.SetMaxMessageSize(message_size);
@@ -126,75 +131,82 @@ class Arena {
             new_player->name = player_name;
             new_player->client = client;
             client->SetUserData(reinterpret_cast<void*>(uuid++));
-            this->players[(unsigned int) (uintptr_t) client->GetUserData()] = new_player;
-            this->entities[(unsigned int) (uintptr_t) client->GetUserData()] = new_player;
+            this->entities.players[(unsigned int) (uintptr_t) client->GetUserData()] = new_player;
+            this->entities.entities[(unsigned int) (uintptr_t) client->GetUserData()] = new_player;
             cout << "======> [INFO] New player with name \"" << player_name << "\" and id " << (unsigned int) (uintptr_t) client->GetUserData() << " joined" << endl;
+            
+            buf.data_array = vector<unsigned char>();
+            buf.offset = 0;
+            buf.put_u8(3);
+            buf.put_u32((unsigned int) (uintptr_t) client->GetUserData());
+            client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
         }
         
         void handle_input_packet(StreamPeerBuffer& buf, ws28::Client *client) {
             unsigned char movement_byte = buf.get_u8();
             unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
             
-            players[player_id]->keys = Tank::Keys {W: false, A: false, S: false, D: false};
+            entities.players[player_id]->keys = Tank::Keys {.W = false, .A = false, .S = false, .D = false};
             
             if (0b1000 & movement_byte) {
-                players[player_id]->keys.W = true;
+                entities.players[player_id]->keys.W = true;
                 //puts("w");
             } else if (0b0010 & movement_byte) {
-                players[player_id]->keys.S = true;
+                entities.players[player_id]->keys.S = true;
                 //puts("s");
             }
             
             if (0b0100 & movement_byte) {
-                players[player_id]->keys.A = true;
+                entities.players[player_id]->keys.A = true;
                 //puts("a");
             } else if (0b0001 & movement_byte) {
-                players[player_id]->keys.D = true;
+                entities.players[player_id]->keys.D = true;
                 //puts("d");
             }
         }
         
         void update() {
-            for (const auto &entity : entities) {
+            for (const auto &entity : entities.entities) {
                 if (entity.second == nullptr) {
-                    entities.erase(entity.first);
+                    entities.entities.erase(entity.first);
                     continue;
-                }
-                
-                Tank* tank = nullptr;
-                if ((tank = reinterpret_cast<Tank*>(entity.second))) {
-                    if (tank->keys.W) {
-                        tank->velocity.y -= tank->movement_speed;
-                    } else if (tank->keys.S) {
-                        tank->velocity.y += tank->movement_speed;
-                    }
-                        
-                    if (tank->keys.A) {
-                        tank->velocity.x -= tank->movement_speed;
-                    } else if (tank->keys.D) {
-                        tank->velocity.x += tank->movement_speed;
-                    }
                 }
                 
                 entity.second->velocity *= Vector2(entity.second->friction, entity.second->friction);
                 entity.second->position += entity.second->velocity;
             }
             
-            for (const auto &player : players) {
+            for (const auto &player : entities.players) {
                 if (player.second == nullptr) {
-                    players.erase(player.first);
+                    entities.players.erase(player.first);
                     continue;
                 }
                 if (player.second->client == nullptr) {
-                    players.erase(player.first);
+                    entities.players.erase(player.first);
                     continue;
                 }
+
+                if (player.second->keys.W) {
+                    player.second->velocity.y -= player.second->movement_speed;
+                } else if (player.second->keys.S) {
+                    player.second->velocity.y += player.second->movement_speed;
+                }
+                    
+                if (player.second->keys.A) {
+                    player.second->velocity.x -= player.second->movement_speed;
+                } else if (player.second->keys.D) {
+                    player.second->velocity.x += player.second->movement_speed;
+                }
+
+                player.second->velocity *= Vector2(player.second->friction, player.second->friction);
+                player.second->position += player.second->velocity;
+
                 StreamPeerBuffer buf(true);
                 buf.put_u8(2);
-                buf.put_u16(entities.size());
-                for (const auto &entity : entities) {
+                buf.put_u16(entities.entities.size());
+                for (const auto &entity : entities.entities) {
                     if (entity.second == nullptr) {
-                        entities.erase(entity.first);
+                        entities.entities.erase(entity.first);
                         continue;
                     }
                     buf.put_u8(0);
@@ -208,19 +220,12 @@ class Arena {
         }
 
         void listen(int port) {
-            static uv_timer_t timer;
-            uv_timer_init(uv_default_loop(), &timer);
-            timer.data = this;
-            uv_timer_start(&timer, [](uv_timer_t *timer) {
+            uv_timer_t* timer = new uv_timer_t();
+            uv_timer_init(uv_default_loop(), timer);
+            timer->data = this;
+            uv_timer_start(timer, [](uv_timer_t *timer) {
                 auto &arena = *(Arena*)(timer->data);
                 arena.update();
-                // if (quit) {
-                    // puts("======> [INFO] Waiting for clients to disconnect, send another SIGINT to force quit");
-                    // auto &s = arena.server;
-                    // s.StopListening();
-                    // uv_timer_stop(timer);
-                    // uv_close((uv_handle_t*) timer, nullptr);
-                // }
             }, 10, 1000/30);
         
             assert(server.Listen(port));
@@ -230,14 +235,6 @@ class Arena {
 };
 
 int main(int argc, char **argv) {
-    // signal(SIGINT, [](int) {
-        // if (quit) {
-            // exit(1);
-        // } else {
-            // quit = true;
-        // }
-    // });
-
     int port;
     if (argc >= 2) {
         port = atoi(argv[1]);
@@ -272,16 +269,14 @@ int main(int argc, char **argv) {
     arena.server.SetClientDisconnectedCallback([](ws28::Client *client){
 		cout << "======> [INFO] Client disconnected" << endl;
 		unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-		arena.players.erase(player_id);
-		arena.entities.erase(player_id);
+		arena.entities.players.erase(player_id);
+		arena.entities.entities.erase(player_id);
 	});
     
     arena.listen(port);
-    //arena.mainloop();
     
     uv_run(uv_default_loop(), UV_RUN_DEFAULT);
     assert(uv_loop_close(uv_default_loop()) == 0);
-    //arena.mainloop();
     
     return 0;
 }
