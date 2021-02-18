@@ -7,41 +7,42 @@
 
 #pragma once
 
-using namespace std;
-
 namespace spb
 {
     class StreamPeerBuffer
     {
         private:
-            template<typename T> array<unsigned char, sizeof(T)>  to_bytes(const T& object)
-            {
-                array<unsigned char, sizeof(T)> bytes;
+          template <typename T>
+          std::array<unsigned char, sizeof(T)> to_bytes(const T &object) {
+            std::array<unsigned char, sizeof(T)> bytes;
 
-                const unsigned char* begin = reinterpret_cast<const unsigned char*>(addressof(object));
-                const unsigned char* end = begin + sizeof(T);
-                copy(begin, end, std::begin(bytes));
+            const unsigned char *begin =
+                reinterpret_cast<const unsigned char *>(std::addressof(object));
+            const unsigned char *end = begin + sizeof(T);
+            std::copy(begin, end, std::begin(bytes));
 
-                return bytes;
-            }
+            return bytes;
+          }
 
-            template<typename T>
-            T& from_bytes(const array<unsigned char, sizeof(T)>& bytes, T& object)
-            {
-                static_assert(is_trivially_copyable<T>::value, "not a TriviallyCopyable type");
+          template <typename T>
+          T &from_bytes(const std::array<unsigned char, sizeof(T)> &bytes,
+                        T &object) {
+            static_assert(std::is_trivially_copyable<T>::value,
+                          "not a TriviallyCopyable type");
 
-                unsigned char* begin_object = reinterpret_cast<unsigned char*>(addressof(object));
-                copy(begin(bytes), end(bytes), begin_object);
+            unsigned char *begin_object =
+                reinterpret_cast<unsigned char *>(std::addressof(object));
+            std::copy(std::begin(bytes), std::end(bytes), begin_object);
 
-                return object;
-            }
+            return object;
+          }
 
             template <typename T>
             T bswap(T val)
             {
                 T retVal;
-                char *pVal = (char*) &val;
-                char *pRetVal = (char*)&retVal;
+                char *pVal = (char *) &val;
+                char *pRetVal = (char *) &retVal;
                 int size = sizeof(T);
                 for (int i=0; i<size; i++) {
                     pRetVal[size-1-i] = pVal[i];
@@ -51,32 +52,32 @@ namespace spb
             }
         
         public:
-            vector<unsigned char> data_array;
-            unsigned int offset = 0;
-            bool endian_swap = false;
-            StreamPeerBuffer(bool);
-            
-            void put_u8(unsigned char);
-            void put_u16(unsigned short int);
-            void put_u32(unsigned int);
+          std::vector<unsigned char> data_array;
+          unsigned int offset = 0;
+          bool endian_swap = false;
+          StreamPeerBuffer(bool);
 
-            void put_8(char);
-            void put_16(short int);
-            void put_32(int);
+          void put_u8(unsigned char);
+          void put_u16(unsigned short int);
+          void put_u32(unsigned int);
 
-            unsigned char get_u8();
-            unsigned short int get_u16();
-            unsigned int get_u32();
+          void put_8(char);
+          void put_16(short int);
+          void put_32(int);
 
-            char get_8();
-            short int get_16();
-            int get_32();
+          unsigned char get_u8();
+          unsigned short int get_u16();
+          unsigned int get_u32();
 
-            void put_utf8(string);
-            string get_utf8();
-            
-            void put_float(float);
-            float get_float();
+          char get_8();
+          short int get_16();
+          int get_32();
+
+          void put_utf8(std::string);
+          std::string get_utf8();
+
+          void put_float(float);
+          float get_float();
     };
     StreamPeerBuffer::StreamPeerBuffer(bool is_opposite_endian)
     {
@@ -206,25 +207,21 @@ namespace spb
         }
         return number;
     }
-    void StreamPeerBuffer::put_utf8(string str)
-    {
-        std::vector<char> bytes(str.begin(), str.end());
-        put_u16(str.length());
-        for (char b : bytes)
-        {
-            put_8(b);
-        }
+    void StreamPeerBuffer::put_utf8(std::string str) {
+      std::vector<char> bytes(str.begin(), str.end());
+      put_u16(str.length());
+      for (char b : bytes) {
+        put_8(b);
+      }
     }
-    string StreamPeerBuffer::get_utf8()
-    {
-        unsigned short int length = get_u16();
-        std::vector<char> bytes;
-        for (unsigned short int b = 0; b<length; b++)
-        {
-            bytes.push_back(get_8());
-        }
-        string str(bytes.begin(), bytes.end());
-        return str;
+    std::string StreamPeerBuffer::get_utf8() {
+      unsigned short int length = get_u16();
+      std::vector<char> bytes;
+      for (unsigned short int b = 0; b < length; b++) {
+        bytes.push_back(get_8());
+      }
+      std::string str(bytes.begin(), bytes.end());
+      return str;
     }
     void StreamPeerBuffer::put_float(float number)
     {

@@ -6,9 +6,7 @@
 #include <cmath>
 #include <vector>
 #include <map>
-#include <typeinfo>
-
-#define UNUSED(expr) do { (void)(expr); } while (0)
+#include "bcblog.hpp"
 
 using namespace std;
 using namespace spb;
@@ -84,12 +82,27 @@ class Entity {
     public:
         Vector2 position = Vector2(0, 0);
         Vector2 velocity = Vector2(0, 0);
+        unsigned int id;
         float rotation = 0;
         float friction = 0.9f;
         float& x = position.x;
         float& y = position.y;
         string name = "Entity";
-        //virtual ~Entity() {}
+
+        virtual void next_tick() {
+            this->velocity *= Vector2(this->friction, this->friction);
+            this->position += this->velocity;
+        }
+
+        virtual void take_census(StreamPeerBuffer& buf) {
+            buf.put_u8(0); // id
+            buf.put_u32(this->id); // game id
+            buf.put_16(this->position.x); // position
+            buf.put_16(this->position.y);
+            buf.put_float(this->rotation); // rotation
+        }
+
+        virtual ~Entity() {}
 };
 
 /// A domtank, stats vary based on mockups.
@@ -101,11 +114,29 @@ class Tank: public Entity {
             bool S;
             bool D;
         };
+
         string name = "Unnamed";
         ws28::Client *client = nullptr;
         Keys keys = Keys {.W = false, .A = false, .S = false, .D = false};
-        float movement_speed = 1;
-        float friction = 0.3f;
+        float movement_speed = 3;
+        float friction = 0.8f;
+
+        void next_tick() {
+            if (this->keys.W) {
+                this->velocity.y -= this->movement_speed;
+            } else if (this->keys.S) {
+                this->velocity.y += this->movement_speed;
+            }
+                
+            if (this->keys.A) {
+                this->velocity.x -= this->movement_speed;
+            } else if (this->keys.D) {
+                this->velocity.x += this->movement_speed;
+            }
+
+            this->velocity *= Vector2(this->friction, this->friction);
+            this->position += this->velocity;
+        }
 };
 
 class Arena {
@@ -132,9 +163,10 @@ class Arena {
 
             unsigned int player_id = uuid++;
             client->SetUserData(reinterpret_cast<void*>(player_id));
+            new_player->id = player_id;
             this->entities.players[player_id] = new_player;
 
-            cout << "======> [INFO] New player with name \"" << player_name << "\" and id " << player_id << " joined" << endl;
+            INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined");
             
             buf.data_array = vector<unsigned char>();
             buf.offset = 0;
@@ -173,8 +205,7 @@ class Arena {
                     continue;
                 }
                 
-                entity.second->velocity *= Vector2(entity.second->friction, entity.second->friction);
-                entity.second->position += entity.second->velocity;
+                entity.second->next_tick();
             }
             
             for (const auto &player : entities.players) {
@@ -187,45 +218,24 @@ class Arena {
                     continue;
                 }
 
-                if (player.second->keys.W) {
-                    player.second->velocity.y -= player.second->movement_speed;
-                } else if (player.second->keys.S) {
-                    player.second->velocity.y += player.second->movement_speed;
-                }
-                    
-                if (player.second->keys.A) {
-                    player.second->velocity.x -= player.second->movement_speed;
-                } else if (player.second->keys.D) {
-                    player.second->velocity.x += player.second->movement_speed;
-                }
-
-                player.second->velocity *= Vector2(player.second->friction, player.second->friction);
-                player.second->position += player.second->velocity;
+                player.second->next_tick();
 
                 StreamPeerBuffer buf(true);
                 buf.put_u8(2);
-                buf.put_u16(entities.entities.size());
+                buf.put_u16(entities.entities.size() + entities.players.size());
                 for (const auto &entity : entities.entities) {
                     if (entity.second == nullptr) {
                         entities.entities.erase(entity.first);
                         continue;
                     }
-                    buf.put_u8(0); // id
-                    buf.put_u32(entity.first); // game id
-                    buf.put_16(entity.second->position.x); // position
-                    buf.put_16(entity.second->position.y);
-                    buf.put_float(entity.second->rotation); // rotation
+                    entity.second->take_census(buf);
                 }
                 for (const auto &player : entities.players) {
                     if (player.second == nullptr) {
                         entities.players.erase(player.first);
                         continue;
                     }
-                    buf.put_u8(0); // id
-                    buf.put_u32(player.first); // game id
-                    buf.put_16(player.second->position.x); // position
-                    buf.put_16(player.second->position.y);
-                    buf.put_float(player.second->rotation); // rotation
+                    player.second->take_census(buf);
                 }
                 player.second->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2); // send census!
             }
@@ -238,11 +248,11 @@ class Arena {
             uv_timer_start(timer, [](uv_timer_t *timer) {
                 auto &arena = *(Arena*)(timer->data);
                 arena.update();
-            }, 10, 1000/30);
+            }, 10, 1000/45);
         
             assert(server.Listen(port));
                     
-            cout << "======> [INFO] Listening on port " << port << endl;
+            INFO("Listening on port " << port);
         }
 };
 
@@ -251,7 +261,7 @@ int main(int argc, char **argv) {
     if (argc >= 2) {
         port = atoi(argv[1]);
     } else {
-        cerr << "======> [ERR] Please supply a port number" << endl;
+        ERR("Please supply a port number");
         return 1;
     }
     
@@ -259,7 +269,7 @@ int main(int argc, char **argv) {
     
     arena.server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest &) {
         UNUSED(client);
-        puts("======> [INFO] Client connected");
+        INFO("Client connected");
     });
     
     arena.server.SetClientDataCallback([](ws28::Client *client, char *data, size_t len, int opcode) {
@@ -268,7 +278,7 @@ int main(int argc, char **argv) {
         buf.data_array = vector<unsigned char>(data, data+len);
         unsigned char packet_id = buf.get_u8();
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-        cout << "======> [INFO] Got packet with id " << +packet_id << endl;
+        //INFO("Got packet with id " << +packet_id << " from player with id " << player_id);
         switch (packet_id) {
             case 0:
                 if (len < 3) {
@@ -279,7 +289,7 @@ int main(int argc, char **argv) {
                 arena.handle_init_packet(buf, client);
                 break;
             case 1:
-                if (len < 3) {
+                if (len < 2) {
                     client->Destroy();
                     arena.entities.players.erase(player_id);
                     return;
@@ -290,8 +300,9 @@ int main(int argc, char **argv) {
     });
     
     arena.server.SetClientDisconnectedCallback([](ws28::Client *client){
-		cout << "======> [INFO] Client disconnected" << endl;
+		INFO("Client disconnected");
 		unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
+        delete arena.entities.players[player_id];
 		arena.entities.players.erase(player_id);
 	});
     
