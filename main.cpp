@@ -89,7 +89,7 @@ class Entity {
         Vector2 velocity = Vector2(0, 0);
         unsigned int id;
         float rotation = 0;
-        float friction = 0.9f;
+        static constexpr float friction = 0.9f;
         float& x = position.x;
         float& y = position.y;
         string name = "Entity";
@@ -123,8 +123,8 @@ class Tank: public Entity {
         string name = "Unnamed";
         ws28::Client *client = nullptr;
         Keys keys = Keys {.W = false, .A = false, .S = false, .D = false};
-        float movement_speed = 3;
-        float friction = 0.8f;
+        static constexpr float movement_speed = 4;
+        static constexpr float friction = 0.8f;
 
         void next_tick() {
             if (this->keys.W) {
@@ -171,7 +171,7 @@ class Arena {
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
 
-            INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined");
+            INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
             buf.data_array = vector<unsigned char>();
             buf.offset = 0;
@@ -206,6 +206,7 @@ class Arena {
         void update() {
             for (const auto &entity : entities.entities) {
                 if (entity.second == nullptr) {
+                    delete entity.second;
                     entities.entities.erase(entity.first);
                     continue;
                 }
@@ -213,35 +214,40 @@ class Arena {
                 entity.second->next_tick();
             }
             
+            StreamPeerBuffer buf(true);
+            buf.put_u8(2);
+            buf.put_u16(entities.entities.size() + entities.players.size());
+            for (const auto &entity : entities.entities) {
+                if (entity.second == nullptr) {
+                    delete entity.second;
+                    entities.entities.erase(entity.first);
+                    continue;
+                }
+                entity.second->take_census(buf);
+            }
             for (const auto &player : entities.players) {
                 if (player.second == nullptr) {
+                    delete player.second;
+                    entities.players.erase(player.first);
+                    continue;
+                }
+                player.second->take_census(buf);
+            }
+
+            for (const auto &player : entities.players) {
+                if (player.second == nullptr) {
+                    delete player.second;
                     entities.players.erase(player.first);
                     continue;
                 }
                 if (player.second->client == nullptr) {
+                    delete player.second;
                     entities.players.erase(player.first);
                     continue;
                 }
 
                 player.second->next_tick();
-
-                StreamPeerBuffer buf(true);
-                buf.put_u8(2);
-                buf.put_u16(entities.entities.size() + entities.players.size());
-                for (const auto &entity : entities.entities) {
-                    if (entity.second == nullptr) {
-                        entities.entities.erase(entity.first);
-                        continue;
-                    }
-                    entity.second->take_census(buf);
-                }
-                for (const auto &player : entities.players) {
-                    if (player.second == nullptr) {
-                        entities.players.erase(player.first);
-                        continue;
-                    }
-                    player.second->take_census(buf);
-                }
+                
                 player.second->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2); // send census!
             }
         }
@@ -253,7 +259,7 @@ class Arena {
             uv_timer_start(timer, [](uv_timer_t *timer) {
                 auto &arena = *(Arena*)(timer->data);
                 arena.update();
-            }, 10, 1000/45);
+            }, 0, 1000/60);
         
             assert(server.Listen(port));
             
@@ -278,16 +284,22 @@ int main(int argc, char **argv) {
     });
     
     arena.server.SetClientDataCallback([](ws28::Client *client, char *data, size_t len, int opcode) {
-        UNUSED(opcode);
+        unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
+        if (opcode != 0x2) {
+            client->Destroy();
+            delete arena.entities.players[player_id];
+            arena.entities.players.erase(player_id);
+            return;
+        }
         StreamPeerBuffer buf(true);
         buf.data_array = vector<unsigned char>(data, data+len);
         unsigned char packet_id = buf.get_u8();
-        unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
         //INFO("Got packet with id " << +packet_id << " from player with id " << player_id);
         switch (packet_id) {
             case 0:
                 if (len < 3) {
                     client->Destroy();
+                    delete arena.entities.players[player_id];
                     arena.entities.players.erase(player_id);
                     return;
                 }
@@ -296,6 +308,7 @@ int main(int argc, char **argv) {
             case 1:
                 if (len < 2) {
                     client->Destroy();
+                    delete arena.entities.players[player_id];
                     arena.entities.players.erase(player_id);
                     return;
                 }
