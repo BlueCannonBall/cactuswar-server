@@ -8,12 +8,17 @@
 #include <map>
 #include "bcblog.hpp"
 
+#define UNUSED(expr) do { (void)(expr); } while (0)
+
 using namespace std;
 using namespace spb;
 
 unsigned int uuid = 0;
 
 unsigned int get_uuid() {
+    if (uuid >= 4294965295) {
+        WARN("IDs are close to the 32-bit unsigned number limit");
+    }
     return uuid++;
 }
 
@@ -161,7 +166,7 @@ class Arena {
             new_player->name = player_name;
             new_player->client = client;
 
-            unsigned int player_id = uuid++;
+            unsigned int player_id = get_uuid();
             client->SetUserData(reinterpret_cast<void*>(player_id));
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
@@ -241,7 +246,7 @@ class Arena {
             }
         }
 
-        void run(int port) {
+        void run(unsigned short port) {
             uv_timer_t* timer = new uv_timer_t();
             uv_timer_init(uv_default_loop(), timer);
             timer->data = this;
@@ -251,13 +256,13 @@ class Arena {
             }, 10, 1000/45);
         
             assert(server.Listen(port));
-                    
-            INFO("Listening on port " << port);
+            
+            SUCCESS("Server listening on port " << port);
         }
 };
 
 int main(int argc, char **argv) {
-    int port;
+    unsigned short port;
     if (argc >= 2) {
         port = atoi(argv[1]);
     } else {

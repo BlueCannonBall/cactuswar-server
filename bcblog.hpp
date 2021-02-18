@@ -2,6 +2,8 @@
 #include <string>
 #include <sstream>
 #include <ctime>
+#include <mutex>
+#include <algorithm>
 
 #define RESET   "\033[0m"
 #define BLACK   "\033[30m"
@@ -21,17 +23,23 @@
 #define BOLDCYAN    "\033[1m\033[36m"
 #define BOLDWHITE   "\033[1m\033[37m"
 
-#define UNUSED(expr) do { (void)(expr); } while (0)
-#define INFO(expr) std::cout << BOLDBLUE << get_time() << " [INFO] " << RESET << expr << std::endl
-#define SUCCESS(expr) std::cout << BOLDGREEN << get_time() << " [SUCCESS] " << RESET << expr << std::endl
-#define ERR(expr) std::cerr << BOLDRED << get_time() << " [ERR] " << RESET << expr << std::endl
-#define WARN(expr) std::cout << BOLDYELLOW << get_time() << " [WARN] " << RESET << expr << std::endl
+#define INFO(log) bcblog::mtx.lock(); std::cout << BOLDBLUE << "[" << bcblog::get_time() << "] " << "[INFO] " << RESET << log << std::endl; bcblog::mtx.unlock()
+#define SUCCESS(log) bcblog::mtx.lock(); std::cout << BOLDGREEN << "[" << bcblog::get_time() << "] " << "[SUCCESS] " << RESET << log << std::endl; bcblog::mtx.unlock()
+#define ERR(log) bcblog::mtx.lock(); std::cerr << BOLDRED << "[" << bcblog::get_time() << "] " << "[ERR] " << RESET << log << std::endl; bcblog::mtx.unlock()
+#define WARN(log) bcblog::mtx.lock(); std::cout << BOLDYELLOW << "[" << bcblog::get_time() << "] " << "[WARN] " << RESET << log << std::endl; bcblog::mtx.unlock()
 
-std::string get_time() {
-    time_t t = time(0);
-    struct tm *now = localtime(&t);
-    std::stringstream sstm;
-    sstm << (now->tm_hour) << ':' << (now->tm_min) << ':' << now->tm_sec;
-    std::string s = sstm.str();
-    return s;
+namespace bcblog {
+    std::mutex mtx;
+
+    std::string get_time() {
+        time_t t = time(0);
+        char *dt = ctime(&t);
+        // struct tm *now = localtime(&t);
+        // std::stringstream sstm;
+        // sstm << (now->tm_hour) << ':' << (now->tm_min) << ':' << now->tm_sec;
+        // std::string s = sstm.str();
+        std::string s(dt);
+        s.erase(std::remove(s.begin(), s.end(), '\n'), s.end());
+        return s;
+    }
 }
