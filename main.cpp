@@ -7,6 +7,7 @@
 #include <vector>
 #include <map>
 #include "bcblog.hpp"
+#include <sstream>
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
@@ -204,16 +205,6 @@ class Arena {
         }
         
         void update() {
-            for (const auto &entity : entities.entities) {
-                if (entity.second == nullptr) {
-                    delete entity.second;
-                    entities.entities.erase(entity.first);
-                    continue;
-                }
-                
-                entity.second->next_tick();
-            }
-            
             StreamPeerBuffer buf(true);
             buf.put_u8(2);
             buf.put_u16(entities.entities.size() + entities.players.size());
@@ -223,8 +214,11 @@ class Arena {
                     entities.entities.erase(entity.first);
                     continue;
                 }
+                
+                entity.second->next_tick();
                 entity.second->take_census(buf);
             }
+            
             for (const auto &player : entities.players) {
                 if (player.second == nullptr) {
                     delete player.second;
@@ -249,16 +243,25 @@ class Arena {
                 player.second->next_tick();
                 
                 player.second->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2); // send census!
+                //INFO("A packet has been mailed! The Dombattles Postal Service will be shipping it in 2-5 buisness minutes.");
             }
         }
 
         void run(unsigned short port) {
+            for (int i = 0; i<50; i++) {
+                Entity *new_entity = new Entity;
+                new_entity->id = get_uuid();
+                new_entity->position = Vector2(rand() % 12000, rand() % 12000);
+                entities.entities[new_entity->id] = new_entity;
+            }
+
             uv_timer_t* timer = new uv_timer_t();
             uv_timer_init(uv_default_loop(), timer);
             timer->data = this;
             uv_timer_start(timer, [](uv_timer_t *timer) {
                 auto &arena = *(Arena*)(timer->data);
                 arena.update();
+                uv_update_time(uv_default_loop());
             }, 0, 1000/60);
         
             assert(server.Listen(port));
@@ -268,6 +271,7 @@ class Arena {
 };
 
 int main(int argc, char **argv) {
+    srand((unsigned) time(0));
     unsigned short port;
     if (argc >= 2) {
         port = atoi(argv[1]);
@@ -279,8 +283,7 @@ int main(int argc, char **argv) {
     static Arena arena(64000);
     
     arena.server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest &) {
-        UNUSED(client);
-        INFO("Client connected");
+        INFO("Client with ip " << client->GetIP() << " connected");
     });
     
     arena.server.SetClientDataCallback([](ws28::Client *client, char *data, size_t len, int opcode) {
@@ -323,6 +326,11 @@ int main(int argc, char **argv) {
         delete arena.entities.players[player_id];
 		arena.entities.players.erase(player_id);
 	});
+
+    arena.server.SetHTTPCallback([](ws28::HTTPRequest &req, ws28::HTTPResponse &res) {
+        res.send("Please connect with an real client.");
+        INFO("Got an http request...");
+    });
     
     arena.run(port);
     
