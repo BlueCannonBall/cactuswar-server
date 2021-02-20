@@ -164,14 +164,9 @@ class Arena {
             map<unsigned int, Shape*> shapes;
         };
 
-    	ws28::Server server{uv_default_loop(), nullptr};
         Entities entities;
         // map<unsigned int, Entity*> entities;
         // map<unsigned int, Tank*> entities.players;
-
-        Arena(int message_size) {
-            server.SetMaxMessageSize(message_size);
-        }
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
             string player_name = buf.get_utf8();
@@ -271,7 +266,7 @@ class Arena {
             }
         }
 
-        void run(unsigned short port) {
+        void run(ws28::Server& server, unsigned short port) {
             for (int i = 0; i<100; i++) {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uuid();
@@ -284,7 +279,6 @@ class Arena {
             timer->data = this;
             uv_timer_start(timer, [](uv_timer_t *timer) {
                 auto &arena = *(Arena*)(timer->data);
-                uv_update_time(uv_default_loop());
                 arena.update();
                 uv_update_time(uv_default_loop());
             }, 0, 1000/60);
@@ -305,13 +299,15 @@ int main(int argc, char **argv) {
         return 1;
     }
     
-    static Arena arena(64000);
+    static Arena arena;
+    ws28::Server server{uv_default_loop(), nullptr};
+    server.SetMaxMessageSize(64000);
     
-    arena.server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest &) {
+    server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest &) {
         INFO("Client with ip " << client->GetIP() << " connected");
     });
     
-    arena.server.SetClientDataCallback([](ws28::Client *client, char *data, size_t len, int opcode) {
+    server.SetClientDataCallback([](ws28::Client *client, char *data, size_t len, int opcode) {
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
         if (opcode != 0x2) {
             client->Destroy();
@@ -345,19 +341,19 @@ int main(int argc, char **argv) {
         }
     });
     
-    arena.server.SetClientDisconnectedCallback([](ws28::Client *client){
+    server.SetClientDisconnectedCallback([](ws28::Client *client){
 		INFO("Client disconnected");
 		unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
         delete arena.entities.players[player_id];
 		arena.entities.players.erase(player_id);
 	});
 
-    arena.server.SetHTTPCallback([](ws28::HTTPRequest &req, ws28::HTTPResponse &res) {
+    server.SetHTTPCallback([](ws28::HTTPRequest &req, ws28::HTTPResponse &res) {
         res.send("Please connect with an real client.");
         INFO("Got an http request...");
     });
     
-    arena.run(port);
+    arena.run(server, port);
     
     uv_run(uv_default_loop(), UV_RUN_DEFAULT);
     assert(uv_loop_close(uv_default_loop()) == 0);
