@@ -181,6 +181,7 @@ class Arena {
             client->SetUserData(reinterpret_cast<void*>(player_id));
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
+            new_player->position = Vector2(rand() % 9000 + 3000, rand() % 9000 + 3000);
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
@@ -305,7 +306,7 @@ class Arena {
 };
 
 int main(int argc, char **argv) {
-    srand((unsigned) time(0));
+    srand(69420);
     unsigned short port;
     if (argc >= 2) {
         port = atoi(argv[1]);
