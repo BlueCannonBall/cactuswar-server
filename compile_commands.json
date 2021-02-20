@@ -8,10 +8,10 @@
             "-O2",
             "-o",
             "build/dbserver",
-            "ws28/Server.cpp"
+            "ws28/Client.cpp"
         ],
         "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
-        "file": "ws28/Server.cpp"
+        "file": "ws28/Client.cpp"
     },
     {
         "arguments": [
@@ -22,10 +22,10 @@
             "-O2",
             "-o",
             "build/dbserver",
-            "ws28/Client.cpp"
+            "main.cpp"
         ],
         "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
-        "file": "ws28/Client.cpp"
+        "file": "main.cpp"
     },
     {
         "arguments": [
@@ -50,10 +50,10 @@
             "-O2",
             "-o",
             "build/dbserver",
-            "ws28/base64.cpp"
+            "ws28/Server.cpp"
         ],
         "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
-        "file": "ws28/base64.cpp"
+        "file": "ws28/Server.cpp"
     },
     {
         "arguments": [
@@ -64,9 +64,9 @@
             "-O2",
             "-o",
             "build/dbserver",
-            "main.cpp"
+            "ws28/base64.cpp"
         ],
         "directory": "/home/optimal/Desktop/mm_files/cpp/dombattles-server",
-        "file": "main.cpp"
+        "file": "ws28/base64.cpp"
     }
 ]

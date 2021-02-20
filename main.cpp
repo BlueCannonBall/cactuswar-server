@@ -145,11 +145,23 @@ class Tank: public Entity {
         }
 };
 
+class Shape: public Entity {
+    public:
+        void take_census(StreamPeerBuffer& buf) {
+            buf.put_u8(1); // id
+            buf.put_u32(this->id); // game id
+            buf.put_16(this->position.x); // position
+            buf.put_16(this->position.y);
+            buf.put_u8(6); // sides
+        }
+};
+
 class Arena {
     public:
         struct Entities {
             map<unsigned int, Entity*> entities;
             map<unsigned int, Tank*> players;
+            map<unsigned int, Shape*> shapes;
         };
 
     	ws28::Server server{uv_default_loop(), nullptr};
@@ -207,7 +219,8 @@ class Arena {
         void update() {
             StreamPeerBuffer buf(true);
             buf.put_u8(2);
-            buf.put_u16(entities.entities.size() + entities.players.size());
+            buf.put_u16(entities.entities.size() + entities.players.size() + entities.shapes.size());
+
             for (const auto &entity : entities.entities) {
                 if (entity.second == nullptr) {
                     delete entity.second;
@@ -218,6 +231,17 @@ class Arena {
                 entity.second->next_tick();
                 entity.second->take_census(buf);
             }
+
+            for (const auto &shape : entities.shapes) {
+                if (shape.second == nullptr) {
+                    delete shape.second;
+                    entities.shapes.erase(shape.first);
+                    continue;
+                }
+                
+                shape.second->next_tick();
+                shape.second->take_census(buf);
+            }
             
             for (const auto &player : entities.players) {
                 if (player.second == nullptr) {
@@ -225,6 +249,8 @@ class Arena {
                     entities.players.erase(player.first);
                     continue;
                 }
+
+                player.second->next_tick();
                 player.second->take_census(buf);
             }
 
@@ -239,8 +265,6 @@ class Arena {
                     entities.players.erase(player.first);
                     continue;
                 }
-
-                player.second->next_tick();
                 
                 player.second->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2); // send census!
                 //INFO("A packet has been mailed! The Dombattles Postal Service will be shipping it in 2-5 buisness minutes.");
@@ -248,11 +272,11 @@ class Arena {
         }
 
         void run(unsigned short port) {
-            for (int i = 0; i<50; i++) {
-                Entity *new_entity = new Entity;
-                new_entity->id = get_uuid();
-                new_entity->position = Vector2(rand() % 12000, rand() % 12000);
-                entities.entities[new_entity->id] = new_entity;
+            for (int i = 0; i<100; i++) {
+                Shape *new_shape = new Shape;
+                new_shape->id = get_uuid();
+                new_shape->position = Vector2(rand() % 12000 + 0, rand() % 12000 + 0);
+                entities.shapes[new_shape->id] = new_shape;
             }
 
             uv_timer_t* timer = new uv_timer_t();
@@ -260,6 +284,7 @@ class Arena {
             timer->data = this;
             uv_timer_start(timer, [](uv_timer_t *timer) {
                 auto &arena = *(Arena*)(timer->data);
+                uv_update_time(uv_default_loop());
                 arena.update();
                 uv_update_time(uv_default_loop());
             }, 0, 1000/60);
