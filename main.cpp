@@ -7,7 +7,6 @@
 #include <vector>
 #include <map>
 #include "bcblog.hpp"
-#include <sstream>
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
@@ -28,7 +27,7 @@ class Vector2 {
         float x = 0;
         float y = 0;
         
-        Vector2(float x, float y) {
+        Vector2(float x=0, float y=0) {
             this->x = x;
             this->y = y;
         }
@@ -89,7 +88,7 @@ class Entity {
         Vector2 position = Vector2(0, 0);
         Vector2 velocity = Vector2(0, 0);
         unsigned int id;
-        float rotation = 0;
+        double rotation = 0;
         static constexpr float friction = 0.9f;
         float& x = position.x;
         float& y = position.y;
@@ -108,35 +107,39 @@ class Entity {
             buf.put_float(this->rotation); // rotation
         }
 
-        virtual ~Entity() {}
+        virtual ~Entity() {
+            //INFO("Entity destroyed.");
+        }
 };
 
 /// A domtank, stats vary based on mockups.
 class Tank: public Entity {
     public:
-        struct Keys {
+        struct Input {
             bool W;
             bool A;
             bool S;
             bool D;
+            bool mousedown;
+            Vector2 mousepos;
         };
 
         string name = "Unnamed";
         ws28::Client *client = nullptr;
-        Keys keys = Keys {.W = false, .A = false, .S = false, .D = false};
+        Input input = Input {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
         static constexpr float movement_speed = 4;
         static constexpr float friction = 0.8f;
 
         void next_tick() {
-            if (this->keys.W) {
+            if (this->input.W) {
                 this->velocity.y -= this->movement_speed;
-            } else if (this->keys.S) {
+            } else if (this->input.S) {
                 this->velocity.y += this->movement_speed;
             }
                 
-            if (this->keys.A) {
+            if (this->input.A) {
                 this->velocity.x -= this->movement_speed;
-            } else if (this->keys.D) {
+            } else if (this->input.D) {
                 this->velocity.x += this->movement_speed;
             }
 
@@ -152,7 +155,7 @@ class Shape: public Entity {
             buf.put_u32(this->id); // game id
             buf.put_16(this->position.x); // position
             buf.put_16(this->position.y);
-            buf.put_u8(6); // sides
+            buf.put_u8(7); // sides
         }
 };
 
@@ -192,23 +195,35 @@ class Arena {
             unsigned char movement_byte = buf.get_u8();
             unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
             
-            entities.players[player_id]->keys = Tank::Keys {.W = false, .A = false, .S = false, .D = false};
+            entities.players[player_id]->input = Tank::Input {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
             
-            if (0b1000 & movement_byte) {
-                entities.players[player_id]->keys.W = true;
+            if (0b10000 & movement_byte) {
+                entities.players[player_id]->input.W = true;
                 //puts("w");
-            } else if (0b0010 & movement_byte) {
-                entities.players[player_id]->keys.S = true;
+            } else if (0b00100 & movement_byte) {
+                entities.players[player_id]->input.S = true;
                 //puts("s");
             }
             
-            if (0b0100 & movement_byte) {
-                entities.players[player_id]->keys.A = true;
+            if (0b01000 & movement_byte) {
+                entities.players[player_id]->input.A = true;
                 //puts("a");
-            } else if (0b0001 & movement_byte) {
-                entities.players[player_id]->keys.D = true;
+            } else if (0b00010 & movement_byte) {
+                entities.players[player_id]->input.D = true;
                 //puts("d");
             }
+
+            if (0b00001 & movement_byte) {
+                entities.players[player_id]->input.mousedown = true;
+            }
+
+            short mousex = buf.get_16();
+            short mousey = buf.get_16();
+            entities.players[player_id]->input.mousepos = Vector2(mousex, mousey);
+            entities.players[player_id]->rotation = atan2(entities.players[player_id]->input.mousepos.y - entities.players[player_id]->position.y, entities.players[player_id]->input.mousepos.x - entities.players[player_id]->position.x);
+            // INFO("Player rotation: " << entities.players[player_id]->rotation);
+            // INFO("Player position: " << entities.players[player_id]->position);
+            // INFO("Mouse position: " << entities.players[player_id]->input.mousepos);
         }
         
         void update() {
@@ -281,7 +296,7 @@ class Arena {
                 auto &arena = *(Arena*)(timer->data);
                 arena.update();
                 uv_update_time(uv_default_loop());
-            }, 0, 1000/60);
+            }, 0, 1000/30);
         
             assert(server.Listen(port));
             
@@ -301,7 +316,7 @@ int main(int argc, char **argv) {
     
     static Arena arena;
     ws28::Server server{uv_default_loop(), nullptr};
-    server.SetMaxMessageSize(64000);
+    server.SetMaxMessageSize(12000);
     
     server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest &) {
         INFO("Client with ip " << client->GetIP() << " connected");
@@ -330,7 +345,7 @@ int main(int argc, char **argv) {
                 arena.handle_init_packet(buf, client);
                 break;
             case 1:
-                if (len < 2) {
+                if (len != 6) {
                     client->Destroy();
                     delete arena.entities.players[player_id];
                     arena.entities.players.erase(player_id);
