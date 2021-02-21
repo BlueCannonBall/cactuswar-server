@@ -10,7 +10,7 @@
 #include "quadtree.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
-#define COLLISION_STRENGTH 4
+#define COLLISION_STRENGTH 50
 
 using namespace std;
 using namespace spb;
