@@ -11,6 +11,7 @@
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 #define COLLISION_STRENGTH 5
+#pragma clang diagnostic ignored "-Woverloaded-virtual"
 
 using namespace std;
 using namespace spb;
