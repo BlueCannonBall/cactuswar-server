@@ -7,8 +7,10 @@
 #include <vector>
 #include <map>
 #include "bcblog.hpp"
+#include "quadtree.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
+#define COLLISION_STRENGTH 4
 
 using namespace std;
 using namespace spb;
@@ -82,6 +84,13 @@ class Vector2 {
         }
 };
 
+bool circle_collision(const Vector2& pos1, unsigned int radius1, const Vector2& pos2, unsigned int radius2) {
+    float dx = pos1.x - pos2.x;
+    float dy = pos1.y - pos2.y;
+    float distance = sqrt(dx * dx + dy * dy);
+    return distance < radius1 + radius2;
+}
+
 /// Base entity
 class Entity {
     public:
@@ -93,6 +102,7 @@ class Entity {
         float& x = position.x;
         float& y = position.y;
         string name = "Entity";
+        static constexpr unsigned radius = 50;
 
         virtual void next_tick() {
             this->velocity *= Vector2(this->friction, this->friction);
@@ -150,6 +160,8 @@ class Tank: public Entity {
 
 class Shape: public Entity {
     public:
+        static constexpr unsigned radius = 100;
+
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(1); // id
             buf.put_u32(this->id); // game id
@@ -168,6 +180,7 @@ class Arena {
         };
 
         Entities entities;
+        qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = 12000, .height = 12000}, 10, 4, 0);
         // map<unsigned int, Entity*> entities;
         // map<unsigned int, Tank*> entities.players;
         
@@ -182,6 +195,7 @@ class Arena {
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
             new_player->position = Vector2(rand() % 9000 + 3000, rand() % 9000 + 3000);
+            this->tree.insert(qt::Rect {.x = new_player->x - 50, .y = new_player->y - 50, .width = 100, .height = 100, .id = new_player->id, .radius = 50});
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
@@ -232,16 +246,18 @@ class Arena {
             buf.put_u8(2);
             buf.put_u16(entities.entities.size() + entities.players.size() + entities.shapes.size());
 
-            for (const auto &entity : entities.entities) {
-                if (entity.second == nullptr) {
-                    delete entity.second;
-                    entities.entities.erase(entity.first);
-                    continue;
-                }
+            this->tree.clear();
+            // for (const auto &entity : entities.entities) {
+            //     if (entity.second == nullptr) {
+            //         delete entity.second;
+            //         entities.entities.erase(entity.first);
+            //         continue;
+            //     }
                 
-                entity.second->next_tick();
-                entity.second->take_census(buf);
-            }
+            //     entity.second->next_tick();
+            //     entity.second->take_census(buf);
+            //     //this->tree.insert(qt::Rect {.x = entity.second->x - 50, .y = entity.second->y - 50, .width = 100, .height = 100, .id = entity.second->id});
+            // }
 
             for (const auto &shape : entities.shapes) {
                 if (shape.second == nullptr) {
@@ -252,6 +268,7 @@ class Arena {
                 
                 shape.second->next_tick();
                 shape.second->take_census(buf);
+                this->tree.insert(qt::Rect {.x = shape.second->x - 100, .y = shape.second->y - 100, .width = 200, .height = 200, .id = shape.second->id, .radius = 100});
             }
             
             for (const auto &player : entities.players) {
@@ -263,6 +280,62 @@ class Arena {
 
                 player.second->next_tick();
                 player.second->take_census(buf);
+                this->tree.insert(qt::Rect {.x = player.second->x - 50, .y = player.second->y - 50, .width = 100, .height = 100, .id = player.second->id, .radius = 50});
+            }
+
+            for (const auto &shape : entities.shapes) {
+                if (shape.second == nullptr) {
+                    delete shape.second;
+                    entities.shapes.erase(shape.first);
+                    continue;
+                }
+
+                vector<qt::Rect> canidates = this->tree.retrieve(qt::Rect {.x = shape.second->x - 100, .y = shape.second->y - 100, .width = 200, .height = 200, .id = shape.second->id});
+                for (const auto canidate : canidates) {
+                    if (canidate.id == shape.second->id) {
+                        continue;
+                    }
+                    
+                    if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(shape.second->x, shape.second->y), shape.second->radius)) {
+                        // response
+                        float angle = atan2(canidate.y - shape.second->y, canidate.x - shape.second->x);
+                        Vector2 push_vec(cos(angle), sin(angle)); // heading vector
+                        shape.second->velocity.x += -push_vec.x * COLLISION_STRENGTH;
+                        shape.second->velocity.y += -push_vec.y * COLLISION_STRENGTH;
+                    }
+                }
+            }
+
+            for (const auto &player : entities.players) {
+                if (player.second == nullptr) {
+                    delete player.second;
+                    entities.shapes.erase(player.first);
+                    continue;
+                }
+
+                vector<qt::Rect> canidates = this->tree.retrieve(qt::Rect {.x = player.second->x - 50, .y = player.second->y - 50, .width = 100, .height = 100, .id = player.second->id});
+                for (const auto canidate : canidates) {
+                    if (canidate.id == player.second->id) {
+                        continue;
+                    }
+
+                    if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(player.second->x, player.second->y), player.second->radius)) {
+                        // response
+                        float angle = atan2(canidate.y - player.second->y, canidate.x - player.second->x);
+                        Vector2 push_vec(cos(angle), sin(angle)); // heading vector
+                        player.second->velocity.x += -push_vec.x * COLLISION_STRENGTH;
+                        player.second->velocity.y += -push_vec.y * COLLISION_STRENGTH;
+                    }
+                }
+            }
+            
+            for (const auto &player : entities.players) {
+                if (player.second == nullptr) {
+                    delete player.second;
+                    entities.players.erase(player.first);
+                    continue;
+                }
+
             }
 
             for (const auto &player : entities.players) {
@@ -287,6 +360,7 @@ class Arena {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uuid();
                 new_shape->position = Vector2(rand() % 12000 + 0, rand() % 12000 + 0);
+                this->tree.insert(qt::Rect {.x = new_shape->x - 100, .y = new_shape->y - 100, .width = 200, .height = 200, .id = new_shape->id, .radius = 100});
                 entities.shapes[new_shape->id] = new_shape;
             }
 
