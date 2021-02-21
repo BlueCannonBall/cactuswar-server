@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <vector>
 
+#pragma clang diagnostic ignored "-Wgnu-designator"
+
 namespace qt {
     template <typename ForwardIterator>
     ForwardIterator remove_duplicates( ForwardIterator first, ForwardIterator last )

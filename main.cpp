@@ -91,6 +91,8 @@ bool circle_collision(const Vector2& pos1, unsigned int radius1, const Vector2& 
     return distance < radius1 + radius2;
 }
 
+class Arena;
+
 /// Base entity
 class Entity {
     public:
@@ -133,6 +135,19 @@ class Entity {
         }
 };
 
+class Shape: public Entity {
+    public:
+        const unsigned radius = 100;
+
+        void take_census(StreamPeerBuffer& buf) {
+            buf.put_u8(1); // id
+            buf.put_u32(this->id); // game id
+            buf.put_16(this->position.x); // position
+            buf.put_16(this->position.y);
+            buf.put_u8(7); // sides
+        }
+};
+
 /// A domtank, stats vary based on mockups.
 class Tank: public Entity {
     public:
@@ -149,48 +164,10 @@ class Tank: public Entity {
         ws28::Client *client = nullptr;
         Input input = Input {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
         static constexpr float movement_speed = 4;
+        static constexpr float bullet_speed = 4;
         static constexpr float friction = 0.8f;
 
-        void next_tick() {
-            if (this->input.W) {
-                this->velocity.y -= this->movement_speed;
-            } else if (this->input.S) {
-                this->velocity.y += this->movement_speed;
-            }
-                
-            if (this->input.A) {
-                this->velocity.x -= this->movement_speed;
-            } else if (this->input.D) {
-                this->velocity.x += this->movement_speed;
-            }
-
-            this->velocity *= Vector2(this->friction, this->friction);
-            this->position += this->velocity;
-
-            if (this->x > 12000) {
-                this->x = 12000;
-            } else if (this->x < 0) {
-                this->x = 0;
-            }
-            if (this->y > 12000) {
-                this->y = 12000;
-            } else if (this->y < 0) {
-                this->y = 0;
-            }
-        }
-};
-
-class Shape: public Entity {
-    public:
-        const unsigned radius = 100;
-
-        void take_census(StreamPeerBuffer& buf) {
-            buf.put_u8(1); // id
-            buf.put_u32(this->id); // game id
-            buf.put_16(this->position.x); // position
-            buf.put_16(this->position.y);
-            buf.put_u8(7); // sides
-        }
+        void next_tick(Arena& arena);
 };
 
 class Arena {
@@ -202,7 +179,7 @@ class Arena {
         };
 
         Entities entities;
-        qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = 12000, .height = 12000}, 6, 8, 0);
+        qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = 12000, .height = 12000}, 10, 4, 0);
         // map<unsigned int, Entity*> entities;
         // map<unsigned int, Tank*> entities.players;
         
@@ -217,14 +194,14 @@ class Arena {
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
             new_player->position = Vector2(rand() % 9000 + 3000, rand() % 9000 + 3000);
-            this->tree.insert(qt::Rect {
-                .x = new_player->x - new_player->radius, 
-                .y = new_player->y - new_player->radius, 
-                .width = static_cast<double>(new_player->radius*2), 
-                .height = static_cast<double>(new_player->radius*2), 
-                .id = new_player->id, 
-                .radius = new_player->radius
-            });
+            // this->tree.insert(qt::Rect {
+            //     .x = new_player->x - new_player->radius, 
+            //     .y = new_player->y - new_player->radius, 
+            //     .width = static_cast<double>(new_player->radius*2), 
+            //     .height = static_cast<double>(new_player->radius*2), 
+            //     .id = new_player->id, 
+            //     .radius = new_player->radius
+            // });
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
@@ -314,7 +291,7 @@ class Arena {
                     continue;
                 }
 
-                entity.second->next_tick();
+                entity.second->next_tick(*this);
                 entity.second->take_census(buf);
                 this->tree.insert(qt::Rect {
                     .x = entity.second->x - entity.second->radius, 
@@ -408,14 +385,14 @@ class Arena {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uuid();
                 new_shape->position = Vector2(rand() % 12000 + 0, rand() % 12000 + 0);
-                this->tree.insert(qt::Rect {
-                    .x = new_shape->x - new_shape->radius, 
-                    .y = new_shape->y - new_shape->radius, 
-                    .width = static_cast<double>(new_shape->radius*2), 
-                    .height = static_cast<double>(new_shape->radius*2), 
-                    .id = new_shape->id, 
-                    .radius = new_shape->radius
-                });
+                // this->tree.insert(qt::Rect {
+                //     .x = new_shape->x - new_shape->radius, 
+                //     .y = new_shape->y - new_shape->radius, 
+                //     .width = static_cast<double>(new_shape->radius*2), 
+                //     .height = static_cast<double>(new_shape->radius*2), 
+                //     .id = new_shape->id, 
+                //     .radius = new_shape->radius
+                // });
                 entities.shapes[new_shape->id] = new_shape;
             }
 
@@ -433,6 +410,42 @@ class Arena {
             SUCCESS("Server listening on port " << port);
         }
 };
+
+void Tank::next_tick(Arena &arena) {
+    if (this->input.W) {
+        this->velocity.y -= this->movement_speed;
+    } else if (this->input.S) {
+        this->velocity.y += this->movement_speed;
+    }
+        
+    if (this->input.A) {
+        this->velocity.x -= this->movement_speed;
+    } else if (this->input.D) {
+        this->velocity.x += this->movement_speed;
+    }
+
+    if (this->input.mousedown) {
+        Shape *new_shape = new Shape;
+        new_shape->position = this->position;
+        new_shape->velocity = Vector2(sin(this->rotation) * bullet_speed, cos(this->rotation) * bullet_speed);
+        new_shape->id = get_uuid();
+        arena.entities.shapes[new_shape->id] = new_shape;
+    }
+
+    this->velocity *= Vector2(this->friction, this->friction);
+    this->position += this->velocity;
+
+    if (this->x > 12030) {
+        this->x = 12030;
+    } else if (this->x < -30) {
+        this->x = -30;
+    }
+    if (this->y > 12030) {
+        this->y = 12030;
+    } else if (this->y < -30) {
+        this->y = -30;
+    }
+}
 
 int main(int argc, char **argv) {
     srand(69420);
