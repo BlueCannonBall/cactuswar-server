@@ -10,7 +10,7 @@
 #include "quadtree.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
-#define COLLISION_STRENGTH 50
+#define COLLISION_STRENGTH 5
 
 using namespace std;
 using namespace spb;
@@ -102,11 +102,22 @@ class Entity {
         float& x = position.x;
         float& y = position.y;
         string name = "Entity";
-        static constexpr unsigned radius = 50;
+        const unsigned radius = 50;
 
         virtual void next_tick() {
             this->velocity *= Vector2(this->friction, this->friction);
             this->position += this->velocity;
+
+            if (this->x > 12000) {
+                this->x = 12000;
+            } else if (this->x < 0) {
+                this->x = 0;
+            }
+            if (this->y > 12000) {
+                this->y = 12000;
+            } else if (this->y < 0) {
+                this->y = 0;
+            }
         }
 
         virtual void take_census(StreamPeerBuffer& buf) {
@@ -155,12 +166,23 @@ class Tank: public Entity {
 
             this->velocity *= Vector2(this->friction, this->friction);
             this->position += this->velocity;
+
+            if (this->x > 12000) {
+                this->x = 12000;
+            } else if (this->x < 0) {
+                this->x = 0;
+            }
+            if (this->y > 12000) {
+                this->y = 12000;
+            } else if (this->y < 0) {
+                this->y = 0;
+            }
         }
 };
 
 class Shape: public Entity {
     public:
-        static constexpr unsigned radius = 100;
+        const unsigned radius = 100;
 
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(1); // id
@@ -180,7 +202,7 @@ class Arena {
         };
 
         Entities entities;
-        qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = 12000, .height = 12000}, 10, 4, 0);
+        qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = 12000, .height = 12000}, 6, 8, 0);
         // map<unsigned int, Entity*> entities;
         // map<unsigned int, Tank*> entities.players;
         
@@ -195,7 +217,14 @@ class Arena {
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
             new_player->position = Vector2(rand() % 9000 + 3000, rand() % 9000 + 3000);
-            this->tree.insert(qt::Rect {.x = new_player->x - 50, .y = new_player->y - 50, .width = 100, .height = 100, .id = new_player->id, .radius = 50});
+            this->tree.insert(qt::Rect {
+                .x = new_player->x - new_player->radius, 
+                .y = new_player->y - new_player->radius, 
+                .width = static_cast<double>(new_player->radius*2), 
+                .height = static_cast<double>(new_player->radius*2), 
+                .id = new_player->id, 
+                .radius = new_player->radius
+            });
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
@@ -259,83 +288,102 @@ class Arena {
             //     //this->tree.insert(qt::Rect {.x = entity.second->x - 50, .y = entity.second->y - 50, .width = 100, .height = 100, .id = entity.second->id});
             // }
 
-            for (const auto &shape : entities.shapes) {
-                if (shape.second == nullptr) {
-                    delete shape.second;
-                    entities.shapes.erase(shape.first);
+            for (const auto &entity : entities.shapes) {
+                if (entity.second == nullptr) {
+                    delete entity.second;
+                    entities.shapes.erase(entity.first);
                     continue;
                 }
                 
-                shape.second->next_tick();
-                shape.second->take_census(buf);
-                this->tree.insert(qt::Rect {.x = shape.second->x - 100, .y = shape.second->y - 100, .width = 200, .height = 200, .id = shape.second->id, .radius = 100});
+                entity.second->next_tick();
+                entity.second->take_census(buf);
+                this->tree.insert(qt::Rect {
+                    .x = entity.second->x - entity.second->radius, 
+                    .y = entity.second->y - entity.second->radius, 
+                    .width = static_cast<double>(entity.second->radius*2), 
+                    .height = static_cast<double>(entity.second->radius*2), 
+                    .id = entity.second->id, 
+                    .radius = entity.second->radius
+                });
             }
             
-            for (const auto &player : entities.players) {
-                if (player.second == nullptr) {
-                    delete player.second;
-                    entities.players.erase(player.first);
+            for (const auto &entity : entities.players) {
+                if (entity.second == nullptr) {
+                    delete entity.second;
+                    entities.players.erase(entity.first);
                     continue;
                 }
 
-                player.second->next_tick();
-                player.second->take_census(buf);
-                this->tree.insert(qt::Rect {.x = player.second->x - 50, .y = player.second->y - 50, .width = 100, .height = 100, .id = player.second->id, .radius = 50});
+                entity.second->next_tick();
+                entity.second->take_census(buf);
+                this->tree.insert(qt::Rect {
+                    .x = entity.second->x - entity.second->radius, 
+                    .y = entity.second->y - entity.second->radius, 
+                    .width = static_cast<double>(entity.second->radius*2), 
+                    .height = static_cast<double>(entity.second->radius*2), 
+                    .id = entity.second->id, 
+                    .radius = entity.second->radius
+                });
             }
 
-            for (const auto &shape : entities.shapes) {
-                if (shape.second == nullptr) {
-                    delete shape.second;
-                    entities.shapes.erase(shape.first);
+            for (const auto &entity : entities.shapes) {
+                if (entity.second == nullptr) {
+                    delete entity.second;
+                    entities.shapes.erase(entity.first);
                     continue;
                 }
 
-                vector<qt::Rect> canidates = this->tree.retrieve(qt::Rect {.x = shape.second->x - 100, .y = shape.second->y - 100, .width = 200, .height = 200, .id = shape.second->id});
+                vector<qt::Rect> canidates = this->tree.retrieve(qt::Rect {
+                    .x = entity.second->x - entity.second->radius,
+                    .y = entity.second->y - entity.second->radius,
+                    .width = static_cast<double>(entity.second->radius*2),
+                    .height = static_cast<double>(entity.second->radius*2),
+                    .id = entity.second->id,
+                    .radius = entity.second->radius
+                });
                 for (const auto canidate : canidates) {
-                    if (canidate.id == shape.second->id) {
+                    if (canidate.id == entity.second->id) {
                         continue;
                     }
                     
-                    if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(shape.second->x, shape.second->y), shape.second->radius)) {
+                    if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(entity.second->x, entity.second->y), entity.second->radius)) {
                         // response
-                        float angle = atan2(canidate.y - shape.second->y, canidate.x - shape.second->x);
+                        float angle = atan2((canidate.y + canidate.radius) - entity.second->y, (canidate.x + canidate.radius) - entity.second->x);
                         Vector2 push_vec(cos(angle), sin(angle)); // heading vector
-                        shape.second->velocity.x += -push_vec.x * COLLISION_STRENGTH;
-                        shape.second->velocity.y += -push_vec.y * COLLISION_STRENGTH;
+                        entity.second->velocity.x += -push_vec.x * COLLISION_STRENGTH;
+                        entity.second->velocity.y += -push_vec.y * COLLISION_STRENGTH;
                     }
                 }
             }
 
-            for (const auto &player : entities.players) {
-                if (player.second == nullptr) {
-                    delete player.second;
-                    entities.shapes.erase(player.first);
+            for (const auto &entity : entities.players) {
+                if (entity.second == nullptr) {
+                    delete entity.second;
+                    entities.players.erase(entity.first);
                     continue;
                 }
 
-                vector<qt::Rect> canidates = this->tree.retrieve(qt::Rect {.x = player.second->x - 50, .y = player.second->y - 50, .width = 100, .height = 100, .id = player.second->id});
+                vector<qt::Rect> canidates = this->tree.retrieve(qt::Rect {
+                    .x = entity.second->x - entity.second->radius, 
+                    .y = entity.second->y - entity.second->radius, 
+                    .width = static_cast<double>(entity.second->radius*2), 
+                    .height = static_cast<double>(entity.second->radius*2), 
+                    .id = entity.second->id, 
+                    .radius = entity.second->radius
+                });
                 for (const auto canidate : canidates) {
-                    if (canidate.id == player.second->id) {
+                    if (canidate.id == entity.second->id) {
                         continue;
                     }
-
-                    if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(player.second->x, player.second->y), player.second->radius)) {
+                    
+                    if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(entity.second->x, entity.second->y), entity.second->radius)) {
                         // response
-                        float angle = atan2(canidate.y - player.second->y, canidate.x - player.second->x);
+                        float angle = atan2((canidate.y + canidate.radius) - entity.second->y, (canidate.x + canidate.radius) - entity.second->x);
                         Vector2 push_vec(cos(angle), sin(angle)); // heading vector
-                        player.second->velocity.x += -push_vec.x * COLLISION_STRENGTH;
-                        player.second->velocity.y += -push_vec.y * COLLISION_STRENGTH;
+                        entity.second->velocity.x += -push_vec.x * COLLISION_STRENGTH;
+                        entity.second->velocity.y += -push_vec.y * COLLISION_STRENGTH;
                     }
                 }
-            }
-            
-            for (const auto &player : entities.players) {
-                if (player.second == nullptr) {
-                    delete player.second;
-                    entities.players.erase(player.first);
-                    continue;
-                }
-
             }
 
             for (const auto &player : entities.players) {
@@ -360,7 +408,14 @@ class Arena {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uuid();
                 new_shape->position = Vector2(rand() % 12000 + 0, rand() % 12000 + 0);
-                this->tree.insert(qt::Rect {.x = new_shape->x - 100, .y = new_shape->y - 100, .width = 200, .height = 200, .id = new_shape->id, .radius = 100});
+                this->tree.insert(qt::Rect {
+                    .x = new_shape->x - new_shape->radius, 
+                    .y = new_shape->y - new_shape->radius, 
+                    .width = static_cast<double>(new_shape->radius*2), 
+                    .height = static_cast<double>(new_shape->radius*2), 
+                    .id = new_shape->id, 
+                    .radius = new_shape->radius
+                });
                 entities.shapes[new_shape->id] = new_shape;
             }
 
