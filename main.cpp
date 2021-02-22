@@ -249,9 +249,9 @@ class Arena {
         }
         
         void update() {
-            StreamPeerBuffer buf(true);
-            buf.put_u8(2);
-            buf.put_u16(entities.entities.size() + entities.players.size() + entities.shapes.size());
+            // StreamPeerBuffer buf(true);
+            // buf.put_u8(2);
+            // buf.put_u16(entities.entities.size() + entities.players.size() + entities.shapes.size());
 
             this->tree.clear();
             // for (const auto &entity : entities.entities) {
@@ -274,7 +274,7 @@ class Arena {
                 }
                 
                 entity.second->next_tick();
-                entity.second->take_census(buf);
+                //entity.second->take_census(buf);
                 this->tree.insert(qt::Rect {
                     .x = entity.second->x - entity.second->radius, 
                     .y = entity.second->y - entity.second->radius, 
@@ -293,7 +293,7 @@ class Arena {
                 }
 
                 entity.second->next_tick(*this);
-                entity.second->take_census(buf);
+                //entity.second->take_census(buf);
                 this->tree.insert(qt::Rect {
                     .x = entity.second->x - entity.second->radius, 
                     .y = entity.second->y - entity.second->radius, 
@@ -362,23 +362,56 @@ class Arena {
                         entity.second->velocity.y += -push_vec.y * COLLISION_STRENGTH;
                     }
                 }
+
+                if (entity.second->client == nullptr) {
+                    delete entity.second;
+                    entities.players.erase(entity.first);
+                    continue;
+                }
+                canidates = this->tree.retrieve(qt::Rect {
+                    .x = entity.second->x - 2000, 
+                    .y = entity.second->y - 2000, 
+                    .width = 4000, 
+                    .height = 4000, 
+                    .id = 0, 
+                    .radius = 4000
+                });
+                StreamPeerBuffer buf(true);
+                unsigned short census_size = 0;
+
+                for (const auto canidate : canidates) {
+                    if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(entity.second->x, entity.second->y), 2000)) {
+                        if (entities.players.find(canidate.id) != entities.players.end()) {
+                            entities.players[canidate.id]->take_census(buf);
+                            census_size++;
+                        } else if (entities.shapes.find(canidate.id) != entities.shapes.end()) {
+                            entities.shapes[canidate.id]->take_census(buf);
+                            census_size++;
+                        }
+                    }
+                }
+
+                buf.offset = 0;
+                buf.put_u8(2);
+                buf.put_u16(census_size);
+                entity.second->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
             }
 
-            for (const auto &player : entities.players) {
-                if (player.second == nullptr) {
-                    delete player.second;
-                    entities.players.erase(player.first);
-                    continue;
-                }
-                if (player.second->client == nullptr) {
-                    delete player.second;
-                    entities.players.erase(player.first);
-                    continue;
-                }
+            // for (const auto &player : entities.players) {
+            //     if (player.second == nullptr) {
+            //         delete player.second;
+            //         entities.players.erase(player.first);
+            //         continue;
+            //     }
+            //     if (player.second->client == nullptr) {
+            //         delete player.second;
+            //         entities.players.erase(player.first);
+            //         continue;
+            //     }
                 
-                player.second->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2); // send census!
-                //INFO("A packet has been mailed! The Dombattles Postal Service will be shipping it in 2-5 buisness minutes.");
-            }
+            //     player.second->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2); // send census!
+            //     //INFO("A packet has been mailed! The Dombattles Postal Service will be shipping it in 2-5 buisness minutes.");
+            // }
         }
 
         void run(ws28::Server& server, unsigned short port) {
