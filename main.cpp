@@ -165,7 +165,7 @@ class Tank: public Entity {
         ws28::Client *client = nullptr;
         Input input = Input {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
         static constexpr float movement_speed = 4;
-        static constexpr float bullet_speed = 4;
+        static constexpr float bullet_speed = 10;
         static constexpr float friction = 0.8f;
 
         void next_tick(Arena& arena);
@@ -305,12 +305,6 @@ class Arena {
             }
 
             for (const auto &entity : entities.shapes) {
-                if (entity.second == nullptr) {
-                    delete entity.second;
-                    entities.shapes.erase(entity.first);
-                    continue;
-                }
-
                 vector<qt::Rect> canidates = this->tree.retrieve(qt::Rect {
                     .x = entity.second->x - entity.second->radius,
                     .y = entity.second->y - entity.second->radius,
@@ -335,12 +329,6 @@ class Arena {
             }
 
             for (const auto &entity : entities.players) {
-                if (entity.second == nullptr) {
-                    delete entity.second;
-                    entities.players.erase(entity.first);
-                    continue;
-                }
-
                 vector<qt::Rect> canidates = this->tree.retrieve(qt::Rect {
                     .x = entity.second->x - entity.second->radius, 
                     .y = entity.second->y - entity.second->radius, 
@@ -460,8 +448,8 @@ void Tank::next_tick(Arena &arena) {
 
     if (this->input.mousedown) {
         Shape *new_shape = new Shape;
-        new_shape->position = this->position;
-        new_shape->velocity = Vector2(sin(this->rotation) * bullet_speed, cos(this->rotation) * bullet_speed);
+        new_shape->position = this->position + Vector2(cos(this->rotation) * bullet_speed * 20, sin(this->rotation) * bullet_speed * 20);
+        new_shape->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
         new_shape->id = get_uuid();
         arena.entities.shapes[new_shape->id] = new_shape;
     }
