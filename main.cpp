@@ -489,11 +489,6 @@ void Tank::next_tick(Arena *arena) {
 }
 
 int main(int argc, char **argv) {
-    signal(SIGINT, [](int signum) {
-        INFO("Recieved interrupt, exiting");
-        exit(0);
-    });
-
     srand(69420);
     unsigned short port;
     if (argc >= 2) {
