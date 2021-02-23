@@ -27,6 +27,13 @@ unsigned int get_uuid() {
     return uuid++;
 }
 
+bool aabb(qt::Rect rect1, qt::Rect rect2) {
+    return (rect1.x < rect2.x + rect2.width &&
+    rect1.x + rect1.width > rect2.x &&
+    rect1.y < rect2.y + rect2.height &&
+    rect1.y + rect1.height > rect2.y);
+}
+
 class Vector2 {
     public:
         float x = 0;
@@ -420,21 +427,22 @@ void Tank::collision_response(Arena *arena) {
     //     return;
     // }
 
-    arena->qtmtx.lock();
-    canidates = arena->tree.retrieve(qt::Rect {
+    qt::Rect viewport = qt::Rect {
         .x = this->x - 2000, 
         .y = this->y - 2000, 
         .width = 4000, 
         .height = 4000, 
         .id = 0, 
         .radius = 4000
-    });
+    };
+    arena->qtmtx.lock();
+    canidates = arena->tree.retrieve(viewport);
     arena->qtmtx.unlock();
     StreamPeerBuffer buf(true);
     unsigned short census_size = 0;
 
     for (const auto canidate : canidates) {
-        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), 2000)) {
+        if (aabb(viewport, canidate)) {
             if (arena->entities.players.find(canidate.id) != arena->entities.players.end()) {
                 arena->entities.players[canidate.id]->take_census(buf);
                 census_size++;
