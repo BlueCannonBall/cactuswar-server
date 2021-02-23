@@ -101,7 +101,7 @@ class Entity {
         Vector2 velocity = Vector2(0, 0);
         unsigned int id;
         double rotation = 0;
-        static constexpr float friction = 0.9f;
+        const float friction = 0.9f;
         float& x = position.x;
         float& y = position.y;
         string name = "Entity";
@@ -123,14 +123,6 @@ class Entity {
             }
         }
 
-        virtual void take_census(StreamPeerBuffer& buf) {
-            buf.put_u8(0); // id
-            buf.put_u32(this->id); // game id
-            buf.put_16(this->position.x); // position
-            buf.put_16(this->position.y);
-            buf.put_float(this->rotation); // rotation
-        }
-
         virtual ~Entity() {
             //INFO("Entity destroyed.");
         }
@@ -139,6 +131,7 @@ class Entity {
 class Shape: public Entity {
     public:
         const unsigned radius = 100;
+        //const float friction = ;
 
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(1); // id
@@ -146,6 +139,22 @@ class Shape: public Entity {
             buf.put_16(this->position.x); // position
             buf.put_16(this->position.y);
             buf.put_u8(7); // sides
+        }
+
+        void next_tick() {
+            this->velocity *= Vector2(this->friction, this->friction);
+            this->position += this->velocity;
+
+            if (this->x > 12000) {
+                this->x = 12000;
+            } else if (this->x < 0) {
+                this->x = 0;
+            }
+            if (this->y > 12000) {
+                this->y = 12000;
+            } else if (this->y < 0) {
+                this->y = 0;
+            }
         }
 };
 
@@ -164,11 +173,19 @@ class Tank: public Entity {
         string name = "Unnamed";
         ws28::Client *client = nullptr;
         Input input = Input {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
-        static constexpr float movement_speed = 4;
-        static constexpr float bullet_speed = 10;
-        static constexpr float friction = 0.8f;
+        const float movement_speed = 4;
+        const float bullet_speed = 10;
+        const float friction = 0.8f;
 
         void next_tick(Arena& arena);
+
+        void take_census(StreamPeerBuffer& buf) {
+            buf.put_u8(0); // id
+            buf.put_u32(this->id); // game id
+            buf.put_16(this->position.x); // position
+            buf.put_16(this->position.y);
+            buf.put_float(this->rotation); // rotation
+        }
 };
 
 class Arena {
@@ -403,7 +420,7 @@ class Arena {
         }
 
         void run(ws28::Server& server, unsigned short port) {
-            for (int i = 0; i<100; i++) {
+            for (int i = 0; i<125; i++) {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uuid();
                 new_shape->position = Vector2(rand() % 12000 + 0, rand() % 12000 + 0);
@@ -424,7 +441,7 @@ class Arena {
             uv_timer_start(timer, [](uv_timer_t *timer) {
                 auto &arena = *(Arena*)(timer->data);
                 arena.update();
-                uv_update_time(uv_default_loop());
+                //uv_update_time(uv_default_loop());
             }, 0, 1000/30);
         
             assert(server.Listen(port));
@@ -448,8 +465,9 @@ void Tank::next_tick(Arena &arena) {
 
     if (this->input.mousedown) {
         Shape *new_shape = new Shape;
-        new_shape->position = this->position + Vector2(cos(this->rotation) * bullet_speed * 20, sin(this->rotation) * bullet_speed * 20);
-        new_shape->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
+        //new_shape->position = this->position + Vector2(cos(this->rotation) * bullet_speed * 20, sin(this->rotation) * bullet_speed * 20);
+        new_shape->position = this->input.mousepos;
+        //new_shape->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
         new_shape->id = get_uuid();
         arena.entities.shapes[new_shape->id] = new_shape;
     }
