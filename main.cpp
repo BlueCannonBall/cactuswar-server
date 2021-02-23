@@ -156,6 +156,8 @@ class Shape: public Entity {
                 this->y = 0;
             }
         }
+
+        void collision_response(Arena *arena);
 };
 
 /// A domtank, stats vary based on mockups.
@@ -177,7 +179,8 @@ class Tank: public Entity {
         const float bullet_speed = 10;
         const float friction = 0.8f;
 
-        void next_tick(Arena& arena);
+        void next_tick(Arena* arena);
+        void collision_response(Arena *arena);
 
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(0); // id
@@ -309,7 +312,7 @@ class Arena {
                     continue;
                 }
 
-                entity.second->next_tick(*this);
+                entity.second->next_tick(this);
                 //entity.second->take_census(buf);
                 this->tree.insert(qt::Rect {
                     .x = entity.second->x - entity.second->radius, 
@@ -322,84 +325,11 @@ class Arena {
             }
 
             for (const auto &entity : entities.shapes) {
-                vector<qt::Rect> canidates = this->tree.retrieve(qt::Rect {
-                    .x = entity.second->x - entity.second->radius,
-                    .y = entity.second->y - entity.second->radius,
-                    .width = static_cast<double>(entity.second->radius*2),
-                    .height = static_cast<double>(entity.second->radius*2),
-                    .id = entity.second->id,
-                    .radius = entity.second->radius
-                });
-                for (const auto canidate : canidates) {
-                    if (canidate.id == entity.second->id) {
-                        continue;
-                    }
-                    
-                    if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(entity.second->x, entity.second->y), entity.second->radius)) {
-                        // response
-                        float angle = atan2((canidate.y + canidate.radius) - entity.second->y, (canidate.x + canidate.radius) - entity.second->x);
-                        Vector2 push_vec(cos(angle), sin(angle)); // heading vector
-                        entity.second->velocity.x += -push_vec.x * COLLISION_STRENGTH;
-                        entity.second->velocity.y += -push_vec.y * COLLISION_STRENGTH;
-                    }
-                }
+                entity.second->collision_response(this);
             }
 
             for (const auto &entity : entities.players) {
-                vector<qt::Rect> canidates = this->tree.retrieve(qt::Rect {
-                    .x = entity.second->x - entity.second->radius, 
-                    .y = entity.second->y - entity.second->radius, 
-                    .width = static_cast<double>(entity.second->radius*2), 
-                    .height = static_cast<double>(entity.second->radius*2), 
-                    .id = entity.second->id, 
-                    .radius = entity.second->radius
-                });
-                for (const auto canidate : canidates) {
-                    if (canidate.id == entity.second->id) {
-                        continue;
-                    }
-                    
-                    if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(entity.second->x, entity.second->y), entity.second->radius)) {
-                        // response
-                        float angle = atan2((canidate.y + canidate.radius) - entity.second->y, (canidate.x + canidate.radius) - entity.second->x);
-                        Vector2 push_vec(cos(angle), sin(angle)); // heading vector
-                        entity.second->velocity.x += -push_vec.x * COLLISION_STRENGTH;
-                        entity.second->velocity.y += -push_vec.y * COLLISION_STRENGTH;
-                    }
-                }
-
-                if (entity.second->client == nullptr) {
-                    delete entity.second;
-                    entities.players.erase(entity.first);
-                    continue;
-                }
-                canidates = this->tree.retrieve(qt::Rect {
-                    .x = entity.second->x - 2000, 
-                    .y = entity.second->y - 2000, 
-                    .width = 4000, 
-                    .height = 4000, 
-                    .id = 0, 
-                    .radius = 4000
-                });
-                StreamPeerBuffer buf(true);
-                unsigned short census_size = 0;
-
-                for (const auto canidate : canidates) {
-                    if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(entity.second->x, entity.second->y), 2000)) {
-                        if (entities.players.find(canidate.id) != entities.players.end()) {
-                            entities.players[canidate.id]->take_census(buf);
-                            census_size++;
-                        } else if (entities.shapes.find(canidate.id) != entities.shapes.end()) {
-                            entities.shapes[canidate.id]->take_census(buf);
-                            census_size++;
-                        }
-                    }
-                }
-
-                buf.offset = 0;
-                buf.put_u8(2);
-                buf.put_u16(census_size);
-                entity.second->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
+                entity.second->collision_response(this);
             }
 
             // for (const auto &player : entities.players) {
@@ -450,7 +380,89 @@ class Arena {
         }
 };
 
-void Tank::next_tick(Arena &arena) {
+void Shape::collision_response(Arena* arena) {
+    vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
+        .x = this->x - this->radius,
+        .y = this->y - this->radius,
+        .width = static_cast<double>(this->radius*2),
+        .height = static_cast<double>(this->radius*2),
+        .id = this->id,
+        .radius = this->radius
+    });
+    for (const auto canidate : canidates) {
+        if (canidate.id == this->id) {
+            continue;
+        }
+        
+        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), this->radius)) {
+            // response
+            float angle = atan2((canidate.y + canidate.radius) - this->y, (canidate.x + canidate.radius) - this->x);
+            Vector2 push_vec(cos(angle), sin(angle)); // heading vector
+            this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
+            this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
+        }
+    }
+}
+
+void Tank::collision_response(Arena *arena) {
+    vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
+        .x = this->x - this->radius, 
+        .y = this->y - this->radius, 
+        .width = static_cast<double>(this->radius*2), 
+        .height = static_cast<double>(this->radius*2), 
+        .id = this->id, 
+        .radius = this->radius
+    });
+    for (const auto canidate : canidates) {
+        if (canidate.id == this->id) {
+            continue;
+        }
+        
+        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), this->radius)) {
+            // response
+            float angle = atan2((canidate.y + canidate.radius) - this->y, (canidate.x + canidate.radius) - this->x);
+            Vector2 push_vec(cos(angle), sin(angle)); // heading vector
+            this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
+            this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
+        }
+    }
+
+    // if (this->client == nullptr) {
+    //     delete entity.second;
+    //     entities.players.erase(entity.first);
+    //     return;
+    // }
+
+    canidates = arena->tree.retrieve(qt::Rect {
+        .x = this->x - 2000, 
+        .y = this->y - 2000, 
+        .width = 4000, 
+        .height = 4000, 
+        .id = 0, 
+        .radius = 4000
+    });
+    StreamPeerBuffer buf(true);
+    unsigned short census_size = 0;
+
+    for (const auto canidate : canidates) {
+        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), 2000)) {
+            if (arena->entities.players.find(canidate.id) != arena->entities.players.end()) {
+                arena->entities.players[canidate.id]->take_census(buf);
+                census_size++;
+            } else if (arena->entities.shapes.find(canidate.id) != arena->entities.shapes.end()) {
+                arena->entities.shapes[canidate.id]->take_census(buf);
+                census_size++;
+            }
+        }
+    }
+
+    buf.offset = 0;
+    buf.put_u8(2);
+    buf.put_u16(census_size);
+    this->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
+}
+
+void Tank::next_tick(Arena *arena) {
     if (this->input.W) {
         this->velocity.y -= this->movement_speed;
     } else if (this->input.S) {
@@ -469,7 +481,7 @@ void Tank::next_tick(Arena &arena) {
         new_shape->position = this->input.mousepos;
         //new_shape->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
         new_shape->id = get_uuid();
-        arena.entities.shapes[new_shape->id] = new_shape;
+        arena->entities.shapes[new_shape->id] = new_shape;
     }
 
     this->velocity *= Vector2(this->friction, this->friction);
