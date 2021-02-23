@@ -8,6 +8,8 @@
 #include <map>
 #include "bcblog.hpp"
 #include "quadtree.hpp"
+#include <thread>
+#include <mutex>
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 #define COLLISION_STRENGTH 5
@@ -201,6 +203,7 @@ class Arena {
 
         Entities entities;
         qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = 12000, .height = 12000}, 10, 4, 0);
+        mutex qtmtx;
         // map<unsigned int, Entity*> entities;
         // map<unsigned int, Tank*> entities.players;
         
@@ -286,51 +289,67 @@ class Arena {
             //     //this->tree.insert(qt::Rect {.x = entity.second->x - 50, .y = entity.second->y - 50, .width = 100, .height = 100, .id = entity.second->id});
             // }
 
-            for (const auto &entity : entities.shapes) {
-                if (entity.second == nullptr) {
-                    delete entity.second;
-                    entities.shapes.erase(entity.first);
-                    continue;
+            thread t1([](Arena* arena) {
+                for (const auto &entity : arena->entities.shapes) {
+                    if (entity.second == nullptr) {
+                        delete entity.second;
+                        arena->entities.shapes.erase(entity.first);
+                        continue;
+                    }
+                    
+                    entity.second->next_tick();
+                    //entity.second->take_census(buf);
+                    arena->qtmtx.lock();
+                    arena->tree.insert(qt::Rect {
+                        .x = entity.second->x - entity.second->radius, 
+                        .y = entity.second->y - entity.second->radius, 
+                        .width = static_cast<double>(entity.second->radius*2), 
+                        .height = static_cast<double>(entity.second->radius*2), 
+                        .id = entity.second->id, 
+                        .radius = entity.second->radius
+                    });
+                    arena->qtmtx.unlock();
                 }
-                
-                entity.second->next_tick();
-                //entity.second->take_census(buf);
-                this->tree.insert(qt::Rect {
-                    .x = entity.second->x - entity.second->radius, 
-                    .y = entity.second->y - entity.second->radius, 
-                    .width = static_cast<double>(entity.second->radius*2), 
-                    .height = static_cast<double>(entity.second->radius*2), 
-                    .id = entity.second->id, 
-                    .radius = entity.second->radius
-                });
-            }
+            }, this);
             
-            for (const auto &entity : entities.players) {
-                if (entity.second == nullptr) {
-                    delete entity.second;
-                    entities.players.erase(entity.first);
-                    continue;
+            thread t2([](Arena* arena) {
+                for (const auto &entity : arena->entities.players) {
+                    if (entity.second == nullptr) {
+                        delete entity.second;
+                        arena->entities.players.erase(entity.first);
+                        continue;
+                    }
+                    
+                    entity.second->next_tick(arena);
+                    //entity.second->take_census(buf);
+                    arena->qtmtx.lock();
+                    arena->tree.insert(qt::Rect {
+                        .x = entity.second->x - entity.second->radius, 
+                        .y = entity.second->y - entity.second->radius, 
+                        .width = static_cast<double>(entity.second->radius*2), 
+                        .height = static_cast<double>(entity.second->radius*2), 
+                        .id = entity.second->id, 
+                        .radius = entity.second->radius
+                    });
+                    arena->qtmtx.unlock();
                 }
+            }, this);
 
-                entity.second->next_tick(this);
-                //entity.second->take_census(buf);
-                this->tree.insert(qt::Rect {
-                    .x = entity.second->x - entity.second->radius, 
-                    .y = entity.second->y - entity.second->radius, 
-                    .width = static_cast<double>(entity.second->radius*2), 
-                    .height = static_cast<double>(entity.second->radius*2), 
-                    .id = entity.second->id, 
-                    .radius = entity.second->radius
-                });
-            }
+            t1.join();
+            t2.join();
 
-            for (const auto &entity : entities.shapes) {
-                entity.second->collision_response(this);
-            }
+            thread t3([](Arena* arena) {
+                for (const auto &entity : arena->entities.shapes) {
+                    entity.second->collision_response(arena);
+            }}, this);
 
-            for (const auto &entity : entities.players) {
-                entity.second->collision_response(this);
-            }
+            thread t4([](Arena* arena) {
+                for (const auto &entity : arena->entities.players) {
+                    entity.second->collision_response(arena);
+            }}, this);
+
+            t3.join();
+            t4.join();
 
             // for (const auto &player : entities.players) {
             //     if (player.second == nullptr) {
@@ -381,6 +400,7 @@ class Arena {
 };
 
 void Shape::collision_response(Arena* arena) {
+    arena->qtmtx.lock();
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->x - this->radius,
         .y = this->y - this->radius,
@@ -389,6 +409,7 @@ void Shape::collision_response(Arena* arena) {
         .id = this->id,
         .radius = this->radius
     });
+    arena->qtmtx.unlock();
     for (const auto canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
@@ -405,6 +426,7 @@ void Shape::collision_response(Arena* arena) {
 }
 
 void Tank::collision_response(Arena *arena) {
+    arena->qtmtx.lock();
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->x - this->radius, 
         .y = this->y - this->radius, 
@@ -413,6 +435,7 @@ void Tank::collision_response(Arena *arena) {
         .id = this->id, 
         .radius = this->radius
     });
+    arena->qtmtx.unlock();
     for (const auto canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
@@ -433,6 +456,7 @@ void Tank::collision_response(Arena *arena) {
     //     return;
     // }
 
+    arena->qtmtx.lock();
     canidates = arena->tree.retrieve(qt::Rect {
         .x = this->x - 2000, 
         .y = this->y - 2000, 
@@ -441,6 +465,7 @@ void Tank::collision_response(Arena *arena) {
         .id = 0, 
         .radius = 4000
     });
+    arena->qtmtx.unlock();
     StreamPeerBuffer buf(true);
     unsigned short census_size = 0;
 
