@@ -204,8 +204,6 @@ class Arena {
         Entities entities;
         qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = 12000, .height = 12000}, 10, 4, 0);
         mutex qtmtx;
-        // map<unsigned int, Entity*> entities;
-        // map<unsigned int, Tank*> entities.players;
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
             string player_name = buf.get_utf8();
@@ -218,14 +216,6 @@ class Arena {
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
             new_player->position = Vector2(rand() % 9000 + 3000, rand() % 9000 + 3000);
-            // this->tree.insert(qt::Rect {
-            //     .x = new_player->x - new_player->radius, 
-            //     .y = new_player->y - new_player->radius, 
-            //     .width = static_cast<double>(new_player->radius*2), 
-            //     .height = static_cast<double>(new_player->radius*2), 
-            //     .id = new_player->id, 
-            //     .radius = new_player->radius
-            // });
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
@@ -272,11 +262,6 @@ class Arena {
         }
         
         void update() {
-            // StreamPeerBuffer buf(true);
-            // buf.put_u8(2);
-            // buf.put_u16(entities.entities.size() + entities.players.size() + entities.shapes.size());
-
-            this->tree.clear();
             // for (const auto &entity : entities.entities) {
             //     if (entity.second == nullptr) {
             //         delete entity.second;
@@ -289,6 +274,7 @@ class Arena {
             //     //this->tree.insert(qt::Rect {.x = entity.second->x - 50, .y = entity.second->y - 50, .width = 100, .height = 100, .id = entity.second->id});
             // }
 
+            this->tree.clear();
             thread t1([](Arena* arena) {
                 for (const auto &entity : arena->entities.shapes) {
                     if (entity.second == nullptr) {
@@ -350,22 +336,6 @@ class Arena {
 
             t3.join();
             t4.join();
-
-            // for (const auto &player : entities.players) {
-            //     if (player.second == nullptr) {
-            //         delete player.second;
-            //         entities.players.erase(player.first);
-            //         continue;
-            //     }
-            //     if (player.second->client == nullptr) {
-            //         delete player.second;
-            //         entities.players.erase(player.first);
-            //         continue;
-            //     }
-                
-            //     player.second->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2); // send census!
-            //     //INFO("A packet has been mailed! The Dombattles Postal Service will be shipping it in 2-5 buisness minutes.");
-            // }
         }
 
         void run(ws28::Server& server, unsigned short port) {
@@ -373,14 +343,6 @@ class Arena {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uuid();
                 new_shape->position = Vector2(rand() % 12000 + 0, rand() % 12000 + 0);
-                // this->tree.insert(qt::Rect {
-                //     .x = new_shape->x - new_shape->radius, 
-                //     .y = new_shape->y - new_shape->radius, 
-                //     .width = static_cast<double>(new_shape->radius*2), 
-                //     .height = static_cast<double>(new_shape->radius*2), 
-                //     .id = new_shape->id, 
-                //     .radius = new_shape->radius
-                // });
                 entities.shapes[new_shape->id] = new_shape;
             }
 
@@ -399,6 +361,8 @@ class Arena {
         }
 };
 
+
+/* OVERLOADS */
 void Shape::collision_response(Arena* arena) {
     arena->qtmtx.lock();
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
