@@ -5,7 +5,7 @@
 #include "streampeerbuffer.hpp"
 #include <cmath>
 #include "bcblog.hpp"
-#include "util.hpp"
+#include "core.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 

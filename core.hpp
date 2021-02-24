@@ -206,6 +206,7 @@ class Bullet: public Entity {
     public:
         const unsigned int radius = 25;
         const float friction = 1;
+        short lifetime = 100;
 
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(2); // id
@@ -319,69 +320,82 @@ class Arena {
             this->tree.clear();
             
             thread t1([](Arena* arena) {
-                for (const auto &entity : arena->entities.shapes) {
-                    if (entity.second == nullptr) {
-                        delete entity.second;
-                        arena->entities.shapes.erase(entity.first);
+                for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
+                    if (entity->second == nullptr) {
+                        Shape* entity_ptr = entity->second;
+                        arena->entities.shapes.erase(entity++);
+                        delete entity_ptr;
                         continue;
                     }
                     
-                    entity.second->next_tick();
+                    entity->second->next_tick();
                     //entity.second->take_census(buf);
                     arena->qtmtx.lock();
                     arena->tree.insert(qt::Rect {
-                        .x = entity.second->x - entity.second->radius, 
-                        .y = entity.second->y - entity.second->radius, 
-                        .width = static_cast<double>(entity.second->radius*2), 
-                        .height = static_cast<double>(entity.second->radius*2), 
-                        .id = entity.second->id, 
-                        .radius = entity.second->radius
+                        .x = entity->second->x - entity->second->radius, 
+                        .y = entity->second->y - entity->second->radius, 
+                        .width = static_cast<double>(entity->second->radius*2), 
+                        .height = static_cast<double>(entity->second->radius*2), 
+                        .id = entity->second->id, 
+                        .radius = entity->second->radius
                     });
                     arena->qtmtx.unlock();
+                    ++entity;
                 }
             }, this);
             
             thread t2([](Arena* arena) {
-                for (const auto &entity : arena->entities.players) {
-                    if (entity.second == nullptr) {
-                        delete entity.second;
-                        arena->entities.players.erase(entity.first);
+                for (auto entity = arena->entities.players.cbegin(); entity != arena->entities.players.cend();) {
+                    if (entity->second == nullptr) {
+                        Tank* entity_ptr = entity->second;
+                        arena->entities.players.erase(entity++);
+                        delete entity_ptr;
                         continue;
                     }
                     
-                    entity.second->next_tick(arena);
+                    entity->second->next_tick(arena);
                     arena->qtmtx.lock();
                     arena->tree.insert(qt::Rect {
-                        .x = entity.second->x - entity.second->radius, 
-                        .y = entity.second->y - entity.second->radius, 
-                        .width = static_cast<double>(entity.second->radius*2), 
-                        .height = static_cast<double>(entity.second->radius*2), 
-                        .id = entity.second->id, 
-                        .radius = entity.second->radius
+                        .x = entity->second->x - entity->second->radius, 
+                        .y = entity->second->y - entity->second->radius, 
+                        .width = static_cast<double>(entity->second->radius*2), 
+                        .height = static_cast<double>(entity->second->radius*2), 
+                        .id = entity->second->id, 
+                        .radius = entity->second->radius
                     });
                     arena->qtmtx.unlock();
+                    ++entity;
                 }
             }, this);
 
             thread t3([](Arena* arena) {
-                for (const auto &entity : arena->entities.bullets) {
-                    if (entity.second == nullptr) {
-                        delete entity.second;
-                        arena->entities.bullets.erase(entity.first);
+                for (auto entity = arena->entities.bullets.cbegin(); entity != arena->entities.bullets.cend();) {
+                    if (entity->second == nullptr) {
+                        Bullet* entity_ptr = entity->second;
+                        arena->entities.bullets.erase(entity++);
+                        delete entity_ptr;
                         continue;
                     }
                     
-                    entity.second->next_tick();
+                    entity->second->lifetime--;
+                    if (entity->second->lifetime <= 0) {
+                        Bullet* entity_ptr = entity->second;
+                        arena->entities.bullets.erase(entity++);
+                        delete entity_ptr;
+                        continue;
+                    }
+                    entity->second->next_tick();
                     arena->qtmtx.lock();
                     arena->tree.insert(qt::Rect {
-                        .x = entity.second->x - entity.second->radius, 
-                        .y = entity.second->y - entity.second->radius, 
-                        .width = static_cast<double>(entity.second->radius*2), 
-                        .height = static_cast<double>(entity.second->radius*2), 
-                        .id = entity.second->id, 
-                        .radius = entity.second->radius
+                        .x = entity->second->x - entity->second->radius, 
+                        .y = entity->second->y - entity->second->radius, 
+                        .width = static_cast<double>(entity->second->radius*2), 
+                        .height = static_cast<double>(entity->second->radius*2), 
+                        .id = entity->second->id, 
+                        .radius = entity->second->radius
                     });
                     arena->qtmtx.unlock();
+                    ++entity;
                 }
             }, this);
 
@@ -390,18 +404,21 @@ class Arena {
             t3.join();
 
             thread t4([](Arena* arena) {
-                for (const auto &entity : arena->entities.shapes) {
-                    entity.second->collision_response(arena);
+                for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
+                    entity->second->collision_response(arena);
+                    ++entity;
             }}, this);
 
             thread t5([](Arena* arena) {
-                for (const auto &entity : arena->entities.players) {
-                    entity.second->collision_response(arena);
+                for (auto entity = arena->entities.players.cbegin(); entity != arena->entities.players.cend();) {
+                    entity->second->collision_response(arena);
+                    ++entity;
             }}, this);
 
             thread t6([](Arena* arena) {
-                for (const auto &entity : arena->entities.bullets) {
-                    entity.second->collision_response(arena);
+                for (auto entity = arena->entities.bullets.cbegin(); entity != arena->entities.bullets.cend();) {
+                    entity->second->collision_response(arena);
+                    ++entity;
             }}, this);
 
             t4.join();
