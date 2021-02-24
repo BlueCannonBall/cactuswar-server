@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <vector>
 
+#pragma once
 #pragma clang diagnostic ignored "-Wgnu-designator"
 
 namespace qt {
@@ -40,16 +41,16 @@ namespace qt {
 
     class Quadtree {
         public:
-            double max_objects = 10;
-            double max_levels = 4;
+            int max_objects = 10;
+            int max_levels = 4;
 
-            double level = 0;
+            int level = 0;
             Rect bounds;
 
             std::vector<Quadtree> nodes;
             std::vector<Rect> objects;
 
-            Quadtree(Rect bounds, double max_objects, double max_levels, double level) {
+            Quadtree(Rect bounds, int max_objects=10, int max_levels=4, int level=0) {
                 this->bounds = bounds;
                 this->max_objects = max_objects;
                 this->max_levels = max_levels;
@@ -149,7 +150,7 @@ namespace qt {
 
                 this->objects.push_back(pRect);
 
-                if(this->objects.size() > this->max_objects && this->level < this->max_levels) {
+                if(this->objects.size() > static_cast<long unsigned int>(this->max_objects) && this->level < this->max_levels) {
                     if(!this->nodes.size()) {
                         this->split();
                     }
