@@ -168,6 +168,37 @@ class Shape: public Entity {
 
         void collision_response(Arena *arena);
 };
+class Bullet: public Entity {
+    public:
+        const unsigned int radius = 25;
+        const float friction = 1;
+
+        void take_census(StreamPeerBuffer& buf) {
+            buf.put_u8(2); // id
+            buf.put_u32(this->id); // game id
+            buf.put_16(this->position.x); // position
+            buf.put_16(this->position.y);
+            buf.put_u16(this->radius); // sides
+        }
+
+        void next_tick() {
+            this->velocity *= Vector2(this->friction, this->friction);
+            this->position += this->velocity;
+
+            if (this->x > 12000) {
+                this->x = 12000;
+            } else if (this->x < 0) {
+                this->x = 0;
+            }
+            if (this->y > 12000) {
+                this->y = 12000;
+            } else if (this->y < 0) {
+                this->y = 0;
+            }
+        }
+
+        void collision_response(Arena *arena);
+};
 
 /// A domtank, stats vary based on mockups.
 class Tank: public Entity {
@@ -185,8 +216,10 @@ class Tank: public Entity {
         ws28::Client *client = nullptr;
         Input input = Input {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
         const float movement_speed = 4;
-        const float bullet_speed = 10;
+        const float bullet_speed = 50;
         const float friction = 0.8f;
+        const unsigned full_reload = 6;
+        unsigned reload = full_reload;
 
         void next_tick(Arena* arena);
         void collision_response(Arena *arena);
@@ -206,6 +239,7 @@ class Arena {
             map<unsigned int, Entity*> entities;
             map<unsigned int, Tank*> players;
             map<unsigned int, Shape*> shapes;
+            map<unsigned int, Bullet*> bullets;
         };
 
         Entities entities;
@@ -282,6 +316,7 @@ class Arena {
             // }
 
             this->tree.clear();
+            
             thread t1([](Arena* arena) {
                 for (const auto &entity : arena->entities.shapes) {
                     if (entity.second == nullptr) {
@@ -328,21 +363,51 @@ class Arena {
                 }
             }, this);
 
+            thread t3([](Arena* arena) {
+                for (const auto &entity : arena->entities.bullets) {
+                    if (entity.second == nullptr) {
+                        delete entity.second;
+                        arena->entities.bullets.erase(entity.first);
+                        continue;
+                    }
+                    
+                    entity.second->next_tick();
+                    //entity.second->take_census(buf);
+                    arena->qtmtx.lock();
+                    arena->tree.insert(qt::Rect {
+                        .x = entity.second->x - entity.second->radius, 
+                        .y = entity.second->y - entity.second->radius, 
+                        .width = static_cast<double>(entity.second->radius*2), 
+                        .height = static_cast<double>(entity.second->radius*2), 
+                        .id = entity.second->id, 
+                        .radius = entity.second->radius
+                    });
+                    arena->qtmtx.unlock();
+                }
+            }, this);
+
             t1.join();
             t2.join();
+            t3.join();
 
-            thread t3([](Arena* arena) {
+            thread t4([](Arena* arena) {
                 for (const auto &entity : arena->entities.shapes) {
                     entity.second->collision_response(arena);
             }}, this);
 
-            thread t4([](Arena* arena) {
+            thread t5([](Arena* arena) {
                 for (const auto &entity : arena->entities.players) {
                     entity.second->collision_response(arena);
             }}, this);
 
-            t3.join();
+            thread t6([](Arena* arena) {
+                for (const auto &entity : arena->entities.bullets) {
+                    entity.second->collision_response(arena);
+            }}, this);
+
             t4.join();
+            t5.join();
+            t6.join();
         }
 
         void run(ws28::Server& server, unsigned short port) {
@@ -449,6 +514,9 @@ void Tank::collision_response(Arena *arena) {
             } else if (arena->entities.shapes.find(canidate.id) != arena->entities.shapes.end()) {
                 arena->entities.shapes[canidate.id]->take_census(buf);
                 census_size++;
+            } else if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
+                arena->entities.bullets[canidate.id]->take_census(buf);
+                census_size++;
             }
         }
     }
@@ -459,7 +527,37 @@ void Tank::collision_response(Arena *arena) {
     this->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
 }
 
+void Bullet::collision_response(Arena *arena) {
+    arena->qtmtx.lock();
+    vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
+        .x = this->x - this->radius,
+        .y = this->y - this->radius,
+        .width = static_cast<double>(this->radius*2),
+        .height = static_cast<double>(this->radius*2),
+        .id = this->id,
+        .radius = this->radius
+    });
+    arena->qtmtx.unlock();
+    for (const auto canidate : canidates) {
+        if (canidate.id == this->id) {
+            continue;
+        }
+        
+        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), this->radius)) {
+            // response
+            float angle = atan2((canidate.y + canidate.radius) - this->y, (canidate.x + canidate.radius) - this->x);
+            Vector2 push_vec(cos(angle), sin(angle)); // heading vector
+            this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
+            this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
+        }
+    }
+}
+
 void Tank::next_tick(Arena *arena) {
+    if (reload != 0) {
+        reload--;
+    }
+
     if (this->input.W) {
         this->velocity.y -= this->movement_speed;
     } else if (this->input.S) {
@@ -473,12 +571,15 @@ void Tank::next_tick(Arena *arena) {
     }
 
     if (this->input.mousedown) {
-        Shape *new_shape = new Shape;
-        //new_shape->position = this->position + Vector2(cos(this->rotation) * bullet_speed * 20, sin(this->rotation) * bullet_speed * 20);
-        new_shape->position = this->input.mousepos;
-        //new_shape->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
-        new_shape->id = get_uuid();
-        arena->entities.shapes[new_shape->id] = new_shape;
+        if (reload == 0) {
+            Bullet *new_bullet = new Bullet;
+            new_bullet->position = this->position + Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
+            // new_bullet->position = this->input.mousepos;
+            new_bullet->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
+            new_bullet->id = get_uuid();
+            arena->entities.bullets[new_bullet->id] = new_bullet;
+            reload = full_reload;
+        }
     }
 
     this->velocity *= Vector2(this->friction, this->friction);
