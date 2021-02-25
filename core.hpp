@@ -273,6 +273,11 @@ class Arena {
             unsigned char movement_byte = buf.get_u8();
             unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
             
+            if (this->entities.players.find(player_id) == this->entities.players.end()) {
+                WARN("Player without id tried to send input packet");
+                client->Destroy();
+                return;
+            }
             entities.players[player_id]->input = Tank::Input {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
             
             if (0b10000 & movement_byte) {
@@ -598,15 +603,15 @@ void Tank::next_tick(Arena *arena) {
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity;
 
-    if (this->x > 12030) {
-        this->x = 12030;
-    } else if (this->x < -30) {
-        this->x = -30;
+    if (this->x > 12000) {
+        this->x = 12000;
+    } else if (this->x < 0) {
+        this->x = 0;
     }
-    if (this->y > 12030) {
-        this->y = 12030;
-    } else if (this->y < -30) {
-        this->y = -30;
+    if (this->y > 12000) {
+        this->y = 12000;
+    } else if (this->y < 0) {
+        this->y = 0;
     }
 }
 ///////////
