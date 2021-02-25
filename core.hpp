@@ -324,7 +324,7 @@ class Arena {
 
             this->tree.clear();
             
-            thread t1([](Arena* arena) {
+            thread shape_move([](Arena* arena) {
                 for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
                     if (entity->second == nullptr) {
                         Shape* entity_ptr = entity->second;
@@ -349,7 +349,7 @@ class Arena {
                 }
             }, this);
             
-            thread t2([](Arena* arena) {
+            thread player_move([](Arena* arena) {
                 for (auto entity = arena->entities.players.cbegin(); entity != arena->entities.players.cend();) {
                     if (entity->second == nullptr) {
                         Tank* entity_ptr = entity->second;
@@ -373,7 +373,7 @@ class Arena {
                 }
             }, this);
 
-            thread t3([](Arena* arena) {
+            thread bullet_move([](Arena* arena) {
                 for (auto entity = arena->entities.bullets.cbegin(); entity != arena->entities.bullets.cend();) {
                     if (entity->second == nullptr) {
                         Bullet* entity_ptr = entity->second;
@@ -404,31 +404,31 @@ class Arena {
                 }
             }, this);
 
-            t1.join();
-            t2.join();
-            t3.join();
+            shape_move.join();
+            player_move.join();
+            bullet_move.join();
 
-            thread t4([](Arena* arena) {
+            thread shape_collide([](Arena* arena) {
                 for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
                     entity->second->collision_response(arena);
                     ++entity;
             }}, this);
 
-            thread t5([](Arena* arena) {
+            thread player_collide([](Arena* arena) {
                 for (auto entity = arena->entities.players.cbegin(); entity != arena->entities.players.cend();) {
                     entity->second->collision_response(arena);
                     ++entity;
             }}, this);
 
-            thread t6([](Arena* arena) {
+            thread bullet_collide([](Arena* arena) {
                 for (auto entity = arena->entities.bullets.cbegin(); entity != arena->entities.bullets.cend();) {
                     entity->second->collision_response(arena);
                     ++entity;
             }}, this);
 
-            t4.join();
-            t5.join();
-            t6.join();
+            shape_collide.join();
+            player_collide.join();
+            bullet_collide.join();
         }
 
         void run(ws28::Server& server, unsigned short port) {
