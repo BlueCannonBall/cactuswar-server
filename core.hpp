@@ -92,6 +92,26 @@ class Vector2 {
         double distance_to(const Vector2& v) {
             return sqrt(pow(v.x - this->x, 2) + pow(v.y - this->y, 2)); 
         }
+
+        float angle_to(const Vector2& v) {
+            return atan2(this->y - v.y, this->x - v.x);
+        }
+
+        float angle() {
+            return this->angle_to(Vector2(0, 0));
+        }
+
+        Vector2 normalize() {
+            float angle = this->angle();
+            return Vector2(cos(angle), sin(angle));
+            // if (this->x > this->y) {
+            //     return Vector2(1, this->y/this->x);
+            // } else if (this->y > this->x) {
+            //     return Vector2(this->x/this->y, 1);
+            // } else {
+            //     return Vector2(1, 1);
+            // }
+        }
 };
 
 bool circle_collision(const Vector2& pos1, unsigned int radius1, const Vector2& pos2, unsigned int radius2) {
@@ -122,13 +142,17 @@ class Entity {
 
             if (this->x > 12000) {
                 this->x = 12000;
+                this->velocity.x = 0;
             } else if (this->x < 0) {
                 this->x = 0;
+                this->velocity.x = 0;
             }
             if (this->y > 12000) {
                 this->y = 12000;
+                this->velocity.y = 0;
             } else if (this->y < 0) {
                 this->y = 0;
+                this->velocity.y = 0;
             }
         }
 
@@ -147,7 +171,7 @@ class Shape: public Entity {
             buf.put_u32(this->id); // game id
             buf.put_16(this->position.x); // position
             buf.put_16(this->position.y);
-            buf.put_u8(7); // sides
+            //buf.put_u8(7); // sides
         }
 
         void next_tick() {
@@ -156,13 +180,17 @@ class Shape: public Entity {
 
             if (this->x > 12000) {
                 this->x = 12000;
+                this->velocity.x = 0;
             } else if (this->x < 0) {
                 this->x = 0;
+                this->velocity.x = 0;
             }
             if (this->y > 12000) {
                 this->y = 12000;
+                this->velocity.y = 0;
             } else if (this->y < 0) {
                 this->y = 0;
+                this->velocity.y = 0;
             }
         }
 
@@ -213,7 +241,9 @@ class Bullet: public Entity {
             buf.put_u32(this->id); // game id
             buf.put_16(this->position.x); // position
             buf.put_16(this->position.y);
-            buf.put_u16(this->radius); // sides
+            buf.put_u16(this->radius); // radius
+            buf.put_16(this->velocity.x); // velocity
+            buf.put_16(this->velocity.y);
         }
 
         void next_tick() {
@@ -222,13 +252,17 @@ class Bullet: public Entity {
 
             if (this->x > 12000) {
                 this->x = 12000;
+                this->velocity.x = 0;
             } else if (this->x < 0) {
                 this->x = 0;
+                this->velocity.x = 0;
             }
             if (this->y > 12000) {
                 this->y = 12000;
+                this->velocity.y = 0;
             } else if (this->y < 0) {
                 this->y = 0;
+                this->velocity.y = 0;
             }
         }
 
@@ -591,7 +625,7 @@ void Tank::next_tick(Arena *arena) {
     if (this->input.mousedown) {
         if (reload == 0) {
             Bullet *new_bullet = new Bullet;
-            new_bullet->position = this->position + Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
+            new_bullet->position = this->position + (Vector2(cos(this->rotation), sin(this->rotation)).normalize() * Vector2(this->radius + new_bullet->radius + 1, this->radius + new_bullet->radius + 1));
             // new_bullet->position = this->input.mousepos;
             new_bullet->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
             new_bullet->id = get_uuid();
@@ -605,13 +639,17 @@ void Tank::next_tick(Arena *arena) {
 
     if (this->x > 12000) {
         this->x = 12000;
+        this->velocity.x = 0;
     } else if (this->x < 0) {
-        this->x = 0;
+        this->x = 12000;
+        this->velocity.x = 0;
     }
     if (this->y > 12000) {
         this->y = 12000;
+        this->velocity.y = 0;
     } else if (this->y < 0) {
         this->y = 0;
+        this->velocity.y = 0;
     }
 }
 ///////////
