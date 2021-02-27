@@ -13,7 +13,7 @@ using namespace std;
 using namespace spb;
 
 int main(int argc, char **argv) {
-    srand(69420);
+    srand(time(NULL)); // 69420
     unsigned short port;
     if (argc >= 2) {
         port = atoi(argv[1]);

@@ -217,6 +217,7 @@ class Tank: public Entity {
         const float friction = 0.8f;
         const unsigned full_reload = 6;
         unsigned reload = full_reload;
+        float recoil = 3.5;
 
         void next_tick(Arena* arena);
         void collision_response(Arena *arena);
@@ -628,6 +629,7 @@ void Tank::next_tick(Arena *arena) {
             new_bullet->position = this->position + (Vector2(cos(this->rotation), sin(this->rotation)).normalize() * Vector2(this->radius + new_bullet->radius + 1, this->radius + new_bullet->radius + 1));
             // new_bullet->position = this->input.mousepos;
             new_bullet->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
+            this->velocity -= Vector2(cos(this->rotation) * recoil, sin(this->rotation) * recoil);
             new_bullet->id = get_uuid();
             arena->entities.bullets[new_bullet->id] = new_bullet;
             reload = full_reload;
@@ -641,7 +643,7 @@ void Tank::next_tick(Arena *arena) {
         this->x = 12000;
         this->velocity.x = 0;
     } else if (this->x < 0) {
-        this->x = 12000;
+        this->x = 0;
         this->velocity.x = 0;
     }
     if (this->y > 12000) {
