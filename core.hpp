@@ -130,11 +130,13 @@ class Entity {
         Vector2 velocity = Vector2(0, 0);
         unsigned int id;
         double rotation = 0;
-        const float friction = 0.9f;
+        static constexpr float friction = 0.9f;
         float& x = position.x;
         float& y = position.y;
         string name = "Entity";
-        const unsigned radius = 50;
+        unsigned radius = 50;
+        float health = 500;
+        float damage = 0;
 
         virtual void next_tick() {
             this->velocity *= Vector2(this->friction, this->friction);
@@ -156,6 +158,9 @@ class Entity {
             }
         }
 
+        virtual void take_census(StreamPeerBuffer& buf) {}
+        virtual void collision_response(Arena *arena);
+
         virtual ~Entity() {
             //INFO("Entity destroyed.");
         }
@@ -163,8 +168,7 @@ class Entity {
 
 class Shape: public Entity {
     public:
-        const unsigned radius = 100;
-        //const float friction = ;
+        unsigned radius = 100;
 
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(1); // id
@@ -212,10 +216,10 @@ class Tank: public Entity {
         string name = "Unnamed";
         ws28::Client *client = nullptr;
         Input input = Input {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
-        const float movement_speed = 4;
-        const float bullet_speed = 50;
-        const float friction = 0.8f;
-        const unsigned full_reload = 6;
+        float movement_speed = 4;
+        float bullet_speed = 50;
+        static constexpr float friction = 0.8f;
+        unsigned full_reload = 6;
         unsigned reload = full_reload;
         float recoil = 3.5;
 
@@ -233,9 +237,11 @@ class Tank: public Entity {
 
 class Bullet: public Entity {
     public:
-        const unsigned int radius = 25;
-        const float friction = 1;
+        unsigned int radius = 25;
+        static constexpr float friction = 1;
         short lifetime = 100;
+        float damage = 20;
+        unsigned int owner;
 
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(2); // id
@@ -368,6 +374,12 @@ class Arena {
                         continue;
                     }
                     
+                    if (entity->second->health <= 0) {
+                        Shape* entity_ptr = entity->second;
+                        arena->entities.shapes.erase(entity++);
+                        delete entity_ptr;
+                        continue;
+                    }
                     entity->second->next_tick();
                     //entity.second->take_census(buf);
                     arena->qtmtx.lock();
@@ -491,7 +503,7 @@ class Arena {
 
 
 /* OVERLOADS */
-void Shape::collision_response(Arena* arena) {
+void Entity::collision_response(Arena* arena) {
     arena->qtmtx.lock();
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->x - this->radius,
@@ -517,6 +529,35 @@ void Shape::collision_response(Arena* arena) {
     }
 }
 
+void Shape::collision_response(Arena* arena) {
+    arena->qtmtx.lock();
+    vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
+        .x = this->x - this->radius,
+        .y = this->y - this->radius,
+        .width = static_cast<double>(this->radius*2),
+        .height = static_cast<double>(this->radius*2),
+        .id = this->id,
+        .radius = this->radius
+    });
+    arena->qtmtx.unlock();
+    for (const auto canidate : canidates) {
+        if (canidate.id == this->id) {
+            continue;
+        }
+        
+        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), this->radius)) {
+            if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
+                this->health -= arena->entities.bullets[canidate.id]->damage;
+            }
+            
+            // response
+            float angle = atan2((canidate.y + canidate.radius) - this->y, (canidate.x + canidate.radius) - this->x);
+            Vector2 push_vec(cos(angle), sin(angle)); // heading vector
+            this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
+            this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
+        }
+    }
+}
 
 void Tank::collision_response(Arena *arena) {
     arena->qtmtx.lock();
@@ -532,9 +573,19 @@ void Tank::collision_response(Arena *arena) {
     for (const auto canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
+        } else if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
+            if (arena->entities.bullets[canidate.id]->owner == this->id) {
+                continue;
+            }
         }
         
         if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), this->radius)) {
+            if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
+                if (arena->entities.bullets[canidate.id]->owner != this->id) {
+                    this->health -= arena->entities.bullets[canidate.id]->damage;
+                }
+            }
+            
             // response
             float angle = atan2((canidate.y + canidate.radius) - this->y, (canidate.x + canidate.radius) - this->x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
@@ -593,6 +644,12 @@ void Bullet::collision_response(Arena *arena) {
     for (const auto canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
+        } else if (canidate.id == this->owner) {
+            continue;
+        } else if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
+            if (arena->entities.bullets[canidate.id]->owner == this->owner) {
+                continue;
+            }
         }
         
         if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), this->radius)) {
@@ -631,6 +688,7 @@ void Tank::next_tick(Arena *arena) {
             new_bullet->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
             this->velocity -= Vector2(cos(this->rotation) * recoil, sin(this->rotation) * recoil);
             new_bullet->id = get_uuid();
+            new_bullet->owner = id;
             arena->entities.bullets[new_bullet->id] = new_bullet;
             reload = full_reload;
         }
