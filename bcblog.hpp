@@ -35,9 +35,8 @@ namespace bcblog {
     std::string get_time() {
         time_t t = time(0);
         struct tm *now = localtime(&t);
-        char *time_cstr = new char[1000];
-        strftime(time_cstr, 1000, "%a %b %d %I:%M:%S %Y", now);
-        std::string s(time_cstr);
-        return s;
+        char time_cstr[25];
+        strftime(time_cstr, 25, "%a %b %d %H:%M:%S %Y", now);
+        return std::string(time_cstr);
     }
 }
