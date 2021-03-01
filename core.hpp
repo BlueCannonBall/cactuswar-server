@@ -606,7 +606,7 @@ void Tank::collision_response(Arena *arena) {
         }
     }
 
-    qt::Rect viewport = qt::Rect {
+    qt::Rect viewport = {
         .x = this->x - 2000, 
         .y = this->y - 2000, 
         .width = 4000, 
