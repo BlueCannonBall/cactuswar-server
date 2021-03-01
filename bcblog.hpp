@@ -34,13 +34,10 @@ namespace bcblog {
 
     std::string get_time() {
         time_t t = time(0);
-        char *dt = ctime(&t);
-        // struct tm *now = localtime(&t);
-        // std::stringstream sstm;
-        // sstm << (now->tm_hour) << ':' << (now->tm_min) << ':' << now->tm_sec;
-        // std::string s = sstm.str();
-        std::string s(dt);
-        s.erase(std::remove(s.begin(), s.end(), '\n'), s.end());
+        struct tm *now = localtime(&t);
+        char *time_cstr = new char[1000];
+        strftime(time_cstr, 1000, "%a %b %d %I:%M:%S %Y", now);
+        std::string s(time_cstr);
         return s;
     }
 }

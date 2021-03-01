@@ -8,6 +8,7 @@
 #include "core.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
+#define MESSAGE_SIZE 4096
 
 using namespace std;
 using namespace spb;
@@ -24,7 +25,7 @@ int main(int argc, char **argv) {
     
     static Arena arena;
     ws28::Server server{uv_default_loop(), nullptr};
-    server.SetMaxMessageSize(12000);
+    server.SetMaxMessageSize(MESSAGE_SIZE);
     
     server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest &) {
         INFO("Client with ip " << client->GetIP() << " connected");
