@@ -14,6 +14,7 @@
 #pragma once
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
 #define COLLISION_STRENGTH 5
+#define ARENA_SIZE 12000
 
 using namespace std;
 using namespace spb;
@@ -142,15 +143,15 @@ class Entity {
             this->velocity *= Vector2(this->friction, this->friction);
             this->position += this->velocity;
 
-            if (this->x > 12000) {
-                this->x = 12000;
+            if (this->x > ARENA_SIZE) {
+                this->x = ARENA_SIZE;
                 this->velocity.x = 0;
             } else if (this->x < 0) {
                 this->x = 0;
                 this->velocity.x = 0;
             }
-            if (this->y > 12000) {
-                this->y = 12000;
+            if (this->y > ARENA_SIZE) {
+                this->y = ARENA_SIZE;
                 this->velocity.y = 0;
             } else if (this->y < 0) {
                 this->y = 0;
@@ -182,15 +183,15 @@ class Shape: public Entity {
             this->velocity *= Vector2(this->friction, this->friction);
             this->position += this->velocity;
 
-            if (this->x > 12000) {
-                this->x = 12000;
+            if (this->x > ARENA_SIZE) {
+                this->x = ARENA_SIZE;
                 this->velocity.x = 0;
             } else if (this->x < 0) {
                 this->x = 0;
                 this->velocity.x = 0;
             }
-            if (this->y > 12000) {
-                this->y = 12000;
+            if (this->y > ARENA_SIZE) {
+                this->y = ARENA_SIZE;
                 this->velocity.y = 0;
             } else if (this->y < 0) {
                 this->y = 0;
@@ -257,15 +258,15 @@ class Bullet: public Entity {
             this->velocity *= Vector2(this->friction, this->friction);
             this->position += this->velocity;
 
-            if (this->x > 12000) {
-                this->x = 12000;
+            if (this->x > ARENA_SIZE) {
+                this->x = ARENA_SIZE;
                 this->velocity.x = 0;
             } else if (this->x < 0) {
                 this->x = 0;
                 this->velocity.x = 0;
             }
-            if (this->y > 12000) {
-                this->y = 12000;
+            if (this->y > ARENA_SIZE) {
+                this->y = ARENA_SIZE;
                 this->velocity.y = 0;
             } else if (this->y < 0) {
                 this->y = 0;
@@ -286,7 +287,8 @@ class Arena {
         };
 
         Entities entities;
-        qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = 12000, .height = 12000}, 10, 4);
+        qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = ARENA_SIZE, .height = ARENA_SIZE}, 10, 4);
+        unsigned int target_shape_count = 125;
         mutex qtmtx;
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
@@ -364,6 +366,16 @@ class Arena {
             // }
 
             this->tree.clear();
+
+            if (entities.shapes.size() <= target_shape_count - 12) {
+                INFO("Replenishing shapes");
+                for (unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
+                    Shape *new_shape = new Shape;
+                    new_shape->id = get_uuid();
+                    new_shape->position = Vector2(rand() % ARENA_SIZE + 0, rand() % ARENA_SIZE + 0);
+                    entities.shapes[new_shape->id] = new_shape;
+                }
+            }
             
             thread shape_move([](Arena* arena) {
                 for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
@@ -479,10 +491,10 @@ class Arena {
         }
 
         void run(ws28::Server& server, unsigned short port) {
-            for (int i = 0; i<125; i++) {
+            for (unsigned int i = 0; i<target_shape_count; i++) {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uuid();
-                new_shape->position = Vector2(rand() % 12000 + 0, rand() % 12000 + 0);
+                new_shape->position = Vector2(rand() % ARENA_SIZE + 0, rand() % ARENA_SIZE + 0);
                 entities.shapes[new_shape->id] = new_shape;
             }
 
@@ -697,15 +709,15 @@ void Tank::next_tick(Arena *arena) {
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity;
 
-    if (this->x > 12000) {
-        this->x = 12000;
+    if (this->x > ARENA_SIZE) {
+        this->x = ARENA_SIZE;
         this->velocity.x = 0;
     } else if (this->x < 0) {
         this->x = 0;
         this->velocity.x = 0;
     }
-    if (this->y > 12000) {
-        this->y = 12000;
+    if (this->y > ARENA_SIZE) {
+        this->y = ARENA_SIZE;
         this->velocity.y = 0;
     } else if (this->y < 0) {
         this->y = 0;
