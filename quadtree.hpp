@@ -23,10 +23,10 @@ namespace qt {
     }
 
     struct Rect {
-        double x;
-        double y;
-        double width;
-        double height;
+        float x;
+        float y;
+        float width;
+        float height;
         unsigned id;
         unsigned radius;
 
@@ -58,11 +58,11 @@ namespace qt {
             }
 
             void split() {
-                double nextLevel = this->level + 1;
-                double subWidth = this->bounds.width/2;
-                double subHeight = this->bounds.height/2;
-                double x = this->bounds.x;
-                double y = this->bounds.y;
+                float nextLevel = this->level + 1;
+                float subWidth = this->bounds.width/2;
+                float subHeight = this->bounds.height/2;
+                float x = this->bounds.x;
+                float y = this->bounds.y;
 
                 this->nodes.insert(nodes.begin() + 0, Quadtree(
                     Rect {
@@ -103,10 +103,10 @@ namespace qt {
                     }, this->max_objects, this->max_levels, nextLevel));
             }
 
-            std::vector<double> getIndex(Rect pRect) {
-                std::vector<double> indexes;
-                double verticalMidpoint = this->bounds.x + (this->bounds.width/2);
-                double horizontalMidpoint = this->bounds.y + (this->bounds.height/2);
+            std::vector<float> getIndex(Rect pRect) {
+                std::vector<float> indexes;
+                float verticalMidpoint = this->bounds.x + (this->bounds.width/2);
+                float horizontalMidpoint = this->bounds.y + (this->bounds.height/2);
 
                 bool startIsNorth = pRect.y < horizontalMidpoint,
                     startIsWest  = pRect.x < verticalMidpoint,
@@ -137,8 +137,8 @@ namespace qt {
             }
 
             void insert(Rect pRect) {
-                double i = 0;
-                std::vector<double> indexes;
+                float i = 0;
+                std::vector<float> indexes;
 
                 if (this->nodes.size()) {
                     indexes = this->getIndex(pRect);
@@ -169,7 +169,7 @@ namespace qt {
             }
 
             std::vector<Rect> retrieve(Rect pRect) {
-                std::vector<double> indexes = this->getIndex(pRect);
+                std::vector<float> indexes = this->getIndex(pRect);
                 std::vector<Rect> returnObjects = this->objects;
 
                 //if we have subnodes, retrieve their objects

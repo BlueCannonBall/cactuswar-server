@@ -92,7 +92,7 @@ class Vector2 {
             return output;
         }
         
-        double distance_to(const Vector2& v) {
+        float distance_to(const Vector2& v) {
             return sqrt(pow(v.x - this->x, 2) + pow(v.y - this->y, 2)); 
         }
 
@@ -132,13 +132,14 @@ class Entity {
         Vector2 position = Vector2(0, 0);
         Vector2 velocity = Vector2(0, 0);
         unsigned int id;
-        double rotation = 0;
+        float rotation = 0;
         static constexpr float friction = 0.9f;
         float& x = position.x;
         float& y = position.y;
         string name = "Entity";
         unsigned radius = 50;
-        float health = 500;
+        float max_health = 500;
+        float health = max_health;
         float damage = 0;
 
         virtual void next_tick() {
@@ -303,7 +304,7 @@ class Arena {
             client->SetUserData(reinterpret_cast<void*>(player_id));
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
-            new_player->position = Vector2(rand() % 9000 + 3000, rand() % 9000 + 3000);
+            new_player->position = Vector2(rand() % ARENA_SIZE-3000 + 3000, rand() % ARENA_SIZE-3000 + 3000);
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
@@ -323,7 +324,7 @@ class Arena {
                 client->Destroy();
                 return;
             }
-            entities.players[player_id]->input = Tank::Input {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
+            entities.players[player_id]->input = {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
             
             if (0b10000 & movement_byte) {
                 entities.players[player_id]->input.W = true;
@@ -355,18 +356,6 @@ class Arena {
         }
         
         void update() {
-            // for (const auto &entity : entities.entities) {
-            //     if (entity.second == nullptr) {
-            //         delete entity.second;
-            //         entities.entities.erase(entity.first);
-            //         continue;
-            //     }
-                
-            //     entity.second->next_tick();
-            //     entity.second->take_census(buf);
-            //     //this->tree.insert(qt::Rect {.x = entity.second->x - 50, .y = entity.second->y - 50, .width = 100, .height = 100, .id = entity.second->id});
-            // }
-
             this->tree.clear();
 
             if (entities.shapes.size() <= target_shape_count - 12) {
@@ -400,8 +389,8 @@ class Arena {
                     arena->tree.insert(qt::Rect {
                         .x = entity->second->x - entity->second->radius, 
                         .y = entity->second->y - entity->second->radius, 
-                        .width = static_cast<double>(entity->second->radius*2), 
-                        .height = static_cast<double>(entity->second->radius*2), 
+                        .width = static_cast<float>(entity->second->radius*2), 
+                        .height = static_cast<float>(entity->second->radius*2), 
                         .id = entity->second->id, 
                         .radius = entity->second->radius
                     });
@@ -419,13 +408,17 @@ class Arena {
                         continue;
                     }
                     
+                    if (entity->second->health <= 0) {
+                        entity->second->position = Vector2(rand() % ARENA_SIZE-3000 + 3000, rand() % ARENA_SIZE-3000 + 3000);
+                        entity->second->health = entity->second->max_health;
+                    }
                     entity->second->next_tick(arena);
                     arena->qtmtx.lock();
                     arena->tree.insert(qt::Rect {
                         .x = entity->second->x - entity->second->radius, 
                         .y = entity->second->y - entity->second->radius, 
-                        .width = static_cast<double>(entity->second->radius*2), 
-                        .height = static_cast<double>(entity->second->radius*2), 
+                        .width = static_cast<float>(entity->second->radius*2), 
+                        .height = static_cast<float>(entity->second->radius*2), 
                         .id = entity->second->id, 
                         .radius = entity->second->radius
                     });
@@ -449,14 +442,19 @@ class Arena {
                         arena->entities.bullets.erase(entity++);
                         delete entity_ptr;
                         continue;
+                    } else if (entity->second->health <= 0) {
+                        Bullet* entity_ptr = entity->second;
+                        arena->entities.bullets.erase(entity++);
+                        delete entity_ptr;
+                        continue;
                     }
                     entity->second->next_tick();
                     arena->qtmtx.lock();
                     arena->tree.insert(qt::Rect {
                         .x = entity->second->x - entity->second->radius, 
                         .y = entity->second->y - entity->second->radius, 
-                        .width = static_cast<double>(entity->second->radius*2), 
-                        .height = static_cast<double>(entity->second->radius*2), 
+                        .width = static_cast<float>(entity->second->radius*2), 
+                        .height = static_cast<float>(entity->second->radius*2), 
                         .id = entity->second->id, 
                         .radius = entity->second->radius
                     });
@@ -522,8 +520,8 @@ void Entity::collision_response(Arena* arena) {
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->x - this->radius,
         .y = this->y - this->radius,
-        .width = static_cast<double>(this->radius*2),
-        .height = static_cast<double>(this->radius*2),
+        .width = static_cast<float>(this->radius*2),
+        .height = static_cast<float>(this->radius*2),
         .id = this->id,
         .radius = this->radius
     });
@@ -548,8 +546,8 @@ void Shape::collision_response(Arena* arena) {
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->x - this->radius,
         .y = this->y - this->radius,
-        .width = static_cast<double>(this->radius*2),
-        .height = static_cast<double>(this->radius*2),
+        .width = static_cast<float>(this->radius*2),
+        .height = static_cast<float>(this->radius*2),
         .id = this->id,
         .radius = this->radius
     });
@@ -578,8 +576,8 @@ void Tank::collision_response(Arena *arena) {
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->x - this->radius, 
         .y = this->y - this->radius, 
-        .width = static_cast<double>(this->radius*2), 
-        .height = static_cast<double>(this->radius*2), 
+        .width = static_cast<float>(this->radius*2), 
+        .height = static_cast<float>(this->radius*2), 
         .id = this->id, 
         .radius = this->radius
     });
@@ -595,9 +593,7 @@ void Tank::collision_response(Arena *arena) {
         
         if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), this->radius)) {
             if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
-                if (arena->entities.bullets[canidate.id]->owner != this->id) {
-                    this->health -= arena->entities.bullets[canidate.id]->damage;
-                }
+                this->health -= arena->entities.bullets[canidate.id]->damage;
             }
             
             // response
@@ -649,8 +645,8 @@ void Bullet::collision_response(Arena *arena) {
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->x - this->radius,
         .y = this->y - this->radius,
-        .width = static_cast<double>(this->radius*2),
-        .height = static_cast<double>(this->radius*2),
+        .width = static_cast<float>(this->radius*2),
+        .height = static_cast<float>(this->radius*2),
         .id = this->id,
         .radius = this->radius
     });
@@ -667,6 +663,10 @@ void Bullet::collision_response(Arena *arena) {
         }
         
         if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), this->radius)) {
+            if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
+                this->health -= arena->entities.bullets[canidate.id]->damage;
+            }
+
             // response
             float angle = atan2((canidate.y + canidate.radius) - this->y, (canidate.x + canidate.radius) - this->x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
