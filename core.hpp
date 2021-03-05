@@ -15,6 +15,7 @@
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
 #define COLLISION_STRENGTH 5
 #define ARENA_SIZE 12000
+#define THREADING
 
 using namespace std;
 using namespace spb;
@@ -292,7 +293,9 @@ class Arena {
         Entities entities;
         qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = ARENA_SIZE, .height = ARENA_SIZE}, 10, 4);
         unsigned int target_shape_count = 125;
+#ifdef THREADING
         mutex qtmtx;
+#endif
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
             string player_name = buf.get_utf8();
@@ -367,8 +370,13 @@ class Arena {
                     entities.shapes[new_shape->id] = new_shape;
                 }
             }
+#ifndef THREADING
+            Arena* arena = this;
+#endif
             
+#ifdef THREADING
             thread shape_move([](Arena* arena) {
+#endif
                 for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
                     if (entity->second == nullptr) {
                         Shape* entity_ptr = entity->second;
@@ -385,7 +393,9 @@ class Arena {
                     }
                     entity->second->next_tick();
                     //entity.second->take_census(buf);
+#ifdef THREADING
                     arena->qtmtx.lock();
+#endif
                     arena->tree.insert(qt::Rect {
                         .x = entity->second->x - entity->second->radius, 
                         .y = entity->second->y - entity->second->radius, 
@@ -394,12 +404,18 @@ class Arena {
                         .id = entity->second->id, 
                         .radius = entity->second->radius
                     });
+#ifdef THREADING
                     arena->qtmtx.unlock();
+#endif
                     ++entity;
                 }
+#ifdef THREADING
             }, this);
+#endif
             
+#ifdef THREADING
             thread player_move([](Arena* arena) {
+#endif
                 for (auto entity = arena->entities.players.cbegin(); entity != arena->entities.players.cend();) {
                     if (entity->second == nullptr) {
                         Tank* entity_ptr = entity->second;
@@ -413,7 +429,9 @@ class Arena {
                         entity->second->health = entity->second->max_health;
                     }
                     entity->second->next_tick(arena);
+#ifdef THREADING
                     arena->qtmtx.lock();
+#endif
                     arena->tree.insert(qt::Rect {
                         .x = entity->second->x - entity->second->radius, 
                         .y = entity->second->y - entity->second->radius, 
@@ -422,12 +440,18 @@ class Arena {
                         .id = entity->second->id, 
                         .radius = entity->second->radius
                     });
+#ifdef THREADING
                     arena->qtmtx.unlock();
+#endif
                     ++entity;
                 }
+#ifdef THREADING
             }, this);
+#endif
 
+#ifdef THREADING
             thread bullet_move([](Arena* arena) {
+#endif
                 for (auto entity = arena->entities.bullets.cbegin(); entity != arena->entities.bullets.cend();) {
                     if (entity->second == nullptr) {
                         Bullet* entity_ptr = entity->second;
@@ -449,7 +473,9 @@ class Arena {
                         continue;
                     }
                     entity->second->next_tick();
+#ifdef THREADING
                     arena->qtmtx.lock();
+#endif
                     arena->tree.insert(qt::Rect {
                         .x = entity->second->x - entity->second->radius, 
                         .y = entity->second->y - entity->second->radius, 
@@ -458,36 +484,59 @@ class Arena {
                         .id = entity->second->id, 
                         .radius = entity->second->radius
                     });
+#ifdef THREADING
                     arena->qtmtx.unlock();
+#endif
                     ++entity;
                 }
+#ifdef THREADING
             }, this);
+#endif
 
+#ifdef THREADING
             shape_move.join();
             player_move.join();
             bullet_move.join();
+#endif
 
+#ifdef THREADING
             thread shape_collide([](Arena* arena) {
+#endif
                 for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
                     entity->second->collision_response(arena);
                     ++entity;
-            }}, this);
+                }
+#ifdef THREADING
+            }, this);
+#endif
 
+#ifdef THREADING
             thread player_collide([](Arena* arena) {
+#endif
                 for (auto entity = arena->entities.players.cbegin(); entity != arena->entities.players.cend();) {
                     entity->second->collision_response(arena);
                     ++entity;
-            }}, this);
+                }
+#ifdef THREADING
+            }, this);
+#endif
 
+#ifdef THREADING
             thread bullet_collide([](Arena* arena) {
+#endif
                 for (auto entity = arena->entities.bullets.cbegin(); entity != arena->entities.bullets.cend();) {
                     entity->second->collision_response(arena);
                     ++entity;
-            }}, this);
+                }
+#ifdef THREADING
+            }, this);
+#endif
 
+#ifdef THREADING
             shape_collide.join();
             player_collide.join();
             bullet_collide.join();
+#endif
         }
 
         void run(ws28::Server& server, unsigned short port) {
@@ -516,7 +565,9 @@ class Arena {
 
 /* OVERLOADS */
 void Entity::collision_response(Arena* arena) {
+#ifdef THREADING
     arena->qtmtx.lock();
+#endif
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->x - this->radius,
         .y = this->y - this->radius,
@@ -525,7 +576,9 @@ void Entity::collision_response(Arena* arena) {
         .id = this->id,
         .radius = this->radius
     });
+#ifdef THREADING
     arena->qtmtx.unlock();
+#endif
     for (const auto canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
@@ -542,7 +595,9 @@ void Entity::collision_response(Arena* arena) {
 }
 
 void Shape::collision_response(Arena* arena) {
+#ifdef THREADING
     arena->qtmtx.lock();
+#endif
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->x - this->radius,
         .y = this->y - this->radius,
@@ -551,7 +606,9 @@ void Shape::collision_response(Arena* arena) {
         .id = this->id,
         .radius = this->radius
     });
+#ifdef THREADING
     arena->qtmtx.unlock();
+#endif
     for (const auto canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
@@ -572,7 +629,9 @@ void Shape::collision_response(Arena* arena) {
 }
 
 void Tank::collision_response(Arena *arena) {
+#ifdef THREADING
     arena->qtmtx.lock();
+#endif
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->x - this->radius, 
         .y = this->y - this->radius, 
@@ -581,7 +640,9 @@ void Tank::collision_response(Arena *arena) {
         .id = this->id, 
         .radius = this->radius
     });
+#ifdef THREADING
     arena->qtmtx.unlock();
+#endif
     for (const auto canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
@@ -612,9 +673,13 @@ void Tank::collision_response(Arena *arena) {
         .id = 0, 
         .radius = 4000
     };
+#ifdef THREADING
     arena->qtmtx.lock();
+#endif
     canidates = arena->tree.retrieve(viewport);
+#ifdef THREADING
     arena->qtmtx.unlock();
+#endif
     StreamPeerBuffer buf(true);
     unsigned short census_size = 0;
 
@@ -641,7 +706,9 @@ void Tank::collision_response(Arena *arena) {
 
 
 void Bullet::collision_response(Arena *arena) {
+#ifdef THREADING
     arena->qtmtx.lock();
+#endif
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->x - this->radius,
         .y = this->y - this->radius,
@@ -650,7 +717,9 @@ void Bullet::collision_response(Arena *arena) {
         .id = this->id,
         .radius = this->radius
     });
+#ifdef THREADING
     arena->qtmtx.unlock();
+#endif
     for (const auto canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
