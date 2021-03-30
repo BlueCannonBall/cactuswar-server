@@ -108,13 +108,6 @@ class Vector2 {
         Vector2 normalize() {
             float angle = this->angle();
             return Vector2(cos(angle), sin(angle));
-            // if (this->x > this->y) {
-            //     return Vector2(1, this->y/this->x);
-            // } else if (this->y > this->x) {
-            //     return Vector2(this->x/this->y, 1);
-            // } else {
-            //     return Vector2(1, 1);
-            // }
         }
 };
 
@@ -363,7 +356,7 @@ class Arena {
 
             if (entities.shapes.size() <= target_shape_count - 12) {
                 INFO("Replenishing shapes");
-                for (unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
+                for (register unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
                     Shape *new_shape = new Shape;
                     new_shape->id = get_uuid();
                     new_shape->position = Vector2(rand() % ARENA_SIZE + 0, rand() % ARENA_SIZE + 0);
@@ -540,7 +533,7 @@ class Arena {
         }
 
         void run(ws28::Server& server, unsigned short port) {
-            for (unsigned int i = 0; i<target_shape_count; i++) {
+            for (register unsigned int i = 0; i<target_shape_count; i++) {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uuid();
                 new_shape->position = Vector2(rand() % ARENA_SIZE + 0, rand() % ARENA_SIZE + 0);
