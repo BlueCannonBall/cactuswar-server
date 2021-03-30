@@ -1,0 +1,4 @@
+{
+    "name" : "cactuswar-server",
+    "script" : "build/server"
+}
