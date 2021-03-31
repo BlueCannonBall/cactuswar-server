@@ -356,7 +356,7 @@ class Arena {
 
             if (entities.shapes.size() <= target_shape_count - 12) {
                 INFO("Replenishing shapes");
-                for (register unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
+                for (unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
                     Shape *new_shape = new Shape;
                     new_shape->id = get_uuid();
                     new_shape->position = Vector2(rand() % ARENA_SIZE + 0, rand() % ARENA_SIZE + 0);
@@ -533,7 +533,7 @@ class Arena {
         }
 
         void run(ws28::Server& server, unsigned short port) {
-            for (register unsigned int i = 0; i<target_shape_count; i++) {
+            for (unsigned int i = 0; i<target_shape_count; i++) {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uuid();
                 new_shape->position = Vector2(rand() % ARENA_SIZE + 0, rand() % ARENA_SIZE + 0);
