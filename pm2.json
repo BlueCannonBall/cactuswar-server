@@ -1,4 +1,5 @@
 {
-    "name" : "cactuswar-server",
-    "script" : "build/server"
+    "name": "cactuswar-server",
+    "script": "cpulimit",
+    "args": ["-l", "10", "-f", "build/server", "8000"]
 }
