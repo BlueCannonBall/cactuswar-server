@@ -135,7 +135,7 @@ class Entity {
         float max_health = 500;
         float health = max_health;
         float damage = 0;
-        float mass = 0;
+        float mass = 1;
 
         virtual void next_tick() {
             this->velocity *= Vector2(this->friction, this->friction);
@@ -165,16 +165,18 @@ class Entity {
         }
 };
 
+/// A shape, includes cacti and rocks.
 class Shape: public Entity {
     public:
         unsigned radius = 100;
-        float mass = 10;
+        float mass = 5;
 
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(1); // id
             buf.put_u32(this->id); // game id
             buf.put_16(this->position.x); // position
             buf.put_16(this->position.y);
+            buf.put_float(this->health); // health
             //buf.put_u8(7); // sides
         }
 
@@ -201,6 +203,21 @@ class Shape: public Entity {
         void collision_response(Arena *arena);
 };
 
+class Tank;
+
+/// A tank barrel.
+class Barrel {
+    public:
+        unsigned full_reload = 6;
+        unsigned reload = full_reload;
+        float recoil = 0.35;
+        float bullet_speed = 50;
+        unsigned int width = 50;
+        unsigned int length;
+
+        void fire(Tank*, Arena*);
+};
+
 /// A domtank, stats vary based on mockups.
 class Tank: public Entity {
     public:
@@ -217,11 +234,12 @@ class Tank: public Entity {
         ws28::Client *client = nullptr;
         Input input = Input {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
         float movement_speed = 4;
-        float bullet_speed = 50;
         static constexpr float friction = 0.8f;
-        unsigned full_reload = 6;
-        unsigned reload = full_reload;
-        float recoil = 3.5;
+        vector<Barrel*> barrels;
+        // float bullet_speed = 50;
+        // unsigned full_reload = 6;
+        // unsigned reload = full_reload;
+        // float recoil = 3.5;
 
         void next_tick(Arena* arena);
         void collision_response(Arena *arena);
@@ -239,7 +257,7 @@ class Bullet: public Entity {
     public:
         unsigned int radius = 25;
         static constexpr float friction = 1;
-        short lifetime = 100;
+        short lifetime = 50;
         float damage = 20;
         unsigned int owner;
 
@@ -303,6 +321,7 @@ class Arena {
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
             new_player->position = Vector2(rand() % ARENA_SIZE-3000 + 3000, rand() % ARENA_SIZE-3000 + 3000);
+            new_player->barrels.push_back(new Barrel);
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
@@ -559,6 +578,19 @@ class Arena {
 
 
 /* OVERLOADS */
+
+void Barrel::fire(Tank* player, Arena* arena) {
+    Bullet *new_bullet = new Bullet;
+    new_bullet->position = player->position + (Vector2(cos(player->rotation), sin(player->rotation)).normalize() * Vector2(player->radius + new_bullet->radius + 1, player->radius + new_bullet->radius + 1));
+    // new_bullet->position = player->input.mousepos;
+    new_bullet->velocity = Vector2(cos(player->rotation) * bullet_speed, sin(player->rotation) * bullet_speed);
+    player->velocity -= Vector2(cos(player->rotation) * recoil, sin(player->rotation) * recoil);
+    new_bullet->id = get_uuid();
+    new_bullet->owner = player->id;
+    arena->entities.bullets[new_bullet->id] = new_bullet;
+    reload = full_reload;
+}
+
 void Entity::collision_response(Arena* arena) {
 #ifdef THREADING
     arena->qtmtx.lock();
@@ -742,8 +774,10 @@ void Bullet::collision_response(Arena *arena) {
 
 
 void Tank::next_tick(Arena *arena) {
-    if (reload != 0) {
-        reload--;
+    for (auto barrel : this->barrels) {
+        if (barrel->reload != 0) {
+            barrel->reload--;
+        }
     }
 
     if (this->input.W) {
@@ -759,17 +793,22 @@ void Tank::next_tick(Arena *arena) {
     }
 
     if (this->input.mousedown) {
-        if (reload == 0) {
-            Bullet *new_bullet = new Bullet;
-            new_bullet->position = this->position + (Vector2(cos(this->rotation), sin(this->rotation)).normalize() * Vector2(this->radius + new_bullet->radius + 1, this->radius + new_bullet->radius + 1));
-            // new_bullet->position = this->input.mousepos;
-            new_bullet->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
-            this->velocity -= Vector2(cos(this->rotation) * recoil, sin(this->rotation) * recoil);
-            new_bullet->id = get_uuid();
-            new_bullet->owner = id;
-            arena->entities.bullets[new_bullet->id] = new_bullet;
-            reload = full_reload;
+        for (auto barrel : this->barrels) {
+            if (barrel->reload == 0) {
+                barrel->fire(this, arena);
+            }
         }
+        // if (reload == 0) {
+        //     Bullet *new_bullet = new Bullet;
+        //     new_bullet->position = this->position + (Vector2(cos(this->rotation), sin(this->rotation)).normalize() * Vector2(this->radius + new_bullet->radius + 1, this->radius + new_bullet->radius + 1));
+        //     // new_bullet->position = this->input.mousepos;
+        //     new_bullet->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
+        //     this->velocity -= Vector2(cos(this->rotation) * recoil, sin(this->rotation) * recoil);
+        //     new_bullet->id = get_uuid();
+        //     new_bullet->owner = id;
+        //     arena->entities.bullets[new_bullet->id] = new_bullet;
+        //     reload = full_reload;
+        // }
     }
 
     this->velocity *= Vector2(this->friction, this->friction);
