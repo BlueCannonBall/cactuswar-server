@@ -135,10 +135,11 @@ class Entity {
         float max_health = 500;
         float health = max_health;
         float damage = 0;
+        float mass = 0;
 
         virtual void next_tick() {
             this->velocity *= Vector2(this->friction, this->friction);
-            this->position += this->velocity;
+            this->position += this->velocity / Vector2(this->mass, this->mass);
 
             if (this->x > ARENA_SIZE) {
                 this->x = ARENA_SIZE;
@@ -167,6 +168,7 @@ class Entity {
 class Shape: public Entity {
     public:
         unsigned radius = 100;
+        float mass = 10;
 
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(1); // id
@@ -178,7 +180,7 @@ class Shape: public Entity {
 
         void next_tick() {
             this->velocity *= Vector2(this->friction, this->friction);
-            this->position += this->velocity;
+            this->position += this->velocity / Vector2(this->mass, this->mass);
 
             if (this->x > ARENA_SIZE) {
                 this->x = ARENA_SIZE;
@@ -253,7 +255,7 @@ class Bullet: public Entity {
 
         void next_tick() {
             this->velocity *= Vector2(this->friction, this->friction);
-            this->position += this->velocity;
+            this->position += this->velocity / Vector2(this->mass, this->mass);
 
             if (this->x > ARENA_SIZE) {
                 this->x = ARENA_SIZE;
@@ -771,7 +773,7 @@ void Tank::next_tick(Arena *arena) {
     }
 
     this->velocity *= Vector2(this->friction, this->friction);
-    this->position += this->velocity;
+    this->position += this->velocity / Vector2(this->mass, this->mass);
 
     if (this->x > ARENA_SIZE) {
         this->x = ARENA_SIZE;
