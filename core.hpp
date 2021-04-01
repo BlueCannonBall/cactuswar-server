@@ -693,12 +693,12 @@ void Tank::collision_response(Arena *arena) {
     }
 
     qt::Rect viewport = {
-        .x = this->position.x - 2500/2, 
+        .x = this->position.x - 3250/2, 
         .y = this->position.y - 2500/2, 
-        .width = 2500, 
+        .width = 3250, 
         .height = 2500, 
         .id = 0,
-        .radius = 2500/2
+        .radius = 3250/2
     };
 #ifdef THREADING
     arena->qtmtx.lock();
