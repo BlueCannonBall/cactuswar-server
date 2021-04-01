@@ -128,8 +128,6 @@ class Entity {
         unsigned int id;
         float rotation = 0;
         static constexpr float friction = 0.9f;
-        float& x = position.x;
-        float& y = position.y;
         string name = "Entity";
         unsigned radius = 50;
         float max_health = 500;
@@ -141,18 +139,18 @@ class Entity {
             this->velocity *= Vector2(this->friction, this->friction);
             this->position += this->velocity / Vector2(this->mass, this->mass);
 
-            if (this->x > ARENA_SIZE) {
-                this->x = ARENA_SIZE;
+            if (this->position.x > ARENA_SIZE) {
+                this->position.x = ARENA_SIZE;
                 this->velocity.x = 0;
-            } else if (this->x < 0) {
-                this->x = 0;
+            } else if (this->position.x < 0) {
+                this->position.x = 0;
                 this->velocity.x = 0;
             }
-            if (this->y > ARENA_SIZE) {
-                this->y = ARENA_SIZE;
+            if (this->position.y > ARENA_SIZE) {
+                this->position.y = ARENA_SIZE;
                 this->velocity.y = 0;
-            } else if (this->y < 0) {
-                this->y = 0;
+            } else if (this->position.y < 0) {
+                this->position.y = 0;
                 this->velocity.y = 0;
             }
         }
@@ -184,18 +182,18 @@ class Shape: public Entity {
             this->velocity *= Vector2(this->friction, this->friction);
             this->position += this->velocity / Vector2(this->mass, this->mass);
 
-            if (this->x > ARENA_SIZE) {
-                this->x = ARENA_SIZE;
+            if (this->position.x > ARENA_SIZE) {
+                this->position.x = ARENA_SIZE;
                 this->velocity.x = 0;
-            } else if (this->x < 0) {
-                this->x = 0;
+            } else if (this->position.x < 0) {
+                this->position.x = 0;
                 this->velocity.x = 0;
             }
-            if (this->y > ARENA_SIZE) {
-                this->y = ARENA_SIZE;
+            if (this->position.y > ARENA_SIZE) {
+                this->position.y = ARENA_SIZE;
                 this->velocity.y = 0;
-            } else if (this->y < 0) {
-                this->y = 0;
+            } else if (this->position.y < 0) {
+                this->position.y = 0;
                 this->velocity.y = 0;
             }
         }
@@ -250,6 +248,8 @@ class Tank: public Entity {
             buf.put_16(this->position.x); // position
             buf.put_16(this->position.y);
             buf.put_float(this->rotation); // rotation
+            buf.put_16(this->velocity.x); // velocity
+            buf.put_16(this->velocity.y);
         }
 };
 
@@ -275,18 +275,18 @@ class Bullet: public Entity {
             this->velocity *= Vector2(this->friction, this->friction);
             this->position += this->velocity / Vector2(this->mass, this->mass);
 
-            if (this->x > ARENA_SIZE) {
-                this->x = ARENA_SIZE;
+            if (this->position.x > ARENA_SIZE) {
+                this->position.x = ARENA_SIZE;
                 this->velocity.x = 0;
-            } else if (this->x < 0) {
-                this->x = 0;
+            } else if (this->position.x < 0) {
+                this->position.x = 0;
                 this->velocity.x = 0;
             }
-            if (this->y > ARENA_SIZE) {
-                this->y = ARENA_SIZE;
+            if (this->position.y > ARENA_SIZE) {
+                this->position.y = ARENA_SIZE;
                 this->velocity.y = 0;
-            } else if (this->y < 0) {
-                this->y = 0;
+            } else if (this->position.y < 0) {
+                this->position.y = 0;
                 this->velocity.y = 0;
             }
         }
@@ -411,8 +411,8 @@ class Arena {
                     arena->qtmtx.lock();
 #endif
                     arena->tree.insert(qt::Rect {
-                        .x = entity->second->x - entity->second->radius, 
-                        .y = entity->second->y - entity->second->radius, 
+                        .x = entity->second->position.x - entity->second->radius, 
+                        .y = entity->second->position.y - entity->second->radius, 
                         .width = static_cast<float>(entity->second->radius*2), 
                         .height = static_cast<float>(entity->second->radius*2), 
                         .id = entity->second->id, 
@@ -447,8 +447,8 @@ class Arena {
                     arena->qtmtx.lock();
 #endif
                     arena->tree.insert(qt::Rect {
-                        .x = entity->second->x - entity->second->radius, 
-                        .y = entity->second->y - entity->second->radius, 
+                        .x = entity->second->position.x - entity->second->radius, 
+                        .y = entity->second->position.y - entity->second->radius, 
                         .width = static_cast<float>(entity->second->radius*2), 
                         .height = static_cast<float>(entity->second->radius*2), 
                         .id = entity->second->id, 
@@ -491,8 +491,8 @@ class Arena {
                     arena->qtmtx.lock();
 #endif
                     arena->tree.insert(qt::Rect {
-                        .x = entity->second->x - entity->second->radius, 
-                        .y = entity->second->y - entity->second->radius, 
+                        .x = entity->second->position.x - entity->second->radius, 
+                        .y = entity->second->position.y - entity->second->radius, 
                         .width = static_cast<float>(entity->second->radius*2), 
                         .height = static_cast<float>(entity->second->radius*2), 
                         .id = entity->second->id, 
@@ -596,8 +596,8 @@ void Entity::collision_response(Arena* arena) {
     arena->qtmtx.lock();
 #endif
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
-        .x = this->x - this->radius,
-        .y = this->y - this->radius,
+        .x = this->position.x - this->radius,
+        .y = this->position.y - this->radius,
         .width = static_cast<float>(this->radius*2),
         .height = static_cast<float>(this->radius*2),
         .id = this->id,
@@ -611,9 +611,9 @@ void Entity::collision_response(Arena* arena) {
             continue;
         }
         
-        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), this->radius)) {
+        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
             // response
-            float angle = atan2((canidate.y + canidate.radius) - this->y, (canidate.x + canidate.radius) - this->x);
+            float angle = atan2((canidate.y + canidate.radius) - this->position.y, (canidate.x + canidate.radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
             this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
@@ -626,8 +626,8 @@ void Shape::collision_response(Arena* arena) {
     arena->qtmtx.lock();
 #endif
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
-        .x = this->x - this->radius,
-        .y = this->y - this->radius,
+        .x = this->position.x - this->radius,
+        .y = this->position.y - this->radius,
         .width = static_cast<float>(this->radius*2),
         .height = static_cast<float>(this->radius*2),
         .id = this->id,
@@ -641,13 +641,13 @@ void Shape::collision_response(Arena* arena) {
             continue;
         }
         
-        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), this->radius)) {
+        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
                 this->health -= arena->entities.bullets[canidate.id]->damage;
             }
             
             // response
-            float angle = atan2((canidate.y + canidate.radius) - this->y, (canidate.x + canidate.radius) - this->x);
+            float angle = atan2((canidate.y + canidate.radius) - this->position.y, (canidate.x + canidate.radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
             this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
@@ -660,8 +660,8 @@ void Tank::collision_response(Arena *arena) {
     arena->qtmtx.lock();
 #endif
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
-        .x = this->x - this->radius, 
-        .y = this->y - this->radius, 
+        .x = this->position.x - this->radius, 
+        .y = this->position.y - this->radius, 
         .width = static_cast<float>(this->radius*2), 
         .height = static_cast<float>(this->radius*2), 
         .id = this->id, 
@@ -679,13 +679,13 @@ void Tank::collision_response(Arena *arena) {
             }
         }
         
-        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), this->radius)) {
+        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
                 this->health -= arena->entities.bullets[canidate.id]->damage;
             }
             
             // response
-            float angle = atan2((canidate.y + canidate.radius) - this->y, (canidate.x + canidate.radius) - this->x);
+            float angle = atan2((canidate.y + canidate.radius) - this->position.y, (canidate.x + canidate.radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
             this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
@@ -693,8 +693,8 @@ void Tank::collision_response(Arena *arena) {
     }
 
     qt::Rect viewport = {
-        .x = this->x - 2000, 
-        .y = this->y - 2000, 
+        .x = this->position.x - 2000, 
+        .y = this->position.y - 2000, 
         .width = 4000, 
         .height = 4000, 
         .id = 0, 
@@ -737,8 +737,8 @@ void Bullet::collision_response(Arena *arena) {
     arena->qtmtx.lock();
 #endif
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
-        .x = this->x - this->radius,
-        .y = this->y - this->radius,
+        .x = this->position.x - this->radius,
+        .y = this->position.y - this->radius,
         .width = static_cast<float>(this->radius*2),
         .height = static_cast<float>(this->radius*2),
         .id = this->id,
@@ -758,13 +758,13 @@ void Bullet::collision_response(Arena *arena) {
             }
         }
         
-        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->x, this->y), this->radius)) {
+        if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
                 this->health -= arena->entities.bullets[canidate.id]->damage;
             }
 
             // response
-            float angle = atan2((canidate.y + canidate.radius) - this->y, (canidate.x + canidate.radius) - this->x);
+            float angle = atan2((canidate.y + canidate.radius) - this->position.y, (canidate.x + canidate.radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
             this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
@@ -814,18 +814,18 @@ void Tank::next_tick(Arena *arena) {
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity / Vector2(this->mass, this->mass);
 
-    if (this->x > ARENA_SIZE) {
-        this->x = ARENA_SIZE;
+    if (this->position.x > ARENA_SIZE) {
+        this->position.x = ARENA_SIZE;
         this->velocity.x = 0;
-    } else if (this->x < 0) {
-        this->x = 0;
+    } else if (this->position.x < 0) {
+        this->position.x = 0;
         this->velocity.x = 0;
     }
-    if (this->y > ARENA_SIZE) {
-        this->y = ARENA_SIZE;
+    if (this->position.y > ARENA_SIZE) {
+        this->position.y = ARENA_SIZE;
         this->velocity.y = 0;
-    } else if (this->y < 0) {
-        this->y = 0;
+    } else if (this->position.y < 0) {
+        this->position.y = 0;
         this->velocity.y = 0;
     }
 }
