@@ -12,7 +12,6 @@
 #include <mutex>
 
 #pragma once
-#pragma clang diagnostic ignored "-Woverloaded-virtual"
 #define COLLISION_STRENGTH 5
 #define ARENA_SIZE 12000
 #define THREADING
@@ -135,7 +134,7 @@ class Entity {
         float damage = 0;
         float mass = 1;
 
-        virtual void next_tick() {
+        void next_tick() {
             this->velocity *= Vector2(this->friction, this->friction);
             this->position += this->velocity / Vector2(this->mass, this->mass);
 
@@ -155,10 +154,10 @@ class Entity {
             }
         }
 
-        virtual void take_census(StreamPeerBuffer& buf) {}
-        virtual void collision_response(Arena *arena);
+        void take_census(StreamPeerBuffer& buf) {}
+        void collision_response(Arena *arena);
 
-        virtual ~Entity() {
+        ~Entity() {
             //INFO("Entity destroyed.");
         }
 };
