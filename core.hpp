@@ -365,7 +365,10 @@ class Arena {
             short mousex = buf.get_16();
             short mousey = buf.get_16();
             entities.players[player_id]->input.mousepos = Vector2(mousex, mousey);
-            entities.players[player_id]->rotation = atan2(entities.players[player_id]->input.mousepos.y - entities.players[player_id]->position.y, entities.players[player_id]->input.mousepos.x - entities.players[player_id]->position.x);
+            entities.players[player_id]->rotation = atan2(
+                entities.players[player_id]->input.mousepos.y - entities.players[player_id]->position.y,
+                entities.players[player_id]->input.mousepos.x - entities.players[player_id]->position.x
+            );
             // INFO("Player rotation: " << entities.players[player_id]->rotation);
             // INFO("Player position: " << entities.players[player_id]->position);
             // INFO("Mouse position: " << entities.players[player_id]->input.mousepos);
