@@ -391,7 +391,7 @@ class Arena {
 #endif
             
 #ifdef THREADING
-            thread shape_move([](Arena* arena) {
+            thread shape_tick([](Arena* arena) {
 #endif
                 for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
                     if (entity->second == nullptr) {
@@ -430,7 +430,7 @@ class Arena {
 #endif
             
 #ifdef THREADING
-            thread player_move([](Arena* arena) {
+            thread player_tick([](Arena* arena) {
 #endif
                 for (auto entity = arena->entities.players.cbegin(); entity != arena->entities.players.cend();) {
                     if (entity->second == nullptr) {
@@ -466,7 +466,7 @@ class Arena {
 #endif
 
 #ifdef THREADING
-            thread bullet_move([](Arena* arena) {
+            thread bullet_tick([](Arena* arena) {
 #endif
                 for (auto entity = arena->entities.bullets.cbegin(); entity != arena->entities.bullets.cend();) {
                     if (entity->second == nullptr) {
@@ -510,9 +510,9 @@ class Arena {
 #endif
 
 #ifdef THREADING
-            shape_move.join();
-            player_move.join();
-            bullet_move.join();
+            shape_tick.join();
+            player_tick.join();
+            bullet_tick.join();
 #endif
 
 #ifdef THREADING
