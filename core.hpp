@@ -157,9 +157,9 @@ class Entity {
         void take_census(StreamPeerBuffer& buf) {}
         void collision_response(Arena *arena);
 
-        ~Entity() {
-            //INFO("Entity destroyed.");
-        }
+        // ~Entity() {
+        //     INFO("Entity destroyed.");
+        // }
 };
 
 /// A shape, includes cacti and rocks.
