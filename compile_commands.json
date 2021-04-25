@@ -8,63 +8,11 @@
             "-Wall",
             "-Wno-unknown-pragmas",
             "-O2",
-            "-flto",
             "-o",
-            "build/cacti",
-            "ws28/Client.cpp"
-        ],
-        "directory": "/home/optimal/Desktop/mm_files/cpp/cacti-server",
-        "file": "ws28/Client.cpp"
-    },
-    {
-        "arguments": [
-            "g++",
-            "-c",
-            "-pthread",
-            "-std=c++14",
-            "-Wall",
-            "-Wno-unknown-pragmas",
-            "-O2",
-            "-flto",
-            "-o",
-            "build/cacti",
-            "ws28/base64.cpp"
-        ],
-        "directory": "/home/optimal/Desktop/mm_files/cpp/cacti-server",
-        "file": "ws28/base64.cpp"
-    },
-    {
-        "arguments": [
-            "g++",
-            "-c",
-            "-pthread",
-            "-std=c++14",
-            "-Wall",
-            "-Wno-unknown-pragmas",
-            "-O2",
-            "-flto",
-            "-o",
-            "build/cacti",
-            "ws28/Server.cpp"
-        ],
-        "directory": "/home/optimal/Desktop/mm_files/cpp/cacti-server",
-        "file": "ws28/Server.cpp"
-    },
-    {
-        "arguments": [
-            "g++",
-            "-c",
-            "-pthread",
-            "-std=c++14",
-            "-Wall",
-            "-Wno-unknown-pragmas",
-            "-O2",
-            "-flto",
-            "-o",
-            "build/cacti",
+            "./build/server",
             "ws28/sha1.cpp"
         ],
-        "directory": "/home/optimal/Desktop/mm_files/cpp/cacti-server",
+        "directory": "/home/optimal/Desktop/mm_files/cpp/cactuswar-server",
         "file": "ws28/sha1.cpp"
     },
     {
@@ -76,12 +24,59 @@
             "-Wall",
             "-Wno-unknown-pragmas",
             "-O2",
-            "-flto",
             "-o",
-            "build/cacti",
+            "./build/server",
             "main.cpp"
         ],
-        "directory": "/home/optimal/Desktop/mm_files/cpp/cacti-server",
+        "directory": "/home/optimal/Desktop/mm_files/cpp/cactuswar-server",
         "file": "main.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-pthread",
+            "-std=c++14",
+            "-Wall",
+            "-Wno-unknown-pragmas",
+            "-O2",
+            "-o",
+            "./build/server",
+            "ws28/Client.cpp"
+        ],
+        "directory": "/home/optimal/Desktop/mm_files/cpp/cactuswar-server",
+        "file": "ws28/Client.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-pthread",
+            "-std=c++14",
+            "-Wall",
+            "-Wno-unknown-pragmas",
+            "-O2",
+            "-o",
+            "./build/server",
+            "ws28/Server.cpp"
+        ],
+        "directory": "/home/optimal/Desktop/mm_files/cpp/cactuswar-server",
+        "file": "ws28/Server.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-pthread",
+            "-std=c++14",
+            "-Wall",
+            "-Wno-unknown-pragmas",
+            "-O2",
+            "-o",
+            "./build/server",
+            "ws28/base64.cpp"
+        ],
+        "directory": "/home/optimal/Desktop/mm_files/cpp/cactuswar-server",
+        "file": "ws28/base64.cpp"
     }
 ]
