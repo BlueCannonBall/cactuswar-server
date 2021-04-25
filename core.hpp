@@ -211,8 +211,8 @@ class Barrel {
         unsigned reload = full_reload;
         float recoil = 0.35;
         float bullet_speed = 50;
-        unsigned int width = 50;
-        unsigned int length;
+        float width = 50;
+        float length;
         float angle;
         float bullet_damage;
 
@@ -254,7 +254,11 @@ class Tank: public Entity {
         }
 
         void define(unsigned int index) {
+            for (const auto barrel : barrels) {
+                free(barrel);
+            }
             this->barrels = vector<Barrel*>();
+
             TankConfig tank = tanksconfig[index];
             for (const auto& barrel : tank.barrels) {
                 Barrel* new_barrel = (Barrel*) malloc(sizeof(Barrel));
@@ -270,6 +274,12 @@ class Tank: public Entity {
             }
             mockup = index;
         }
+
+        ~Tank() {
+            for (const auto barrel : barrels) {
+                free(barrel);
+            }
+        }
 };
 
 class Bullet: public Entity {
@@ -278,6 +288,8 @@ class Bullet: public Entity {
         static constexpr float friction = 1;
         short lifetime = 50;
         float damage = 20;
+        float max_health = 10;
+        float health = max_health;
         unsigned int owner;
 
         void take_census(StreamPeerBuffer& buf) {
@@ -351,10 +363,12 @@ class Arena {
             buf.put_u32(player_id); // player id
             buf.put_u8(tanksconfig.size()); // amount of mockups
             for (const auto& tank : tanksconfig) {
+                buf.put_utf8(tank.name);
+                buf.put_u8(tank.fov);
                 buf.put_u8(tank.barrels.size());
                 for (const auto& barrel : tank.barrels) {
-                    buf.put_u8(barrel.width);
-                    buf.put_u8(barrel.length);
+                    buf.put_float(barrel.width);
+                    buf.put_float(barrel.length);
                     buf.put_float(barrel.angle);
                 }
             }

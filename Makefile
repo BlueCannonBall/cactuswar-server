@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-luv -lssl -lcrypto -pthread -std=c++14 -Wall -Wno-unknown-pragmas -s -O2
+CFLAGS=-luv -lssl -lcrypto -pthread -std=c++14 -Wall -Wno-unknown-pragmas -s -Ofast
 TARGET=./build/server
 
 server: build/main.o build/ws28/%.o
