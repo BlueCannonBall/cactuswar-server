@@ -420,6 +420,10 @@ class Arena {
         }
         
         void update() {
+            if (entities.players.size() == 0) {
+                return;
+            }
+
             this->tree.clear();
 
             if (entities.shapes.size() <= target_shape_count - 12) {
