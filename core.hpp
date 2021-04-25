@@ -5,11 +5,12 @@
 #include "streampeerbuffer.hpp"
 #include <cmath>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include "bcblog.hpp"
 #include "quadtree.hpp"
 #include <thread>
 #include <mutex>
+#include "entityconfig.hpp"
 
 #pragma once
 #define COLLISION_STRENGTH 5
@@ -211,6 +212,7 @@ class Barrel {
         float bullet_speed = 50;
         unsigned int width = 50;
         unsigned int length;
+        float angle;
 
         void fire(Tank*, Arena*);
 };
@@ -233,6 +235,7 @@ class Tank: public Entity {
         float movement_speed = 4;
         static constexpr float friction = 0.8f;
         vector<Barrel*> barrels;
+        unsigned int mockup;
         // float bullet_speed = 50;
         // unsigned full_reload = 6;
         // unsigned reload = full_reload;
@@ -249,6 +252,23 @@ class Tank: public Entity {
             buf.put_float(this->rotation); // rotation
             buf.put_16(this->velocity.x); // velocity
             buf.put_16(this->velocity.y);
+        }
+
+        void define(unsigned int index) {
+            this->barrels = vector<Barrel*>();
+            TankConfig tank = tanksconfig[index];
+            for (const auto& barrel : tank.barrels) {
+                Barrel* new_barrel = (Barrel*) malloc(sizeof(Barrel));
+                new_barrel->full_reload = barrel.full_reload;
+                new_barrel->reload = barrel.full_reload + barrel.reload_delay;
+                new_barrel->recoil = barrel.recoil;
+                new_barrel->bullet_speed = barrel.bullet_speed;
+                new_barrel->angle = barrel.angle;
+                new_barrel->width = barrel.width;
+                new_barrel->length = barrel.length;
+                this->barrels.push_back(new_barrel);
+            }
+            mockup = index;
         }
 };
 
@@ -296,10 +316,10 @@ class Bullet: public Entity {
 class Arena {
     public:
         struct Entities {
-            map<unsigned int, Entity*> entities;
-            map<unsigned int, Shape*> shapes;
-            map<unsigned int, Tank*> players;
-            map<unsigned int, Bullet*> bullets;
+            unordered_map<unsigned int, Entity*> entities;
+            unordered_map<unsigned int, Shape*> shapes;
+            unordered_map<unsigned int, Tank*> players;
+            unordered_map<unsigned int, Bullet*> bullets;
         };
 
         Entities entities;
@@ -583,7 +603,7 @@ class Arena {
 
 void Barrel::fire(Tank* player, Arena* arena) {
     Bullet *new_bullet = new Bullet;
-    new_bullet->position = player->position + (Vector2(cos(player->rotation), sin(player->rotation)).normalize() * Vector2(player->radius + new_bullet->radius + 1, player->radius + new_bullet->radius + 1));
+    new_bullet->position = player->position + (Vector2(cos(player->rotation + angle), sin(player->rotation + angle)).normalize() * Vector2(player->radius + new_bullet->radius + 1, player->radius + new_bullet->radius + 1));
     // new_bullet->position = player->input.mousepos;
     new_bullet->velocity = Vector2(cos(player->rotation) * bullet_speed, sin(player->rotation) * bullet_speed);
     player->velocity -= Vector2(cos(player->rotation) * recoil, sin(player->rotation) * recoil);
@@ -608,7 +628,7 @@ void Entity::collision_response(Arena* arena) {
 #ifdef THREADING
     arena->qtmtx.unlock();
 #endif
-    for (const auto canidate : canidates) {
+    for (const auto& canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
         }
@@ -638,7 +658,7 @@ void Shape::collision_response(Arena* arena) {
 #ifdef THREADING
     arena->qtmtx.unlock();
 #endif
-    for (const auto canidate : canidates) {
+    for (const auto& canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
         }
@@ -672,7 +692,7 @@ void Tank::collision_response(Arena *arena) {
 #ifdef THREADING
     arena->qtmtx.unlock();
 #endif
-    for (const auto canidate : canidates) {
+    for (const auto& canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
         } else if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
@@ -712,7 +732,7 @@ void Tank::collision_response(Arena *arena) {
     StreamPeerBuffer buf(true);
     unsigned short census_size = 0;
 
-    for (const auto canidate : canidates) {
+    for (const auto& canidate : canidates) {
         if (aabb(viewport, canidate)) {
             if (arena->entities.players.find(canidate.id) != arena->entities.players.end()) {
                 arena->entities.players[canidate.id]->take_census(buf);
@@ -749,7 +769,7 @@ void Bullet::collision_response(Arena *arena) {
 #ifdef THREADING
     arena->qtmtx.unlock();
 #endif
-    for (const auto canidate : canidates) {
+    for (const auto& canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
         } else if (canidate.id == this->owner) {
@@ -776,7 +796,7 @@ void Bullet::collision_response(Arena *arena) {
 
 
 void Tank::next_tick(Arena *arena) {
-    for (auto barrel : this->barrels) {
+    for (const auto& barrel : this->barrels) {
         if (barrel->reload != 0) {
             barrel->reload--;
         }
@@ -795,7 +815,7 @@ void Tank::next_tick(Arena *arena) {
     }
 
     if (this->input.mousedown) {
-        for (auto barrel : this->barrels) {
+        for (auto const& barrel : this->barrels) {
             if (barrel->reload == 0) {
                 barrel->fire(this, arena);
             }
