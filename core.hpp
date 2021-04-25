@@ -20,13 +20,13 @@
 using namespace std;
 using namespace spb;
 
-unsigned int uuid = 0;
+unsigned int uid = 0;
 
-unsigned int get_uuid() {
-    if (uuid >= 4294965295) {
+unsigned int get_uid() {
+    if (uid >= 4294965295) {
         WARN("IDs are close to the 32-bit unsigned number limit");
     }
-    return uuid++;
+    return uid++;
 }
 
 inline bool aabb(qt::Rect rect1, qt::Rect rect2) {
@@ -168,6 +168,7 @@ class Shape: public Entity {
     public:
         unsigned radius = 100;
         float mass = 5;
+        float damage = 20;
 
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(1); // id
@@ -206,13 +207,14 @@ class Tank;
 /// A tank barrel.
 class Barrel {
     public:
-        unsigned full_reload = 6;
+        unsigned full_reload = 6;  // All these values get overridden
         unsigned reload = full_reload;
         float recoil = 0.35;
         float bullet_speed = 50;
         unsigned int width = 50;
         unsigned int length;
         float angle;
+        float bullet_damage;
 
         void fire(Tank*, Arena*);
 };
@@ -236,10 +238,6 @@ class Tank: public Entity {
         static constexpr float friction = 0.8f;
         vector<Barrel*> barrels;
         unsigned int mockup;
-        // float bullet_speed = 50;
-        // unsigned full_reload = 6;
-        // unsigned reload = full_reload;
-        // float recoil = 3.5;
 
         void next_tick(Arena* arena);
         void collision_response(Arena *arena);
@@ -252,6 +250,7 @@ class Tank: public Entity {
             buf.put_float(this->rotation); // rotation
             buf.put_16(this->velocity.x); // velocity
             buf.put_16(this->velocity.y);
+            buf.put_u8(this->mockup); // mockup id
         }
 
         void define(unsigned int index) {
@@ -263,6 +262,7 @@ class Tank: public Entity {
                 new_barrel->reload = barrel.full_reload + barrel.reload_delay;
                 new_barrel->recoil = barrel.recoil;
                 new_barrel->bullet_speed = barrel.bullet_speed;
+                new_barrel->bullet_damage = barrel.bullet_damage;
                 new_barrel->angle = barrel.angle;
                 new_barrel->width = barrel.width;
                 new_barrel->length = barrel.length;
@@ -335,19 +335,30 @@ class Arena {
             new_player->name = player_name;
             new_player->client = client;
 
-            unsigned int player_id = get_uuid();
+            unsigned int player_id = get_uid();
             client->SetUserData(reinterpret_cast<void*>(player_id));
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
             new_player->position = Vector2(rand() % ARENA_SIZE-3000 + 3000, rand() % ARENA_SIZE-3000 + 3000);
-            new_player->barrels.push_back(new Barrel);
+            //new_player->barrels.push_back(new Barrel);
+            new_player->define(0);
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
             buf.data_array = vector<unsigned char>();
             buf.offset = 0;
-            buf.put_u8(3);
-            buf.put_u32(player_id);
+            buf.put_u8(3); // packet id
+            buf.put_u32(player_id); // player id
+            buf.put_u8(tanksconfig.size()); // amount of mockups
+            for (const auto& tank : tanksconfig) {
+                buf.put_u8(tank.barrels.size());
+                for (const auto& barrel : tank.barrels) {
+                    buf.put_u8(barrel.width);
+                    buf.put_u8(barrel.length);
+                    buf.put_float(barrel.angle);
+                }
+            }
+
             client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
         }
         
@@ -401,7 +412,7 @@ class Arena {
                 INFO("Replenishing shapes");
                 for (unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
                     Shape *new_shape = new Shape;
-                    new_shape->id = get_uuid();
+                    new_shape->id = get_uid();
                     new_shape->position = Vector2(rand() % ARENA_SIZE + 0, rand() % ARENA_SIZE + 0);
                     entities.shapes[new_shape->id] = new_shape;
                 }
@@ -578,7 +589,7 @@ class Arena {
         void run(ws28::Server& server, unsigned short port) {
             for (unsigned int i = 0; i<target_shape_count; i++) {
                 Shape *new_shape = new Shape;
-                new_shape->id = get_uuid();
+                new_shape->id = get_uid();
                 new_shape->position = Vector2(rand() % ARENA_SIZE + 0, rand() % ARENA_SIZE + 0);
                 entities.shapes[new_shape->id] = new_shape;
             }
@@ -607,8 +618,10 @@ void Barrel::fire(Tank* player, Arena* arena) {
     // new_bullet->position = player->input.mousepos;
     new_bullet->velocity = Vector2(cos(player->rotation) * bullet_speed, sin(player->rotation) * bullet_speed);
     player->velocity -= Vector2(cos(player->rotation) * recoil, sin(player->rotation) * recoil);
-    new_bullet->id = get_uuid();
+    new_bullet->id = get_uid();
     new_bullet->owner = player->id;
+    new_bullet->radius = this->width * player->radius;
+    new_bullet->damage = this->bullet_damage;
     arena->entities.bullets[new_bullet->id] = new_bullet;
     reload = full_reload;
 }
@@ -665,7 +678,7 @@ void Shape::collision_response(Arena* arena) {
         
         if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
-                this->health -= arena->entities.bullets[canidate.id]->damage;
+                this->health -= arena->entities.bullets[canidate.id]->damage; // damage
             }
             
             // response
@@ -703,7 +716,9 @@ void Tank::collision_response(Arena *arena) {
         
         if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
-                this->health -= arena->entities.bullets[canidate.id]->damage;
+                this->health -= arena->entities.bullets[canidate.id]->damage; // damage
+            } else if (arena->entities.shapes.find(canidate.id) != arena->entities.shapes.end()) {
+                this->health -= arena->entities.shapes[canidate.id]->damage; // damage
             }
             
             // response
@@ -782,7 +797,9 @@ void Bullet::collision_response(Arena *arena) {
         
         if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
-                this->health -= arena->entities.bullets[canidate.id]->damage;
+                this->health -= arena->entities.bullets[canidate.id]->damage; // damage
+            } else if (arena->entities.shapes.find(canidate.id) != arena->entities.shapes.end()) {
+                this->health -= arena->entities.shapes[canidate.id]->damage; // damage
             }
 
             // response
@@ -826,7 +843,7 @@ void Tank::next_tick(Arena *arena) {
         //     // new_bullet->position = this->input.mousepos;
         //     new_bullet->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
         //     this->velocity -= Vector2(cos(this->rotation) * recoil, sin(this->rotation) * recoil);
-        //     new_bullet->id = get_uuid();
+        //     new_bullet->id = get_uid();
         //     new_bullet->owner = id;
         //     arena->entities.bullets[new_bullet->id] = new_bullet;
         //     reload = full_reload;

@@ -12,6 +12,7 @@ struct BarrelConfig {
     unsigned reload_delay;
     float recoil;
     float bullet_speed;
+    float bullet_damage;
 };
 
 struct TankConfig {
@@ -27,12 +28,13 @@ const vector<TankConfig> tanksconfig = {
         .barrels = {
             BarrelConfig {
                 .angle = 0,
-                .width = 1,
-                .length = 3,
+                .width = 0.5,
+                .length = 2,
                 .full_reload = 6,
                 .reload_delay = 0,
                 .recoil = 0.35f,
                 .bullet_speed = 50,
+                .bullet_damage = 20
             }
         }
     }
