@@ -7,7 +7,7 @@ $(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o
 	mkdir -p build
 	$(CC) $(OBJDIR)/*.o $(OBJDIR)/ws28/*.o $(CFLAGS) -o $(TARGET)
 
-$(OBJDIR)/main.o: main.cpp core.hpp quadtree.hpp streampeerbuffer.hpp bcblog.hpp entityconfig.hpp
+$(OBJDIR)/main.o: main.cpp *.hpp
 	@mkdir -p build
 	@mkdir -p $(OBJDIR)
 	$(CC) -c main.cpp $(CFLAGS) -o $(OBJDIR)/main.o
