@@ -255,6 +255,8 @@ class Tank: public Entity {
             buf.put_16(this->velocity.x); // velocity
             buf.put_16(this->velocity.y);
             buf.put_u8(this->mockup); // mockup id
+            buf.put_float(this->health); // health
+            buf.put_u16(this->radius); // radius
         }
 
         void define(unsigned int index) {
