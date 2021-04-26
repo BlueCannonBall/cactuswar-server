@@ -43,5 +43,22 @@ const vector<TankConfig> tanksconfig = {
                 .bullet_penetration = 30,
             }
         }
+    },
+    TankConfig {
+        .name = "Obliterator",
+        .fov = 20,
+        .barrels = {
+            BarrelConfig {
+                .angle = 0,
+                .width = 1,
+                .length = 1,
+                .full_reload = 40,
+                .reload_delay = 0,
+                .recoil = 200,
+                .bullet_speed = 30,
+                .bullet_damage = 100,
+                .bullet_penetration = 450,
+            }
+        }
     }
 };
