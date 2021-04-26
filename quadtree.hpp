@@ -57,7 +57,7 @@ namespace qt {
                 this->level = level;
             }
 
-            void split() {
+            void split() __attribute__((hot)) {
                 float nextLevel = this->level + 1;
                 float subWidth = this->bounds.width/2;
                 float subHeight = this->bounds.height/2;
@@ -136,7 +136,7 @@ namespace qt {
                 return indexes;
             }
 
-            void insert(Rect pRect) {
+            void insert(Rect pRect) __attribute__((hot)) {
                 float i = 0;
                 std::vector<float> indexes;
 
@@ -168,7 +168,7 @@ namespace qt {
                 }
             }
 
-            std::vector<Rect> retrieve(Rect pRect) {
+            std::vector<Rect> retrieve(Rect pRect) __attribute__((hot)) {
                 std::vector<float> indexes = this->getIndex(pRect);
                 std::vector<Rect> returnObjects = this->objects;
 

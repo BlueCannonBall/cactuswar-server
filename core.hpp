@@ -341,7 +341,7 @@ class Arena {
 
         Entities entities;
         qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = ARENA_SIZE, .height = ARENA_SIZE}, 10, 4);
-        unsigned int target_shape_count = 2000;
+        unsigned int target_shape_count = 125;
 #ifdef THREADING
         mutex qtmtx;
 #endif
