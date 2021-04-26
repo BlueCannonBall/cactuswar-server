@@ -207,14 +207,18 @@ class Tank;
 /// A tank barrel.
 class Barrel {
     public:
-        unsigned full_reload = 6;  // All these values get overridden
+        /* All these values get overridden */
+        unsigned full_reload;
         unsigned reload = full_reload;
-        float recoil = 0.35;
-        float bullet_speed = 50;
-        float width = 50;
+        float recoil;
+        float width;
         float length;
         float angle;
+
+        // stats
+        float bullet_speed;
         float bullet_damage;
+        float bullet_penetration;
 
         void fire(Tank*, Arena*);
 };
@@ -270,6 +274,7 @@ class Tank: public Entity {
                 new_barrel->angle = barrel.angle;
                 new_barrel->width = barrel.width;
                 new_barrel->length = barrel.length;
+                new_barrel->bullet_penetration = barrel.bullet_penetration;
                 this->barrels.push_back(new_barrel);
             }
             mockup = index;
@@ -639,7 +644,12 @@ void Barrel::fire(Tank* player, Arena* arena) {
     new_bullet->id = get_uid();
     new_bullet->owner = player->id;
     new_bullet->radius = this->width * player->radius;
+
+    // set stats
     new_bullet->damage = this->bullet_damage;
+    new_bullet->max_health = this->bullet_penetration;
+    new_bullet->health = new_bullet->max_health;
+
     arena->entities.bullets[new_bullet->id] = new_bullet;
     reload = full_reload;
 }
