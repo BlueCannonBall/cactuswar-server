@@ -257,6 +257,7 @@ class Tank: public Entity {
             buf.put_u8(this->mockup); // mockup id
             buf.put_float(this->health); // health
             buf.put_u16(this->radius); // radius
+            buf.put_string(this->name); // player name
         }
 
         void define(unsigned int index) {
@@ -349,7 +350,7 @@ class Arena {
 #endif
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
-            string player_name = buf.get_utf8();
+            string player_name = buf.get_string();
             Tank* new_player = new Tank;
             new_player->name = player_name;
             new_player->client = client;
@@ -370,7 +371,7 @@ class Arena {
             buf.put_u32(player_id); // player id
             buf.put_u8(tanksconfig.size()); // amount of mockups
             for (const auto& tank : tanksconfig) {
-                buf.put_utf8(tank.name);
+                buf.put_string(tank.name);
                 buf.put_u8(tank.fov);
                 buf.put_u8(tank.barrels.size());
                 for (const auto& barrel : tank.barrels) {
@@ -657,9 +658,6 @@ void Barrel::fire(Tank* player, Arena* arena) {
 }
 
 void Entity::collision_response(Arena* arena) {
-#ifdef THREADING
-    arena->qtmtx.lock();
-#endif
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->position.x - this->radius,
         .y = this->position.y - this->radius,
@@ -668,9 +666,7 @@ void Entity::collision_response(Arena* arena) {
         .id = this->id,
         .radius = this->radius
     });
-#ifdef THREADING
-    arena->qtmtx.unlock();
-#endif
+
     for (const auto& canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
@@ -687,9 +683,6 @@ void Entity::collision_response(Arena* arena) {
 }
 
 void Shape::collision_response(Arena* arena) {
-#ifdef THREADING
-    arena->qtmtx.lock();
-#endif
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->position.x - this->radius,
         .y = this->position.y - this->radius,
@@ -698,9 +691,7 @@ void Shape::collision_response(Arena* arena) {
         .id = this->id,
         .radius = this->radius
     });
-#ifdef THREADING
-    arena->qtmtx.unlock();
-#endif
+
     for (const auto& canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
@@ -721,9 +712,6 @@ void Shape::collision_response(Arena* arena) {
 }
 
 void Tank::collision_response(Arena *arena) {
-#ifdef THREADING
-    arena->qtmtx.lock();
-#endif
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->position.x - this->radius, 
         .y = this->position.y - this->radius, 
@@ -732,9 +720,7 @@ void Tank::collision_response(Arena *arena) {
         .id = this->id, 
         .radius = this->radius
     });
-#ifdef THREADING
-    arena->qtmtx.unlock();
-#endif
+
     for (const auto& canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
@@ -767,13 +753,9 @@ void Tank::collision_response(Arena *arena) {
         .id = 0,
         .radius = 3250/2
     };
-#ifdef THREADING
-    arena->qtmtx.lock();
-#endif
+
     canidates = arena->tree.retrieve(viewport);
-#ifdef THREADING
-    arena->qtmtx.unlock();
-#endif
+
     StreamPeerBuffer buf(true);
     unsigned short census_size = 0;
 
@@ -800,9 +782,6 @@ void Tank::collision_response(Arena *arena) {
 
 
 void Bullet::collision_response(Arena *arena) {
-#ifdef THREADING
-    arena->qtmtx.lock();
-#endif
     vector<qt::Rect> canidates = arena->tree.retrieve(qt::Rect {
         .x = this->position.x - this->radius,
         .y = this->position.y - this->radius,
@@ -811,9 +790,7 @@ void Bullet::collision_response(Arena *arena) {
         .id = this->id,
         .radius = this->radius
     });
-#ifdef THREADING
-    arena->qtmtx.unlock();
-#endif
+
     for (const auto& canidate : canidates) {
         if (canidate.id == this->id) {
             continue;

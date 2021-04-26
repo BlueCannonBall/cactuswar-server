@@ -73,8 +73,8 @@ namespace spb
           short int get_16();
           int get_32();
 
-          void put_utf8(std::string);
-          std::string get_utf8();
+          void put_string(std::string);
+          std::string get_string();
 
           void put_float(float);
           float get_float();
@@ -207,14 +207,14 @@ namespace spb
         }
         return number;
     }
-    void StreamPeerBuffer::put_utf8(std::string str) {
+    void StreamPeerBuffer::put_string(std::string str) {
       std::vector<char> bytes(str.begin(), str.end());
       put_u16(str.length());
       for (char b : bytes) {
         put_8(b);
       }
     }
-    std::string StreamPeerBuffer::get_utf8() {
+    std::string StreamPeerBuffer::get_string() {
       unsigned short int length = get_u16();
       std::vector<char> bytes;
       for (unsigned short int b = 0; b < length; b++) {
