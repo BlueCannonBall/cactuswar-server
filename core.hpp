@@ -281,7 +281,7 @@ class Tank: public Entity {
             for (const auto barrel : barrels) {
                 delete barrel;
             }
-            this->barrels = vector<Barrel*>();
+            this->barrels.clear();
 
             const TankConfig& tank = tanksconfig[index];
             for (const auto& barrel : tank.barrels) {
@@ -384,7 +384,7 @@ class Arena {
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
-            buf.data_array = vector<unsigned char>();
+            buf.data_array.clear();
             buf.offset = 0;
             buf.put_u8(3); // packet id
             buf.put_u32(player_id); // player id
