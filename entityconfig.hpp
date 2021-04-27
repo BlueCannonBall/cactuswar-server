@@ -3,6 +3,7 @@
 #include <cmath>
 
 #pragma once
+#define PI M_PI
 
 using namespace std;
 
@@ -53,6 +54,56 @@ const vector<TankConfig> tanksconfig = {
                 .width = 1,
                 .length = 1,
                 .full_reload = 40,
+                .reload_delay = 0,
+                .recoil = 100,
+                .bullet_speed = 30,
+                .bullet_damage = 100,
+                .bullet_penetration = 450,
+            }
+        }
+    },
+    TankConfig {
+        .name = "Escort",
+        .fov = 20,
+        .barrels = {
+            BarrelConfig {
+                .angle = 0,
+                .width = 0.5,
+                .length = 1,
+                .full_reload = 6,
+                .reload_delay = 2,
+                .recoil = 100,
+                .bullet_speed = 30,
+                .bullet_damage = 100,
+                .bullet_penetration = 450,
+            },
+            BarrelConfig {
+                .angle = PI/2,
+                .width = 0.5,
+                .length = 1,
+                .full_reload = 6,
+                .reload_delay = 0,
+                .recoil = 100,
+                .bullet_speed = 30,
+                .bullet_damage = 100,
+                .bullet_penetration = 450,
+            },
+            BarrelConfig {
+                .angle = PI,
+                .width = 0.5,
+                .length = 1,
+                .full_reload = 6,
+                .reload_delay = 2,
+                .recoil = 100,
+                .bullet_speed = 30,
+                .bullet_damage = 100,
+                .bullet_penetration = 450,
+            },
+            BarrelConfig {
+                .angle = (PI/2) * 3,
+                .width = 0.5,
+                .length = 1,
+                .full_reload = 6,
                 .reload_delay = 0,
                 .recoil = 100,
                 .bullet_speed = 30,

@@ -361,7 +361,7 @@ class Arena {
             this->entities.players[player_id] = new_player;
             new_player->position = Vector2(rand() % ARENA_SIZE-3000 + 3000, rand() % ARENA_SIZE-3000 + 3000);
             //new_player->barrels.push_back(new Barrel);
-            new_player->define(1);
+            new_player->define(2);
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
@@ -642,7 +642,7 @@ void Barrel::fire(Tank* player, Arena* arena) {
     Bullet *new_bullet = new Bullet;
     new_bullet->position = player->position + (Vector2(cos(player->rotation + angle), sin(player->rotation + angle)).normalize() * Vector2(player->radius + new_bullet->radius + 1, player->radius + new_bullet->radius + 1));
     // new_bullet->position = player->input.mousepos;
-    new_bullet->velocity = Vector2(cos(player->rotation) * bullet_speed, sin(player->rotation) * bullet_speed);
+    new_bullet->velocity = Vector2(cos(player->rotation + this->angle) * bullet_speed, sin(player->rotation + this->angle) * bullet_speed);
     player->velocity -= Vector2(cos(player->rotation + angle) * this->recoil, sin(player->rotation + angle) * this->recoil);
     new_bullet->id = get_uid();
     new_bullet->owner = player->id;
