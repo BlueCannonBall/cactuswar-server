@@ -33,7 +33,7 @@ const vector<TankConfig> tanksconfig = {
         .barrels = {
             BarrelConfig {
                 .angle = 0,
-                .width = 0.5,
+                .width = 0.5f,
                 .length = 1,
                 .full_reload = 6,
                 .reload_delay = 0,
