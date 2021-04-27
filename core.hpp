@@ -612,7 +612,7 @@ class Arena {
 #endif
         }
 
-        void run(ws28::Server& server, unsigned short port) {
+        void run(ws28::Server& server, unsigned short port) __attribute__((cold)) {
             for (unsigned int i = 0; i<target_shape_count; i++) {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uid();
