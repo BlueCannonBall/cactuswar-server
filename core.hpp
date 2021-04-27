@@ -206,14 +206,14 @@ class Tank;
 
 /// Dictates current barrel timer state
 enum class BarrelTarget {
-    RELOAD_DELAY,
-    COOLING_DOWN,
-    NONE
+    ReloadDelay,
+    CoolingDown,
+    None
 };
 
 /// Represents a timer
 struct Timer {
-    BarrelTarget target = BarrelTarget::NONE;
+    BarrelTarget target = BarrelTarget::None;
     unsigned int time = 0;
 };
 
@@ -221,10 +221,10 @@ struct Timer {
 class Barrel {
     public:
         /* All these values get overridden */
-        unsigned full_reload;
+        unsigned full_reload = 6;
         unsigned reload_delay;
         unsigned reload = full_reload;
-        Timer* target_time = new Timer;
+        Timer* target_time = nullptr;
         bool cooling_down = false;
 
         float recoil;
@@ -281,7 +281,7 @@ class Tank: public Entity {
             for (const auto barrel : barrels) {
                 delete barrel;
             }
-            this->barrels = vector<Barrel*>();
+            this->barrels.clear();
 
             const TankConfig& tank = tanksconfig[index];
             for (const auto& barrel : tank.barrels) {
@@ -384,7 +384,7 @@ class Arena {
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
-            buf.data_array = vector<unsigned char>();
+            buf.data_array.clear();
             buf.offset = 0;
             buf.put_u8(3); // packet id
             buf.put_u32(player_id); // player id
@@ -852,10 +852,10 @@ void Tank::next_tick(Arena *arena) {
         this->velocity.x += this->movement_speed;
     }
 
-    for (auto barrel: barrels) {
+    for (auto barrel : barrels) {
         if (barrel->target_time == nullptr) {
                 barrel->target_time = new Timer;
-                barrel->target_time->target = BarrelTarget::NONE;
+                barrel->target_time->target = BarrelTarget::None;
                 barrel->target_time->time = 0;
          }
         if (this->input.mousedown) {
@@ -863,25 +863,25 @@ void Tank::next_tick(Arena *arena) {
                 barrel->cooling_down = true;
 
                 barrel->target_time->time = arena->ticks + barrel->reload_delay;
-                barrel->target_time->target = BarrelTarget::RELOAD_DELAY;
+                barrel->target_time->target = BarrelTarget::ReloadDelay;
             }
         }
-        if (barrel->target_time->target != BarrelTarget::NONE) {
+        if (barrel->target_time->target != BarrelTarget::None) {
             if (barrel->target_time->time <= arena->ticks) {
                 switch (barrel->target_time->target) {
-                    case BarrelTarget::RELOAD_DELAY: {
+                    case BarrelTarget::ReloadDelay: {
                         barrel->fire(this, arena); // SAFETY: `this` and `arena` are supposedly always valid.
                         barrel->cooling_down = true;
                         barrel->target_time->time = arena->ticks + barrel->full_reload;
-                        barrel->target_time->target = BarrelTarget::COOLING_DOWN;
+                        barrel->target_time->target = BarrelTarget::CoolingDown;
                         break;
                     }
-                    case BarrelTarget::COOLING_DOWN: {
+                    case BarrelTarget::CoolingDown: {
                         barrel->cooling_down = false;
-                        barrel->target_time->target = BarrelTarget::NONE;
+                        barrel->target_time->target = BarrelTarget::None;
                         break;
                     }
-                    case BarrelTarget::NONE: break;
+                    case BarrelTarget::None: break;
                 };
             }
         }
