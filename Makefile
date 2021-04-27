@@ -23,3 +23,7 @@ run: $(TARGET)
 
 clean:
 	rm -r build
+
+cleanobj:
+	rm $(OBJDIR)/*.o
+	rm $(OBJDIR)/ws28/*.o
