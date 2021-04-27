@@ -266,7 +266,7 @@ class Tank: public Entity {
             }
             this->barrels = vector<Barrel*>();
 
-            TankConfig tank = tanksconfig[index];
+            const TankConfig& tank = tanksconfig[index];
             for (const auto& barrel : tank.barrels) {
                 Barrel* new_barrel = (Barrel*) malloc(sizeof(Barrel));
                 new_barrel->full_reload = barrel.full_reload;
