@@ -206,13 +206,15 @@ class Tank;
 
 /// Dictates current barrel timer state
 enum class BarrelTarget {
-    ReloadDelay
+    RELOAD_DELAY,
+    COOLING_DOWN,
+    NONE
 };
 
 /// Represents a timer
 struct Timer {
-    BarrelTarget target;
-    unsigned int time;
+    BarrelTarget target = BarrelTarget::NONE;
+    unsigned int time = 0;
 };
 
 /// A tank barrel.
@@ -220,8 +222,10 @@ class Barrel {
     public:
         /* All these values get overridden */
         unsigned full_reload;
+        unsigned reload_delay;
         unsigned reload = full_reload;
-        Timer* targetTime;
+        Timer* target_time = new Timer;
+        bool cooling_down = false;
 
         float recoil;
         float width;
@@ -275,15 +279,16 @@ class Tank: public Entity {
 
         void define(unsigned int index) {
             for (const auto barrel : barrels) {
-                free(barrel);
+                delete barrel;
             }
             this->barrels = vector<Barrel*>();
 
             const TankConfig& tank = tanksconfig[index];
             for (const auto& barrel : tank.barrels) {
-                Barrel* new_barrel = (Barrel*) malloc(sizeof(Barrel));
-                new_barrel->full_reload = barrel.full_reload;
-                new_barrel->reload = barrel.full_reload + barrel.reload_delay;
+                Barrel* new_barrel = new Barrel;
+                new_barrel->full_reload = barrel.full_reload - barrel.reload_delay;
+                new_barrel->reload = barrel.full_reload;
+                new_barrel->reload_delay = barrel.reload_delay;
                 new_barrel->recoil = barrel.recoil;
                 new_barrel->bullet_speed = barrel.bullet_speed;
                 new_barrel->bullet_damage = barrel.bullet_damage;
@@ -298,7 +303,7 @@ class Tank: public Entity {
 
         ~Tank() {
             for (const auto barrel : barrels) {
-                free(barrel);
+                delete barrel;
             }
         }
 };
@@ -355,6 +360,7 @@ class Arena {
             unordered_map<unsigned int, Bullet*> bullets;
         };
 
+        unsigned long ticks = 0;
         Entities entities;
         qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = ARENA_SIZE, .height = ARENA_SIZE}, 10, 4);
         unsigned int target_shape_count = 125;
@@ -374,7 +380,7 @@ class Arena {
             this->entities.players[player_id] = new_player;
             new_player->position = Vector2(rand() % ARENA_SIZE-3000 + 3000, rand() % ARENA_SIZE-3000 + 3000);
             //new_player->barrels.push_back(new Barrel);
-            new_player->define(3);
+            new_player->define(2);
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
@@ -444,6 +450,8 @@ class Arena {
             if (entities.players.size() == 0) {
                 return;
             }
+
+            ticks++;
 
             this->tree.clear();
 
@@ -667,7 +675,6 @@ void Barrel::fire(Tank* player, Arena* arena) {
     new_bullet->health = new_bullet->max_health;
 
     arena->entities.bullets[new_bullet->id] = new_bullet;
-    reload = full_reload;
 }
 
 void Entity::collision_response(Arena* arena) {
@@ -833,12 +840,6 @@ void Bullet::collision_response(Arena *arena) {
 
 
 void Tank::next_tick(Arena *arena) {
-    for (const auto barrel : this->barrels) {
-        if (barrel->reload != 0) {
-            barrel->reload--;
-        }
-    }
-
     if (this->input.W) {
         this->velocity.y -= this->movement_speed;
     } else if (this->input.S) {
@@ -851,23 +852,39 @@ void Tank::next_tick(Arena *arena) {
         this->velocity.x += this->movement_speed;
     }
 
-    if (this->input.mousedown) {
-        for (auto const barrel : this->barrels) {
-            if (barrel->reload == 0) {
-                barrel->fire(this, arena);
+    for (auto barrel: barrels) {
+        if (barrel->target_time == nullptr) {
+                barrel->target_time = new Timer;
+                barrel->target_time->target = BarrelTarget::NONE;
+                barrel->target_time->time = 0;
+         }
+        if (this->input.mousedown) {
+            if (!barrel->cooling_down) {
+                barrel->cooling_down = true;
+
+                barrel->target_time->time = arena->ticks + barrel->reload_delay;
+                barrel->target_time->target = BarrelTarget::RELOAD_DELAY;
             }
         }
-        // if (reload == 0) {
-        //     Bullet *new_bullet = new Bullet;
-        //     new_bullet->position = this->position + (Vector2(cos(this->rotation), sin(this->rotation)).normalize() * Vector2(this->radius + new_bullet->radius + 1, this->radius + new_bullet->radius + 1));
-        //     // new_bullet->position = this->input.mousepos;
-        //     new_bullet->velocity = Vector2(cos(this->rotation) * bullet_speed, sin(this->rotation) * bullet_speed);
-        //     this->velocity -= Vector2(cos(this->rotation) * recoil, sin(this->rotation) * recoil);
-        //     new_bullet->id = get_uid();
-        //     new_bullet->owner = id;
-        //     arena->entities.bullets[new_bullet->id] = new_bullet;
-        //     reload = full_reload;
-        // }
+        if (barrel->target_time->target != BarrelTarget::NONE) {
+            if (barrel->target_time->time <= arena->ticks) {
+                switch (barrel->target_time->target) {
+                    case BarrelTarget::RELOAD_DELAY: {
+                        barrel->fire(this, arena); // SAFETY: `this` and `arena` are supposedly always valid.
+                        barrel->cooling_down = true;
+                        barrel->target_time->time = arena->ticks + barrel->full_reload;
+                        barrel->target_time->target = BarrelTarget::COOLING_DOWN;
+                        break;
+                    }
+                    case BarrelTarget::COOLING_DOWN: {
+                        barrel->cooling_down = false;
+                        barrel->target_time->target = BarrelTarget::NONE;
+                        break;
+                    }
+                    case BarrelTarget::NONE: break;
+                };
+            }
+        }
     }
 
     this->velocity *= Vector2(this->friction, this->friction);
