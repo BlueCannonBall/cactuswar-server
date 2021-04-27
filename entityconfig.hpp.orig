@@ -70,8 +70,13 @@ const vector<TankConfig> tanksconfig = {
                 .angle = 0,
                 .width = 0.5,
                 .length = 1,
+<<<<<<< HEAD
+                .full_reload = 6,
+                .reload_delay = 3,
+=======
                 .full_reload = 9,
                 .reload_delay = 2,
+>>>>>>> f5c69ecb925ae92cb6bc9c3e676d848c9753f75f
                 .recoil = 100,
                 .bullet_speed = 30,
                 .bullet_damage = 100,
@@ -92,8 +97,13 @@ const vector<TankConfig> tanksconfig = {
                 .angle = PI,
                 .width = 0.5,
                 .length = 1,
+<<<<<<< HEAD
+                .full_reload = 6,
+                .reload_delay = 3,
+=======
                 .full_reload = 9,
                 .reload_delay = 2,
+>>>>>>> f5c69ecb925ae92cb6bc9c3e676d848c9753f75f
                 .recoil = 100,
                 .bullet_speed = 30,
                 .bullet_damage = 100,
