@@ -22,18 +22,17 @@ namespace qt {
         return new_last;
     }
 
-    class Rect {
-        public:
-            float x;
-            float y;
-            float width;
-            float height;
-            unsigned id;
-            unsigned radius;
+    struct Rect {
+        float x;
+        float y;
+        float width;
+        float height;
+        unsigned id;
+        unsigned radius;
 
-            bool operator==(Rect& pRect) {
-                return x == pRect.x && y == pRect.y && width == pRect.width && pRect.height == height;
-            }
+        bool operator==(Rect pRect) {
+            return x == pRect.x && y == pRect.y && width == pRect.width && pRect.height == height;
+        }
     };
 
     class Quadtree {
