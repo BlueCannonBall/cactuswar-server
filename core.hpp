@@ -224,7 +224,7 @@ class Barrel {
         unsigned full_reload = 6;
         unsigned reload_delay;
         unsigned reload = full_reload;
-        Timer* target_time = new Timer;
+        Timer* target_time = nullptr;
         bool cooling_down = false;
 
         float recoil;
