@@ -31,11 +31,7 @@ namespace qt {
         unsigned radius;
 
         bool operator==(Rect pRect) {
-            if (x == pRect.x && y == pRect.y && width == pRect.width && pRect.height == height) {
-                return true;
-            } else {
-                return false;
-            }
+            return x == pRect.x && y == pRect.y && width == pRect.width && pRect.height == height;
         }
     };
 
@@ -180,7 +176,7 @@ namespace qt {
                     }
                 }
 
-                returnObjects.erase( remove_duplicates( returnObjects.begin(), returnObjects.end() ), returnObjects.end() );
+                returnObjects.erase(remove_duplicates(returnObjects.begin(), returnObjects.end()), returnObjects.end());
 
                 return returnObjects;
             }
