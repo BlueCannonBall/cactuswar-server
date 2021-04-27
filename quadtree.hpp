@@ -22,21 +22,18 @@ namespace qt {
         return new_last;
     }
 
-    struct Rect {
-        float x;
-        float y;
-        float width;
-        float height;
-        unsigned id;
-        unsigned radius;
+    class Rect {
+        public:
+            float x;
+            float y;
+            float width;
+            float height;
+            unsigned id;
+            unsigned radius;
 
-        bool operator==(Rect pRect) {
-            if (x == pRect.x && y == pRect.y && width == pRect.width && pRect.height == height) {
-                return true;
-            } else {
-                return false;
+            bool operator==(Rect& pRect) {
+                return x == pRect.x && y == pRect.y && width == pRect.width && pRect.height == height;
             }
-        }
     };
 
     class Quadtree {
@@ -180,7 +177,7 @@ namespace qt {
                     }
                 }
 
-                returnObjects.erase( remove_duplicates( returnObjects.begin(), returnObjects.end() ), returnObjects.end() );
+                returnObjects.erase(remove_duplicates(returnObjects.begin(), returnObjects.end()), returnObjects.end());
 
                 return returnObjects;
             }
