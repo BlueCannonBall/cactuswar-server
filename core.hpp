@@ -204,12 +204,25 @@ class Shape: public Entity {
 
 class Tank;
 
+/// Dictates current barrel timer state
+enum class BarrelTarget {
+    ReloadDelay
+};
+
+/// Represents a timer
+struct Timer {
+    BarrelTarget target;
+    unsigned int time;
+};
+
 /// A tank barrel.
 class Barrel {
     public:
         /* All these values get overridden */
         unsigned full_reload;
         unsigned reload = full_reload;
+        Timer* targetTime;
+
         float recoil;
         float width;
         float length;
