@@ -16,8 +16,8 @@ namespace spb
           T &from_bytes(const std::array<unsigned char, sizeof(T)> &bytes,
                         T &object);
 
-            template <typename T>
-            T bswap(T val);
+          template <typename T>
+          T bswap(T val);
         
         public:
           std::vector<unsigned char> data_array;

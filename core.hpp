@@ -833,7 +833,7 @@ void Bullet::collision_response(Arena *arena) {
 
 
 void Tank::next_tick(Arena *arena) {
-    for (const auto& barrel : this->barrels) {
+    for (const auto barrel : this->barrels) {
         if (barrel->reload != 0) {
             barrel->reload--;
         }
@@ -852,7 +852,7 @@ void Tank::next_tick(Arena *arena) {
     }
 
     if (this->input.mousedown) {
-        for (auto const& barrel : this->barrels) {
+        for (auto const barrel : this->barrels) {
             if (barrel->reload == 0) {
                 barrel->fire(this, arena);
             }
