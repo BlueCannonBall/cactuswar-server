@@ -151,4 +151,43 @@ const vector<TankConfig> tanksconfig = {
             },
         }
     },
+    TankConfig {
+        .name = "Assailant",
+        .fov = 20,
+        .barrels = {
+            BarrelConfig {
+                .angle = PI + 0.45,
+                .width = 0.5f,
+                .length = 0.75,
+                .full_reload = 6,
+                .reload_delay = 3,
+                .recoil = 2,
+                .bullet_speed = 10,
+                .bullet_damage = 20,
+                .bullet_penetration = 30,
+            },
+            BarrelConfig {
+                .angle = PI - 0.45,
+                .width = 0.5f,
+                .length = 0.75,
+                .full_reload = 6,
+                .reload_delay = 3,
+                .recoil = 2,
+                .bullet_speed = 10,
+                .bullet_damage = 20,
+                .bullet_penetration = 30,
+            },
+            BarrelConfig {
+                .angle = 0,
+                .width = 0.5f,
+                .length = 1.0,
+                .full_reload = 6,
+                .reload_delay = 0,
+                .recoil = 0.35f,
+                .bullet_speed = 50,
+                .bullet_damage = 20,
+                .bullet_penetration = 30,
+            },
+        }
+    },
 };

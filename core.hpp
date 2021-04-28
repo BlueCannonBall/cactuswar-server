@@ -380,7 +380,7 @@ class Arena {
             this->entities.players[player_id] = new_player;
             new_player->position = Vector2(rand() % ARENA_SIZE-3000 + 3000, rand() % ARENA_SIZE-3000 + 3000);
             //new_player->barrels.push_back(new Barrel);
-            new_player->define(3);
+            new_player->define(4);
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
