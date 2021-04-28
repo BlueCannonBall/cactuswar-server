@@ -27,8 +27,8 @@ run: $(TARGET)
 	$(TARGET) 8000
 
 clean:
-	rm -r build
+	rm -rf build
 
 cleanobj:
-	rm $(OBJDIR)/*.o
-	rm $(OBJDIR)/ws28/*.o
+	rm -rf $(OBJDIR)/*.o
+	rm -rf $(OBJDIR)/ws28/*.o
