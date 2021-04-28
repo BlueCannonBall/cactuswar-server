@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-luv -lssl -lcrypto -pthread -std=c++14 -Wall -Wno-unknown-pragmas -s -Ofast -march=native -mtune=native -fno-signed-zeros -fno-trapping-math -frename-registers -funroll-loops -flto
+CFLAGS=-luv -lssl -lcrypto -pthread -std=c++14 -Wall -Wno-unknown-pragmas -s -Ofast -march=native -mtune=native -fno-signed-zeros -fno-trapping-math -frename-registers -funroll-loops
 TARGET=./build/server
 OBJDIR=build/obj
 
@@ -27,8 +27,8 @@ run: $(TARGET)
 	$(TARGET) 8000
 
 clean:
-	rm -r build
+	rm -rf build
 
 cleanobj:
-	rm $(OBJDIR)/*.o
-	rm $(OBJDIR)/ws28/*.o
+	rm -rf $(OBJDIR)/*.o
+	rm -rf $(OBJDIR)/ws28/*.o

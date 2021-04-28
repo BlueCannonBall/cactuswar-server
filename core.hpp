@@ -214,7 +214,7 @@ enum class BarrelTarget {
 /// Represents a timer
 struct Timer {
     BarrelTarget target = BarrelTarget::None;
-    unsigned int time = 0;
+    unsigned long time = 0;
 };
 
 /// A tank barrel.
@@ -237,7 +237,15 @@ class Barrel {
         float bullet_damage;
         float bullet_penetration;
 
+        Barrel() {
+            target_time = new Timer;
+        }
+
         void fire(Tank*, Arena*);
+
+        ~Barrel() {
+            delete target_time;
+        }
 };
 
 /// A domtank, stats vary based on mockups.
@@ -853,11 +861,6 @@ void Tank::next_tick(Arena *arena) {
     }
 
     for (auto barrel : barrels) {
-        if (barrel->target_time == nullptr) {
-                barrel->target_time = new Timer;
-                barrel->target_time->target = BarrelTarget::None;
-                barrel->target_time->time = 0;
-         }
         if (this->input.mousedown) {
             if (!barrel->cooling_down) {
                 barrel->cooling_down = true;
