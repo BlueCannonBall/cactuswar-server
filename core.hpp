@@ -374,6 +374,7 @@ class Arena {
         unsigned int target_shape_count = 125;
 #ifdef THREADING
         mutex qtmtx;
+        mutex arenamtx;
 #endif
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
@@ -481,9 +482,7 @@ class Arena {
 #endif
                 for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
                     if (entity->second == nullptr) {
-                        Shape* entity_ptr = entity->second;
                         arena->entities.shapes.erase(entity++);
-                        delete entity_ptr;
                         continue;
                     }
                     
@@ -520,9 +519,7 @@ class Arena {
 #endif
                 for (auto entity = arena->entities.players.cbegin(); entity != arena->entities.players.cend();) {
                     if (entity->second == nullptr) {
-                        Tank* entity_ptr = entity->second;
                         arena->entities.players.erase(entity++);
-                        delete entity_ptr;
                         continue;
                     }
                     
@@ -556,9 +553,7 @@ class Arena {
 #endif
                 for (auto entity = arena->entities.bullets.cbegin(); entity != arena->entities.bullets.cend();) {
                     if (entity->second == nullptr) {
-                        Bullet* entity_ptr = entity->second;
                         arena->entities.bullets.erase(entity++);
-                        delete entity_ptr;
                         continue;
                     }
                     
