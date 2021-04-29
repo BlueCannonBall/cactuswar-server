@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
         }
     });
     
-    server.SetClientDisconnectedCallback([](ws28::Client *client){
+    server.SetClientDisconnectedCallback([](ws28::Client *client) {
 		INFO("Client disconnected");
 		unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
         delete arena.entities.players[player_id];
@@ -75,6 +75,10 @@ int main(int argc, char **argv) {
     server.SetHTTPCallback([](ws28::HTTPRequest &req, ws28::HTTPResponse &res) {
         res.send("Please connect with an real client.");
         INFO("Got an http request...");
+    });
+
+    server.SetCheckConnectionCallback([](ws28::Client *client, ws28::HTTPRequest &) {
+        return true;
     });
     
     arena.run(server, port);
