@@ -313,8 +313,9 @@ class Arena {
         mutex arenamtx;
 #endif
 
-        Arena(unsigned short size=12000) {
+        Arena(unsigned short size=12000, unsigned int shape_count=125) {
             set_size(size);
+            target_shape_count = shape_count;
         }
 
         void set_size(unsigned short size) {
