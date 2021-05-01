@@ -14,7 +14,6 @@
 
 #pragma once
 #define COLLISION_STRENGTH 5
-#define ARENA_SIZE 12000
 #define THREADING
 
 using namespace std;
@@ -135,32 +134,9 @@ class Entity {
         float damage = 0;
         float mass = 1;
 
-        void next_tick() {
-            this->velocity *= Vector2(this->friction, this->friction);
-            this->position += this->velocity / Vector2(this->mass, this->mass);
-
-            if (this->position.x > ARENA_SIZE) {
-                this->position.x = ARENA_SIZE;
-                this->velocity.x = 0;
-            } else if (this->position.x < 0) {
-                this->position.x = 0;
-                this->velocity.x = 0;
-            }
-            if (this->position.y > ARENA_SIZE) {
-                this->position.y = ARENA_SIZE;
-                this->velocity.y = 0;
-            } else if (this->position.y < 0) {
-                this->position.y = 0;
-                this->velocity.y = 0;
-            }
-        }
-
-        void take_census(StreamPeerBuffer& buf) {}
-        void collision_response(Arena *arena);
-
-        // ~Entity() {
-        //     INFO("Entity destroyed.");
-        // }
+        void take_census(StreamPeerBuffer&);
+        void collision_response(Arena*);
+        void next_tick(Arena*);
 };
 
 /// A shape, includes cacti and rocks.
@@ -179,26 +155,7 @@ class Shape: public Entity {
             //buf.put_u8(7); // sides
         }
 
-        void next_tick() {
-            this->velocity *= Vector2(this->friction, this->friction);
-            this->position += this->velocity / Vector2(this->mass, this->mass);
-
-            if (this->position.x > ARENA_SIZE) {
-                this->position.x = ARENA_SIZE;
-                this->velocity.x = 0;
-            } else if (this->position.x < 0) {
-                this->position.x = 0;
-                this->velocity.x = 0;
-            }
-            if (this->position.y > ARENA_SIZE) {
-                this->position.y = ARENA_SIZE;
-                this->velocity.y = 0;
-            } else if (this->position.y < 0) {
-                this->position.y = 0;
-                this->velocity.y = 0;
-            }
-        }
-
+        void next_tick(Arena *arena);
         void collision_response(Arena *arena);
 };
 
@@ -224,7 +181,7 @@ class Barrel {
         unsigned full_reload = 6;
         unsigned reload_delay;
         unsigned reload = full_reload;
-        Timer* target_time = nullptr;
+        Timer target_time;
         bool cooling_down = false;
 
         float recoil;
@@ -237,15 +194,7 @@ class Barrel {
         float bullet_damage;
         float bullet_penetration;
 
-        Barrel() {
-            target_time = new Timer;
-        }
-
         void fire(Tank*, Arena*);
-
-        ~Barrel() {
-            delete target_time;
-        }
 };
 
 /// A domtank, stats vary based on mockups.
@@ -336,26 +285,7 @@ class Bullet: public Entity {
             buf.put_16(this->velocity.y);
         }
 
-        void next_tick() {
-            this->velocity *= Vector2(this->friction, this->friction);
-            this->position += this->velocity / Vector2(this->mass, this->mass);
-
-            if (this->position.x > ARENA_SIZE) {
-                this->position.x = ARENA_SIZE;
-                this->velocity.x = 0;
-            } else if (this->position.x < 0) {
-                this->position.x = 0;
-                this->velocity.x = 0;
-            }
-            if (this->position.y > ARENA_SIZE) {
-                this->position.y = ARENA_SIZE;
-                this->velocity.y = 0;
-            } else if (this->position.y < 0) {
-                this->position.y = 0;
-                this->velocity.y = 0;
-            }
-        }
-
+        void next_tick(Arena *arena);
         void collision_response(Arena *arena);
 };
 
@@ -370,12 +300,33 @@ class Arena {
 
         unsigned long ticks = 0;
         Entities entities;
-        qt::Quadtree tree = qt::Quadtree(qt::Rect {.x = 0, .y = 0, .width = ARENA_SIZE, .height = ARENA_SIZE}, 10, 4);
+        unsigned short arena_size = 12000;
+        qt::Quadtree tree = qt::Quadtree(qt::Rect {
+            .x = 0,
+            .y = 0,
+            .width = 12000,
+            .height = 12000
+        }, 10, 4);
         unsigned int target_shape_count = 125;
 #ifdef THREADING
         mutex qtmtx;
         mutex arenamtx;
 #endif
+
+        Arena(unsigned short size=12000) {
+            set_size(size);
+        }
+
+        void set_size(unsigned short size) {
+            this->arena_size = size;
+            tree.clear();
+            tree = qt::Quadtree(qt::Rect {
+                .x = 0,
+                .y = 0,
+                .width = static_cast<float>(arena_size),
+                .height = static_cast<float>(arena_size)
+            }, 10, 4);
+        }
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
             string player_name = buf.get_string();
@@ -387,7 +338,7 @@ class Arena {
             client->SetUserData(reinterpret_cast<void*>(player_id));
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
-            new_player->position = Vector2(rand() % ARENA_SIZE-3000 + 3000, rand() % ARENA_SIZE-3000 + 3000);
+            new_player->position = Vector2(rand() % arena_size-3000 + 3000, rand() % arena_size-3000 + 3000);
             //new_player->barrels.push_back(new Barrel);
             new_player->define(4);
 
@@ -469,7 +420,7 @@ class Arena {
                 for (unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
                     Shape *new_shape = new Shape;
                     new_shape->id = get_uid();
-                    new_shape->position = Vector2(rand() % ARENA_SIZE + 0, rand() % ARENA_SIZE + 0);
+                    new_shape->position = Vector2(rand() % arena_size, rand() % arena_size);
                     entities.shapes[new_shape->id] = new_shape;
                 }
             }
@@ -492,7 +443,7 @@ class Arena {
                         delete entity_ptr;
                         continue;
                     }
-                    entity->second->next_tick();
+                    entity->second->next_tick(arena);
                     //entity.second->take_census(buf);
 #ifdef THREADING
                     arena->qtmtx.lock();
@@ -524,7 +475,7 @@ class Arena {
                     }
                     
                     if (entity->second->health <= 0) {
-                        entity->second->position = Vector2(rand() % ARENA_SIZE-3000 + 3000, rand() % ARENA_SIZE-3000 + 3000);
+                        entity->second->position = Vector2(rand() % arena->arena_size-3000 + 3000, rand() % arena->arena_size-3000 + 3000);
                         entity->second->health = entity->second->max_health;
                     }
                     entity->second->next_tick(arena);
@@ -569,7 +520,7 @@ class Arena {
                         delete entity_ptr;
                         continue;
                     }
-                    entity->second->next_tick();
+                    entity->second->next_tick(arena);
 #ifdef THREADING
                     arena->qtmtx.lock();
 #endif
@@ -636,11 +587,11 @@ class Arena {
 #endif
         }
 
-        void run(ws28::Server& server, unsigned short port) __attribute__((cold)) {
+        void run() __attribute__((cold)) {
             for (unsigned int i = 0; i<target_shape_count; i++) {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uid();
-                new_shape->position = Vector2(rand() % ARENA_SIZE + 0, rand() % ARENA_SIZE + 0);
+                new_shape->position = Vector2(rand() % arena_size, rand() % arena_size);
                 entities.shapes[new_shape->id] = new_shape;
             }
 
@@ -652,10 +603,6 @@ class Arena {
                 arena.update();
                 //uv_update_time(uv_default_loop());
             }, 0, 1000/30);
-        
-            assert(server.Listen(port));
-            
-            SUCCESS("Server listening on port " << port);
         }
 };
 
@@ -860,23 +807,23 @@ void Tank::next_tick(Arena *arena) {
             if (!barrel->cooling_down) {
                 barrel->cooling_down = true;
 
-                barrel->target_time->time = arena->ticks + barrel->reload_delay;
-                barrel->target_time->target = BarrelTarget::ReloadDelay;
+                barrel->target_time.time = arena->ticks + barrel->reload_delay;
+                barrel->target_time.target = BarrelTarget::ReloadDelay;
             }
         }
-        if (barrel->target_time->target != BarrelTarget::None) {
-            if (barrel->target_time->time <= arena->ticks) {
-                switch (barrel->target_time->target) {
+        if (barrel->target_time.target != BarrelTarget::None) {
+            if (barrel->target_time.time <= arena->ticks) {
+                switch (barrel->target_time.target) {
                     case BarrelTarget::ReloadDelay: {
                         barrel->fire(this, arena); // SAFETY: `this` and `arena` are supposedly always valid.
                         barrel->cooling_down = true;
-                        barrel->target_time->time = arena->ticks + barrel->full_reload;
-                        barrel->target_time->target = BarrelTarget::CoolingDown;
+                        barrel->target_time.time = arena->ticks + barrel->full_reload;
+                        barrel->target_time.target = BarrelTarget::CoolingDown;
                         break;
                     }
                     case BarrelTarget::CoolingDown: {
                         barrel->cooling_down = false;
-                        barrel->target_time->target = BarrelTarget::None;
+                        barrel->target_time.target = BarrelTarget::None;
                         break;
                     }
                     case BarrelTarget::None: break;
@@ -888,19 +835,60 @@ void Tank::next_tick(Arena *arena) {
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity / Vector2(this->mass, this->mass);
 
-    if (this->position.x > ARENA_SIZE) {
-        this->position.x = ARENA_SIZE;
+    if (this->position.x > arena->arena_size) {
+        this->position.x = arena->arena_size;
         this->velocity.x = 0;
     } else if (this->position.x < 0) {
         this->position.x = 0;
         this->velocity.x = 0;
     }
-    if (this->position.y > ARENA_SIZE) {
-        this->position.y = ARENA_SIZE;
+    if (this->position.y > arena->arena_size) {
+        this->position.y = arena->arena_size;
         this->velocity.y = 0;
     } else if (this->position.y < 0) {
         this->position.y = 0;
         this->velocity.y = 0;
     }
 }
+
+void Bullet::next_tick(Arena* arena) {
+    this->velocity *= Vector2(this->friction, this->friction);
+    this->position += this->velocity / Vector2(this->mass, this->mass);
+
+    if (this->position.x > arena->arena_size) {
+        this->position.x = arena->arena_size;
+        this->velocity.x = 0;
+    } else if (this->position.x < 0) {
+        this->position.x = 0;
+        this->velocity.x = 0;
+    }
+    if (this->position.y > arena->arena_size) {
+        this->position.y = arena->arena_size;
+        this->velocity.y = 0;
+    } else if (this->position.y < 0) {
+        this->position.y = 0;
+        this->velocity.y = 0;
+    }
+}
+
+void Shape::next_tick(Arena* arena) {
+    this->velocity *= Vector2(this->friction, this->friction);
+    this->position += this->velocity / Vector2(this->mass, this->mass);
+
+    if (this->position.x > arena->arena_size) {
+        this->position.x = arena->arena_size;
+        this->velocity.x = 0;
+    } else if (this->position.x < 0) {
+        this->position.x = 0;
+        this->velocity.x = 0;
+    }
+    if (this->position.y > arena->arena_size) {
+        this->position.y = arena->arena_size;
+        this->velocity.y = 0;
+    } else if (this->position.y < 0) {
+        this->position.y = 0;
+        this->velocity.y = 0;
+    }
+}
+
 ///////////
