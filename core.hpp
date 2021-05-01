@@ -318,6 +318,10 @@ class Arena {
             target_shape_count = shape_count;
         }
 
+        ~Arena() {
+            WARN("Arena destroyed, not freeing entities");
+        }
+
         void set_size(unsigned short size) {
             this->arena_size = size;
             tree.clear();
