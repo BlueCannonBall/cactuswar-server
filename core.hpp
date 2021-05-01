@@ -304,7 +304,7 @@ class Arena {
         qt::Quadtree tree = qt::Quadtree(qt::Rect {
             .x = 0,
             .y = 0,
-            .width = 12000,
+            .width = 12000, // Default map size
             .height = 12000
         }, 10, 4);
         unsigned int target_shape_count = 125;
@@ -323,6 +323,9 @@ class Arena {
         }
 
         void set_size(unsigned short size) {
+            if (size == arena_size) {
+                return;
+            }
             this->arena_size = size;
             tree.clear();
             tree = qt::Quadtree(qt::Rect {
