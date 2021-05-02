@@ -304,9 +304,10 @@ class Arena {
         qt::Quadtree tree = qt::Quadtree(qt::Rect {
             .x = 0,
             .y = 0,
-            .width = 12000, // Default map size
-            .height = 12000
-        }, 10, 4);
+            .width = static_cast<float>(arena_size), // Default map size: 12000
+            .height = static_cast<float>(arena_size)
+        }, 6, 8);
+        // diepset=6,8
         unsigned int target_shape_count = 125;
 #ifdef THREADING
         mutex qtmtx;
@@ -333,7 +334,7 @@ class Arena {
                 .y = 0,
                 .width = static_cast<float>(arena_size),
                 .height = static_cast<float>(arena_size)
-            }, 10, 4);
+            }, 6, 8);
         }
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
