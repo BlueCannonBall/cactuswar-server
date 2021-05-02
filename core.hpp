@@ -439,7 +439,7 @@ class Arena {
 #endif
                 for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
                     if (entity->second == nullptr) {
-                        WARN("Deleting null shape");
+                        WARN("Deleting null entity");
                         arena->entities.shapes.erase(entity++);
                         continue;
                     }
@@ -477,7 +477,7 @@ class Arena {
 #endif
                 for (auto entity = arena->entities.players.cbegin(); entity != arena->entities.players.cend();) {
                     if (entity->second == nullptr) {
-                        WARN("Deleting null player");
+                        WARN("Deleting null entity");
                         arena->entities.players.erase(entity++);
                         continue;
                     }
@@ -512,7 +512,7 @@ class Arena {
 #endif
                 for (auto entity = arena->entities.bullets.cbegin(); entity != arena->entities.bullets.cend();) {
                     if (entity->second == nullptr) {
-                        WARN("Deleting null bullet");
+                        WARN("Deleting null entity");
                         arena->entities.bullets.erase(entity++);
                         continue;
                     }
