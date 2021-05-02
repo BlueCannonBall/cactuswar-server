@@ -11,6 +11,7 @@
 #include <thread>
 #include <mutex>
 #include "entityconfig.hpp"
+#include <atomic>
 
 #pragma once
 #define COLLISION_STRENGTH 5
@@ -19,12 +20,12 @@
 using namespace std;
 using namespace spb;
 
-unsigned int uid = 0;
+atomic<unsigned int> uid(0);
 
 unsigned int get_uid() {
-    if (uid >= 4294965295) {
-        WARN("IDs are close to the 32-bit unsigned number limit");
-    }
+    // if (uid >= 4294965295) {
+    //     WARN("IDs are close to the 32-bit unsigned number limit");
+    // }
     return uid++;
 }
 
