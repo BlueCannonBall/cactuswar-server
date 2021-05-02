@@ -5,7 +5,7 @@
 #include "streampeerbuffer.hpp"
 #include <cmath>
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include "bcblog.hpp"
 #include "quadtree.hpp"
 #include <thread>
@@ -290,10 +290,10 @@ class Bullet: public Entity {
 class Arena {
     public:
         struct Entities {
-            unordered_map<unsigned int, Entity*> entities;
-            unordered_map<unsigned int, Shape*> shapes;
-            unordered_map<unsigned int, Tank*> players;
-            unordered_map<unsigned int, Bullet*> bullets;
+            map<unsigned int, Entity*> entities;
+            map<unsigned int, Shape*> shapes;
+            map<unsigned int, Tank*> players;
+            map<unsigned int, Bullet*> bullets;
         };
 
         unsigned long ticks = 0;
