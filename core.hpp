@@ -308,7 +308,6 @@ class Arena {
             .width = static_cast<float>(arena_size), // Default map size: 12000
             .height = static_cast<float>(arena_size)
         });
-        // diepset=6,8
         unsigned int target_shape_count = 125;
 #ifdef THREADING
         mutex qtmtx;
