@@ -99,7 +99,7 @@ namespace qt {
                     }, this->max_objects, this->max_levels, nextLevel));
             }
 
-            std::vector<float> getIndex(Rect& pRect) {
+            std::vector<float> getIndex(Rect pRect) {
                 std::vector<float> indexes;
                 float verticalMidpoint = this->bounds.x + (this->bounds.width/2);
                 float horizontalMidpoint = this->bounds.y + (this->bounds.height/2);
@@ -132,7 +132,7 @@ namespace qt {
                 return indexes;
             }
 
-            void insert(Rect& pRect) __attribute__((hot)) {
+            void insert(Rect pRect) __attribute__((hot)) {
                 float i = 0;
                 std::vector<float> indexes;
 
@@ -164,7 +164,7 @@ namespace qt {
                 }
             }
 
-            std::vector<Rect> retrieve(Rect& pRect) __attribute__((hot)) {
+            std::vector<Rect> retrieve(Rect pRect) __attribute__((hot)) {
                 std::vector<float> indexes = this->getIndex(pRect);
                 std::vector<Rect> returnObjects = this->objects;
 
