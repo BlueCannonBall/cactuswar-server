@@ -28,9 +28,10 @@ enum class Packet {
 void kick(ws28::Client* client, bool destroy=false) {
     if (client->GetUserData() != nullptr) {
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-        if (arenas[paths[client]]->entities.players.find(player_id) != arenas[paths[client]]->entities.players.end()) {
-            delete arenas[paths[client]]->entities.players[player_id];
-            arenas[paths[client]]->entities.players.erase(player_id);
+        Arena *arena = arenas[paths[client]];
+        if (arena->entities.players.find(player_id) != arena->entities.players.end()) {
+            delete arena->entities.players[player_id];
+            arena->entities.players.erase(player_id);
         }
     }
     paths.erase(client);
@@ -65,8 +66,11 @@ int main(int argc, char **argv) {
             kick(client);
             return;
         }
+
         StreamPeerBuffer buf(true);
         buf.data_array = vector<unsigned char>(data, data+len);
+        
+        Arena* arena = arenas[paths[client]];
         unsigned char packet_id = buf.get_u8();
         switch (packet_id) {
             case (int) Packet::Init:
@@ -74,14 +78,14 @@ int main(int argc, char **argv) {
                     kick(client);
                     return;
                 }
-                arenas[paths[client]]->handle_init_packet(buf, client);
+                arena->handle_init_packet(buf, client);
                 break;
             case (int) Packet::Input:
                 if (len != 6) {
                     kick(client);
                     return;
                 }
-                arenas[paths[client]]->handle_input_packet(buf, client);
+                arena->handle_input_packet(buf, client);
                 break;
         }
     });
