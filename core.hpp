@@ -22,10 +22,7 @@ using namespace spb;
 
 atomic<unsigned int> uid(0);
 
-unsigned int get_uid() {
-    // if (uid >= 4294965295) {
-    //     WARN("IDs are close to the 32-bit unsigned number limit");
-    // }
+inline unsigned int get_uid() {
     return uid++;
 }
 
