@@ -307,7 +307,7 @@ class Arena {
             .y = 0,
             .width = static_cast<float>(arena_size), // Default map size: 12000
             .height = static_cast<float>(arena_size)
-        }, 6, 8);
+        });
         // diepset=6,8
         unsigned int target_shape_count = 125;
 #ifdef THREADING
@@ -335,7 +335,7 @@ class Arena {
                 .y = 0,
                 .width = static_cast<float>(arena_size),
                 .height = static_cast<float>(arena_size)
-            }, 6, 8);
+            });
         }
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
