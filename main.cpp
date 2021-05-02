@@ -35,8 +35,10 @@ void kick(ws28::Client* client, bool destroy=false) {
         }
     }
     paths.erase(client);
-    if (destroy)
+    if (destroy) {
         client->Destroy();
+        WARN("Forcefully kicked client");
+    }
 }
 
 int main(int argc, char **argv) {
@@ -64,7 +66,6 @@ int main(int argc, char **argv) {
     server.SetClientDataCallback([](ws28::Client *client, char *data, size_t len, int opcode) {
         if (opcode != 0x2) {
             kick(client);
-            WARN("Kicked misbehaving client");
             return;
         }
 
@@ -77,7 +78,6 @@ int main(int argc, char **argv) {
             case (int) Packet::Init:
                 if (len < 3) {
                     kick(client);
-                    WARN("Kicked misbehaving client");
                     return;
                 }
                 arena->handle_init_packet(buf, client);
@@ -85,7 +85,6 @@ int main(int argc, char **argv) {
             case (int) Packet::Input:
                 if (len != 6) {
                     kick(client);
-                    WARN("Kicked misbehaving client");
                     return;
                 }
                 arena->handle_input_packet(buf, client);
