@@ -7,17 +7,20 @@
 #include "bcblog.hpp"
 #include "core.hpp"
 #include <map>
+#include "json.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 #define MESSAGE_SIZE 4096
 
 using namespace std;
 using namespace spb;
+using json = nlohmann::json;
 
 map<string, Arena*> arenas = {
     {"/ffa-1", new Arena},
     {"/ffa-2", new Arena}
 };
+json server_info;
 map<ws28::Client*, string> paths; // HACK: store paths per client pointer
 
 enum class Packet {
@@ -50,12 +53,12 @@ int main(int argc, char **argv) {
         ERR("Please supply a port number");
         return 1;
     }
-    
+
     ws28::Server server{uv_default_loop(), nullptr};
     server.SetMaxMessageSize(MESSAGE_SIZE);
     
     server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest& req) {
-        INFO("Client with ip " << client->GetIP() << " connected");
+        INFO("Client with ip " << client->GetIP() << " connected to room \"" << req.path << "\"");
         if (arenas.find(req.path) == arenas.end()) {
             client->Destroy();
             return;
@@ -99,8 +102,14 @@ int main(int argc, char **argv) {
 	});
 
     server.SetHTTPCallback([](ws28::HTTPRequest& req, ws28::HTTPResponse& res) {
-        res.send("Please connect with an real client.");
-        INFO("Got an http request...");
+        if (strcmp(req.path, "/serverinfo") == 0) {
+            res.header("Access-Control-Allow-Origin", "*");
+            res.send(server_info.dump());
+            return;
+        } else {
+            res.send("Please connect with an real client.");
+            INFO("Got an http request");
+        }
     });
 
     server.SetCheckConnectionCallback([](ws28::Client *client, ws28::HTTPRequest&) {
@@ -109,6 +118,7 @@ int main(int argc, char **argv) {
     
     for (const auto& arena : arenas) {
         arena.second->run();
+        server_info.push_back(arena.first);
     }
     
     assert(server.Listen(port));

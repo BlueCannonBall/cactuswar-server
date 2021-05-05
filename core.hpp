@@ -298,12 +298,12 @@ class Arena {
 
         unsigned long ticks = 0;
         Entities entities;
-        unsigned short arena_size = 12000;
+        unsigned short size = 12000;
         qt::Quadtree tree = qt::Quadtree(qt::Rect {
             .x = 0,
             .y = 0,
-            .width = static_cast<float>(arena_size), // Default map size: 12000
-            .height = static_cast<float>(arena_size)
+            .width = static_cast<float>(size), // Default map size: 12000
+            .height = static_cast<float>(size)
         });
         unsigned int target_shape_count = 125;
 #ifdef THREADING
@@ -321,16 +321,16 @@ class Arena {
         }
 
         void set_size(unsigned short size) {
-            if (size == arena_size) {
+            if (size == this->size) {
                 return;
             }
-            this->arena_size = size;
+            this->size = size;
             tree.clear();
             tree = qt::Quadtree(qt::Rect {
                 .x = 0,
                 .y = 0,
-                .width = static_cast<float>(arena_size),
-                .height = static_cast<float>(arena_size)
+                .width = static_cast<float>(size),
+                .height = static_cast<float>(size)
             });
         }
         
@@ -344,7 +344,7 @@ class Arena {
             client->SetUserData(reinterpret_cast<void*>(player_id));
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
-            new_player->position = Vector2(rand() % arena_size-3000 + 3000, rand() % arena_size-3000 + 3000);
+            new_player->position = Vector2(rand() % size-3000 + 3000, rand() % size-3000 + 3000);
             //new_player->barrels.push_back(new Barrel);
             new_player->define(4);
 
@@ -426,7 +426,7 @@ class Arena {
                 for (unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
                     Shape *new_shape = new Shape;
                     new_shape->id = get_uid();
-                    new_shape->position = Vector2(rand() % arena_size, rand() % arena_size);
+                    new_shape->position = Vector2(rand() % size, rand() % size);
                     entities.shapes[new_shape->id] = new_shape;
                 }
             }
@@ -483,7 +483,7 @@ class Arena {
                     }
                     
                     if (entity->second->health <= 0) {
-                        entity->second->position = Vector2(rand() % arena->arena_size-3000 + 3000, rand() % arena->arena_size-3000 + 3000);
+                        entity->second->position = Vector2(rand() % arena->size-3000 + 3000, rand() % arena->size-3000 + 3000);
                         entity->second->health = entity->second->max_health;
                     }
                     entity->second->next_tick(arena);
@@ -600,7 +600,7 @@ class Arena {
             for (unsigned int i = 0; i<target_shape_count; i++) {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uid();
-                new_shape->position = Vector2(rand() % arena_size, rand() % arena_size);
+                new_shape->position = Vector2(rand() % size, rand() % size);
                 entities.shapes[new_shape->id] = new_shape;
             }
 
@@ -844,15 +844,15 @@ void Tank::next_tick(Arena *arena) {
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity / Vector2(this->mass, this->mass);
 
-    if (this->position.x > arena->arena_size) {
-        this->position.x = arena->arena_size;
+    if (this->position.x > arena->size) {
+        this->position.x = arena->size;
         this->velocity.x = 0;
     } else if (this->position.x < 0) {
         this->position.x = 0;
         this->velocity.x = 0;
     }
-    if (this->position.y > arena->arena_size) {
-        this->position.y = arena->arena_size;
+    if (this->position.y > arena->size) {
+        this->position.y = arena->size;
         this->velocity.y = 0;
     } else if (this->position.y < 0) {
         this->position.y = 0;
@@ -864,15 +864,15 @@ void Bullet::next_tick(Arena* arena) {
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity / Vector2(this->mass, this->mass);
 
-    if (this->position.x > arena->arena_size) {
-        this->position.x = arena->arena_size;
+    if (this->position.x > arena->size) {
+        this->position.x = arena->size;
         this->velocity.x = 0;
     } else if (this->position.x < 0) {
         this->position.x = 0;
         this->velocity.x = 0;
     }
-    if (this->position.y > arena->arena_size) {
-        this->position.y = arena->arena_size;
+    if (this->position.y > arena->size) {
+        this->position.y = arena->size;
         this->velocity.y = 0;
     } else if (this->position.y < 0) {
         this->position.y = 0;
@@ -884,15 +884,15 @@ void Shape::next_tick(Arena* arena) {
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity / Vector2(this->mass, this->mass);
 
-    if (this->position.x > arena->arena_size) {
-        this->position.x = arena->arena_size;
+    if (this->position.x > arena->size) {
+        this->position.x = arena->size;
         this->velocity.x = 0;
     } else if (this->position.x < 0) {
         this->position.x = 0;
         this->velocity.x = 0;
     }
-    if (this->position.y > arena->arena_size) {
-        this->position.y = arena->arena_size;
+    if (this->position.y > arena->size) {
+        this->position.y = arena->size;
         this->velocity.y = 0;
     } else if (this->position.y < 0) {
         this->position.y = 0;
