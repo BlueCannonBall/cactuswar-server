@@ -57,8 +57,8 @@ const vector<TankConfig> tanksconfig = {
                 .reload_delay = 0,
                 .recoil = 100,
                 .bullet_speed = 30,
-                .bullet_damage = 100,
-                .bullet_penetration = 450,
+                .bullet_damage = 50000,
+                .bullet_penetration = 300,
             }
         }
     },
@@ -68,7 +68,7 @@ const vector<TankConfig> tanksconfig = {
         .barrels = {
             BarrelConfig {
                 .angle = 0,
-                .width = 0.5,
+                .width = 0.5f,
                 .length = 1,
                 .full_reload = 9,
                 .reload_delay = 7,
