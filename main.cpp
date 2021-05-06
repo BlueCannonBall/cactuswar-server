@@ -126,6 +126,4 @@ int main(int argc, char **argv) {
 
     uv_run(uv_default_loop(), UV_RUN_DEFAULT);
     assert(uv_loop_close(uv_default_loop()) == 0);
-    
-    return 0;
 }
