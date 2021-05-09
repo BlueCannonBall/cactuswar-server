@@ -5,8 +5,6 @@
 #pragma once
 #define PI M_PI
 
-using namespace std;
-
 struct BarrelConfig {
     float angle;
     float width;
@@ -22,12 +20,12 @@ struct BarrelConfig {
 };
 
 struct TankConfig {
-    string name;
+    std::string name;
     unsigned char fov;
-    vector<BarrelConfig> barrels;
+    std::vector<BarrelConfig> barrels;
 };
 
-const vector<TankConfig> tanksconfig = {
+const std::vector<TankConfig> tanksconfig = {
     TankConfig {
         .name = "Station",
         .fov = 20,

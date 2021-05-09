@@ -311,7 +311,7 @@ class Arena {
         mutex arenamtx;
 #endif
 
-        Arena(unsigned short size=12000, unsigned int shape_count=1000) {
+        Arena(unsigned short size=12000, unsigned int shape_count=500) {
             set_size(size);
             target_shape_count = shape_count;
         }
@@ -346,7 +346,7 @@ class Arena {
             this->entities.players[player_id] = new_player;
             new_player->position = Vector2(rand() % size-3000 + 3000, rand() % size-3000 + 3000);
             //new_player->barrels.push_back(new Barrel);
-            new_player->define(3);
+            new_player->define(1);
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
