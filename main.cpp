@@ -6,7 +6,7 @@
 #include <cmath>
 #include "bcblog.hpp"
 #include "core.hpp"
-#include <map>
+#include <unordered_map>
 #include "json.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
@@ -16,12 +16,12 @@ using namespace std;
 using namespace spb;
 using json = nlohmann::json;
 
-map<string, Arena*> arenas = {
+unordered_map<string, Arena*> arenas = {
     {"/ffa-1", new Arena},
     {"/ffa-2", new Arena}
 };
 json server_info;
-map<ws28::Client*, string> paths; // HACK: store paths per client pointer
+unordered_map<ws28::Client*, string> paths; // HACK: store paths per client pointer
 
 enum class Packet {
     Init = 0,
