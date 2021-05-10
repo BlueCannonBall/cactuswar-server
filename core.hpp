@@ -424,8 +424,9 @@ class Arena {
             entitymtx.unlock();
 #endif
             if (entity_ptr != nullptr) {
-                WARN("Deleting null entity");
                 delete entity_ptr;
+            } else {
+                WARN("Tried to destroy null entity");
             }
         }
 
