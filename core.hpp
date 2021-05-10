@@ -232,11 +232,15 @@ class Tank: public Entity {
             buf.put_string(this->name); // player name
         }
 
-        void define(unsigned int index) {
+        inline void clear_barrels() {
             for (const auto barrel : barrels) {
                 delete barrel;
             }
             this->barrels.clear();
+        }
+
+        void define(unsigned int index) {
+            clear_barrels();
 
             const TankConfig& tank = tanksconfig[index];
             for (const auto& barrel : tank.barrels) {
@@ -257,9 +261,7 @@ class Tank: public Entity {
         }
 
         ~Tank() {
-            for (const auto barrel : barrels) {
-                delete barrel;
-            }
+            clear_barrels();
         }
 };
 
@@ -308,7 +310,7 @@ class Arena {
         unsigned int target_shape_count = 125;
 #ifdef THREADING
         mutex qtmtx;
-        mutex arenamtx;
+        mutex entitymtx;
 #endif
 
         Arena(unsigned short size=12000, unsigned int shape_count=500) {
@@ -345,7 +347,6 @@ class Arena {
             new_player->id = player_id;
             this->entities.players[player_id] = new_player;
             new_player->position = Vector2(rand() % size-3000 + 3000, rand() % size-3000 + 3000);
-            //new_player->barrels.push_back(new Barrel);
             new_player->define(1);
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
@@ -412,6 +413,22 @@ class Arena {
             // INFO("Mouse position: " << entities.players[player_id]->input.mousepos);
         }
         
+        template<typename T>
+        void destroy_entity(unsigned int entity_id, map<unsigned int, T>& entity_map) {
+            T entity_ptr = entity_map[entity_id];
+#ifdef THREADING
+            entitymtx.lock();
+#endif
+            entity_map.erase(entity_id);
+#ifdef THREADING
+            entitymtx.unlock();
+#endif
+            if (entity_ptr != nullptr) {
+                WARN("Deleting null entity");
+                delete entity_ptr;
+            }
+        }
+
         void update() __attribute__((hot)) {
             if (entities.players.size() == 0) {
                 return;
@@ -439,19 +456,15 @@ class Arena {
 #endif
                 for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
                     if (entity->second == nullptr) {
-                        WARN("Deleting null entity");
-                        arena->entities.shapes.erase(entity++);
+                        arena->destroy_entity(entity++->first, arena->entities.shapes);
                         continue;
                     }
                     
                     if (entity->second->health <= 0) {
-                        Shape* entity_ptr = entity->second;
-                        arena->entities.shapes.erase(entity++);
-                        delete entity_ptr;
+                        arena->destroy_entity(entity++->first, arena->entities.shapes);
                         continue;
                     }
                     entity->second->next_tick(arena);
-                    //entity.second->take_census(buf);
 #ifdef THREADING
                     arena->qtmtx.lock();
 #endif
@@ -477,7 +490,6 @@ class Arena {
 #endif
                 for (auto entity = arena->entities.players.cbegin(); entity != arena->entities.players.cend();) {
                     if (entity->second == nullptr) {
-                        WARN("Deleting null entity");
                         arena->entities.players.erase(entity++);
                         continue;
                     }
@@ -512,21 +524,16 @@ class Arena {
 #endif
                 for (auto entity = arena->entities.bullets.cbegin(); entity != arena->entities.bullets.cend();) {
                     if (entity->second == nullptr) {
-                        WARN("Deleting null entity");
-                        arena->entities.bullets.erase(entity++);
+                        arena->destroy_entity(entity++->first, arena->entities.bullets);
                         continue;
                     }
                     
                     entity->second->lifetime--;
                     if (entity->second->lifetime <= 0) {
-                        Bullet* entity_ptr = entity->second;
-                        arena->entities.bullets.erase(entity++);
-                        delete entity_ptr;
+                        arena->destroy_entity(entity++->first, arena->entities.bullets);
                         continue;
                     } else if (entity->second->health <= 0) {
-                        Bullet* entity_ptr = entity->second;
-                        arena->entities.bullets.erase(entity++);
-                        delete entity_ptr;
+                        arena->destroy_entity(entity++->first, arena->entities.bullets);
                         continue;
                     }
                     entity->second->next_tick(arena);
@@ -604,7 +611,7 @@ class Arena {
                 entities.shapes[new_shape->id] = new_shape;
             }
 
-            uv_timer_t* timer = new uv_timer_t();
+            uv_timer_t* timer = (uv_timer_t*) malloc(sizeof(uv_timer_t));
             uv_timer_init(uv_default_loop(), timer);
             timer->data = this;
             uv_timer_start(timer, [](uv_timer_t *timer) {
@@ -633,7 +640,13 @@ void Barrel::fire(Tank* player, Arena* arena) {
     new_bullet->max_health = this->bullet_penetration;
     new_bullet->health = new_bullet->max_health;
 
+#ifdef THREADING
+    arena->entitymtx.lock();
+#endif
     arena->entities.bullets[new_bullet->id] = new_bullet;
+#ifdef THREADING
+    arena->entitymtx.unlock();
+#endif
 }
 
 void Entity::collision_response(Arena* arena) {
