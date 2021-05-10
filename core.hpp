@@ -313,7 +313,7 @@ class Arena {
         mutex entitymtx;
 #endif
 
-        Arena(unsigned short size=12000, unsigned int shape_count=500) {
+        Arena(unsigned short size=12000, unsigned int shape_count=150) {
             set_size(size);
             target_shape_count = shape_count;
         }
