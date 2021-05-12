@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-luv -lssl -lcrypto -pthread -ltcmalloc_minimal -std=c++14 -Wall -Wno-unknown-pragmas \
+CFLAGS=-luv -lssl -lcrypto -pthread -ltcmalloc -std=c++14 -Wall -Wno-unknown-pragmas \
 	-fdiagnostics-color=always -g -Ofast -march=native -mtune=native -fno-signed-zeros \
 	-fno-trapping-math -frename-registers -funroll-loops -fno-builtin-malloc -fno-builtin-calloc \
 	-fno-builtin-realloc -fno-builtin-free
