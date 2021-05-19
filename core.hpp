@@ -322,7 +322,7 @@ class Arena {
             WARN("Arena destroyed, not freeing entities");
         }
 
-        void set_size(unsigned short size) {
+        void set_size(unsigned short size) __attribute__((cold)) {
             if (size == this->size) {
                 return;
             }
