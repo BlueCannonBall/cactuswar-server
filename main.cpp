@@ -6,6 +6,7 @@
 #include <cmath>
 #include "bcblog.hpp"
 #include "core.hpp"
+#include <map>
 #include <unordered_map>
 #include "json.hpp"
 
@@ -16,7 +17,7 @@ using namespace std;
 using namespace spb;
 using json = nlohmann::json;
 
-unordered_map<string, Arena*> arenas = {
+map<string, Arena*> arenas = {
     {"/ffa-1", new Arena},
     {"/ffa-2", new Arena}
 };
