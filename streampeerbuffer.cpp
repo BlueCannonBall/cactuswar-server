@@ -172,21 +172,19 @@ namespace spb
         }
         return number;
     }
-    void StreamPeerBuffer::put_string(std::string str) {
-      std::vector<char> bytes(str.begin(), str.end());
-      put_u16(str.length());
-      for (char b : bytes) {
-        put_8(b);
-      }
+    void StreamPeerBuffer::put_string(std::string& str) {
+        std::vector<char> bytes(str.begin(), str.end());
+        put_u16(str.length());
+        for (auto b : bytes)
+            put_8(b);
     }
     std::string StreamPeerBuffer::get_string() {
-      unsigned short int length = get_u16();
-      std::vector<char> bytes;
-      for (unsigned short int b = 0; b < length; b++) {
-        bytes.push_back(get_8());
-      }
-      std::string str(bytes.begin(), bytes.end());
-      return str;
+        unsigned short int length = get_u16();
+        std::vector<char> bytes;
+        for (unsigned short int b = 0; b < length; b++)
+            bytes.push_back(get_8());
+        std::string str(bytes.begin(), bytes.end());
+        return str;
     }
     void StreamPeerBuffer::put_float(float number)
     {
