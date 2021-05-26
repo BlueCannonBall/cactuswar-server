@@ -60,7 +60,7 @@ namespace qt {
                 float x = this->bounds.x;
                 float y = this->bounds.y;
 
-                this->nodes.insert(nodes.begin() + 0, Quadtree(
+                this->nodes.push_back(Quadtree(
                     Rect {
                         x: x + subWidth,
                         y: y,
@@ -68,9 +68,10 @@ namespace qt {
                         height: subHeight,
                         id: 0,
                         radius: 0
-                    }, this->max_objects, this->max_levels, nextLevel));
+                    }, this->max_objects, this->max_levels, nextLevel)
+                );
                 
-                this->nodes.insert(nodes.begin() + 1, Quadtree(
+                this->nodes.push_back(Quadtree(
                     Rect {
                         x: x,
                         y: y,
@@ -78,9 +79,10 @@ namespace qt {
                         height: subHeight,
                         id: 0,
                         radius: 0
-                    }, this->max_objects, this->max_levels, nextLevel));
+                    }, this->max_objects, this->max_levels, nextLevel)
+                );
                 
-                this->nodes.insert(nodes.begin() + 2, Quadtree(
+                this->nodes.push_back(Quadtree(
                     Rect {
                         x: x,
                         y: y + subHeight,
@@ -88,15 +90,17 @@ namespace qt {
                         height: subHeight,
                         id: 0,
                         radius: 0
-                    }, this->max_objects, this->max_levels, nextLevel));
+                    }, this->max_objects, this->max_levels, nextLevel)
+                );
                 
-                this->nodes.insert(nodes.begin() + 3, Quadtree(
+                this->nodes.push_back(Quadtree(
                     Rect {
                         x: x + subWidth,
                         y: y + subHeight,
                         width: subWidth,
                         height: subHeight
-                    }, this->max_objects, this->max_levels, nextLevel));
+                    }, this->max_objects, this->max_levels, nextLevel)
+                );
             }
 
             std::vector<float> getIndex(Rect pRect) {
