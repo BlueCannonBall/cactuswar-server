@@ -108,6 +108,7 @@ int main(int argc, char **argv) {
     server.SetHTTPCallback([](ws28::HTTPRequest& req, ws28::HTTPResponse& res) {
         if (strcmp(req.path, "/serverinfo") == 0) {
             res.header("Access-Control-Allow-Origin", "*");
+            res.header("Content-Type", "application/json");
             res.send(server_info.dump());
             return;
         } else {
