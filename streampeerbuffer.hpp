@@ -41,7 +41,7 @@ namespace spb
           short int get_16();
           int get_32();
 
-          void put_string(std::string&);
+          void put_string(const std::string&);
           std::string get_string();
 
           void put_float(float);

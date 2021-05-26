@@ -172,7 +172,7 @@ namespace spb
         }
         return number;
     }
-    void StreamPeerBuffer::put_string(std::string& str) {
+    void StreamPeerBuffer::put_string(const std::string& str) {
         std::vector<char> bytes(str.begin(), str.end());
         put_u16(str.length());
         for (auto b : bytes)
