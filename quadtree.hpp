@@ -6,15 +6,12 @@
 
 namespace qt {
     template <typename ForwardIterator>
-    ForwardIterator remove_duplicates( ForwardIterator first, ForwardIterator last )
-    {
+    ForwardIterator remove_duplicates(ForwardIterator first, ForwardIterator last) {
         auto new_last = first;
 
-        for ( auto current = first; current != last; ++current )
-        {
-            if ( std::find( first, new_last, *current ) == new_last )
-            {
-                if ( new_last != current ) *new_last = *current;
+        for (auto current = first; current != last; ++current) {
+            if (std::find(first, new_last, *current) == new_last) {
+                if (new_last != current) *new_last = *current;
                 ++new_last;
             }
         }
@@ -113,22 +110,22 @@ namespace qt {
                     endIsEast    = pRect.x + pRect.width > verticalMidpoint,
                     endIsSouth   = pRect.y + pRect.height > horizontalMidpoint;    
                 
-                //top-right quad
+                // top-right quad
                 if (startIsNorth && endIsEast) {
                     indexes.push_back(0);
                 }
                 
-                //top-left quad
+                // top-left quad
                 if (startIsWest && startIsNorth) {
                     indexes.push_back(1);
                 }
 
-                //bottom-left quad
+                // bottom-left quad
                 if (startIsWest && endIsSouth) {
                     indexes.push_back(2);
                 }
 
-                //bottom-right quad
+                // bottom-right quad
                 if (endIsEast && endIsSouth) {
                     indexes.push_back(3);
                 }
@@ -155,7 +152,7 @@ namespace qt {
                         this->split();
                     }
 
-                    //add all objects to their corresponding subnode
+                    // add all objects to their corresponding subnode
                     for(i=0; i<this->objects.size(); i++) {
                         indexes = this->getIndex(this->objects[i]);
                         for(long unsigned int k=0; k<indexes.size(); k++) {
@@ -163,8 +160,8 @@ namespace qt {
                         }
                     }
 
-                    //clean up this node
-                    this->objects = {};
+                    // clean up this node
+                    this->objects.clear();
                 }
             }
 
@@ -172,7 +169,7 @@ namespace qt {
                 std::vector<float> indexes = this->getIndex(pRect);
                 std::vector<Rect> returnObjects = this->objects;
 
-                //if we have subnodes, retrieve their objects
+                // if we have subnodes, retrieve their objects
                 if(this->nodes.size()) {
                     for(long unsigned int i=0; i<indexes.size(); i++) {
                         std::vector<Rect> concatCanidate = this->nodes[indexes[i]].retrieve(pRect);
@@ -186,7 +183,7 @@ namespace qt {
             }
 
             void clear() {
-                this->objects = {};
+                this->objects.clear();
 
                 for(long unsigned int i=0; i < this->nodes.size(); i++) {
                     if(this->nodes.size()) {
@@ -194,7 +191,7 @@ namespace qt {
                     }
                 }
 
-                this->nodes = {};
+                this->nodes.clear();
             }
     };
 };
