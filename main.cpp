@@ -58,6 +58,7 @@ int main(int argc, char **argv) {
     ws28::Server server{uv_default_loop(), nullptr};
     server.SetMaxMessageSize(MESSAGE_SIZE);
     
+    // screw lambdas
     server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest& req) {
         INFO("Client with ip " << client->GetIP() << " connected to room \"" << req.path << "\"");
         if (arenas.find(req.path) == arenas.end()) {
