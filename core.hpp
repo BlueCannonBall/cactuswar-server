@@ -283,6 +283,7 @@ class Bullet: public Entity {
             buf.put_u16(this->radius); // radius
             buf.put_16(this->velocity.x); // velocity
             buf.put_16(this->velocity.y);
+            //buf.put_u32(this->owner); // owner of bullet
         }
 
         void next_tick(Arena *arena);
@@ -307,7 +308,7 @@ class Arena {
             .width = static_cast<float>(size), // Default map size: 12000
             .height = static_cast<float>(size)
         });
-        unsigned int target_shape_count = 125;
+        unsigned int target_shape_count = 150;
 #ifdef THREADING
         mutex qtmtx;
         mutex entitymtx;
@@ -441,6 +442,7 @@ class Arena {
 
             if (entities.shapes.size() <= target_shape_count - 12) {
                 INFO("Replenishing shapes");
+                #pragma omp simd
                 for (unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
                     Shape *new_shape = new Shape;
                     new_shape->id = get_uid();
@@ -605,6 +607,7 @@ class Arena {
         }
 
         void run() __attribute__((cold)) {
+            #pragma omp simd
             for (unsigned int i = 0; i<target_shape_count; i++) {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uid();
