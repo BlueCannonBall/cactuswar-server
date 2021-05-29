@@ -442,7 +442,7 @@ class Arena {
 
             if (entities.shapes.size() <= target_shape_count - 12) {
                 INFO("Replenishing shapes");
-                #pragma omp simd
+                #pragma omp for simd
                 for (unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
                     Shape *new_shape = new Shape;
                     new_shape->id = get_uid();
@@ -607,7 +607,7 @@ class Arena {
         }
 
         void run() __attribute__((cold)) {
-            #pragma omp simd
+            #pragma omp for simd
             for (unsigned int i = 0; i<target_shape_count; i++) {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uid();
