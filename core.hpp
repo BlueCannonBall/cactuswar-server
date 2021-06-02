@@ -283,7 +283,7 @@ class Bullet: public Entity {
             buf.put_u16(this->radius); // radius
             buf.put_16(this->velocity.x); // velocity
             buf.put_16(this->velocity.y);
-            //buf.put_u32(this->owner); // owner of bullet
+            buf.put_u32(this->owner); // owner of bullet
         }
 
         void next_tick(Arena *arena);
@@ -301,20 +301,20 @@ class Arena {
 
         unsigned long ticks = 0;
         Entities entities;
-        unsigned short size = 12000;
+        unsigned short size = 1000;
         qt::Quadtree tree = qt::Quadtree(qt::Rect {
             .x = 0,
             .y = 0,
             .width = static_cast<float>(size), // Default map size: 12000
             .height = static_cast<float>(size)
         });
-        unsigned int target_shape_count = 150;
+        unsigned int target_shape_count = 3;
 #ifdef THREADING
         mutex qtmtx;
         mutex entitymtx;
 #endif
 
-        Arena(unsigned short size=12000, unsigned int shape_count=150) {
+        Arena(unsigned short size=1000, unsigned int shape_count=3) {
             set_size(size);
             target_shape_count = shape_count;
         }
@@ -773,6 +773,7 @@ void Tank::collision_response(Arena *arena) {
     buf.offset = 0;
     buf.put_u8(2);
     buf.put_u16(census_size);
+    buf.put_u16(arena->size);
     this->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
 }
 
