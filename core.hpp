@@ -149,7 +149,7 @@ class Shape: public Entity {
             buf.put_u32(this->id); // game id
             buf.put_16(this->position.x); // position
             buf.put_16(this->position.y);
-            buf.put_float(this->health); // health
+            buf.put_float(this->health / this->max_health); // health
             //buf.put_u8(7); // sides
         }
 
@@ -227,7 +227,7 @@ class Tank: public Entity {
             buf.put_16(this->velocity.x); // velocity
             buf.put_16(this->velocity.y);
             buf.put_u8(this->mockup); // mockup id
-            buf.put_float(this->health); // health
+            buf.put_float(this->health / this->max_health); // health
             buf.put_u16(this->radius); // radius
             buf.put_string(this->name); // player name
         }
@@ -301,7 +301,7 @@ class Arena {
 
         unsigned long ticks = 0;
         Entities entities;
-        unsigned short size = 1000;
+        unsigned short size = 4000;
         qt::Quadtree tree = qt::Quadtree(qt::Rect {
             .x = 0,
             .y = 0,
@@ -314,7 +314,7 @@ class Arena {
         mutex entitymtx;
 #endif
 
-        Arena(unsigned short size=1000, unsigned int shape_count=3) {
+        Arena(unsigned short size=4000, unsigned int shape_count=40) {
             set_size(size);
             target_shape_count = shape_count;
         }
