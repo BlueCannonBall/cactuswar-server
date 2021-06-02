@@ -3,3 +3,15 @@ build/
 .vscode/
 core
 compile_commands.json
+
+*.slo
+*.lo
+*.o
+*.obj
+*.gch
+*.pch
+*.mod
+*.smod
+*.exe
+*.out
+*.app
