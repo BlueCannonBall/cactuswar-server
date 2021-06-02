@@ -20,7 +20,7 @@
 using namespace std;
 using namespace spb;
 
-atomic<unsigned int> uid(0);
+unsigned uid = 0;
 
 inline unsigned int get_uid() {
     return uid++;
@@ -301,11 +301,11 @@ class Arena {
 
         unsigned long ticks = 0;
         Entities entities;
-        unsigned short size = 4000;
+        unsigned short size = 5000;
         qt::Quadtree tree = qt::Quadtree(qt::Rect {
             .x = 0,
             .y = 0,
-            .width = static_cast<float>(size), // Default map size: 12000
+            .width = static_cast<float>(size),
             .height = static_cast<float>(size)
         });
         unsigned int target_shape_count = 3;
@@ -314,27 +314,27 @@ class Arena {
         mutex entitymtx;
 #endif
 
-        Arena(unsigned short size=4000, unsigned int shape_count=40) {
-            set_size(size);
-            target_shape_count = shape_count;
-        }
-
         ~Arena() {
             WARN("Arena destroyed, not freeing entities");
         }
 
-        void set_size(unsigned short size) __attribute__((cold)) {
-            if (size == this->size) {
+        void set_size(unsigned short _size) __attribute__((cold)) {
+            if (_size == this->size) {
                 return;
             }
-            this->size = size;
+            this->size = _size;
             tree.clear();
             tree = qt::Quadtree(qt::Rect {
                 .x = 0,
                 .y = 0,
-                .width = static_cast<float>(size),
-                .height = static_cast<float>(size)
+                .width = static_cast<float>(_size),
+                .height = static_cast<float>(_size)
             });
+        }
+
+        inline void update_size() {
+            set_size(this->entities.players.size() * 500 + 5000); // 500 more per player
+            target_shape_count = size / 80;
         }
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
@@ -352,6 +352,8 @@ class Arena {
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
             
+            update_size();
+
             buf.data_array.clear();
             buf.offset = 0;
             buf.put_u8(3); // packet id
