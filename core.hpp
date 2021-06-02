@@ -11,7 +11,6 @@
 #include <thread>
 #include <mutex>
 #include "entityconfig.hpp"
-#include <atomic>
 
 #pragma once
 #define COLLISION_STRENGTH 5
@@ -308,7 +307,7 @@ class Arena {
             .width = static_cast<float>(size),
             .height = static_cast<float>(size)
         });
-        unsigned int target_shape_count = 3;
+        unsigned int target_shape_count = 50;
 #ifdef THREADING
         mutex qtmtx;
         mutex entitymtx;
@@ -334,7 +333,7 @@ class Arena {
 
         inline void update_size() {
             set_size(this->entities.players.size() * 500 + 5000); // 500 more per player
-            target_shape_count = size / 80;
+            target_shape_count = size / 100;
         }
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
