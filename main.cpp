@@ -1,3 +1,4 @@
+#include "json.hpp"
 #include <iostream>
 #include <uv.h>
 #include "ws28/Server.h"
@@ -8,7 +9,6 @@
 #include "core.hpp"
 #include <map>
 #include <unordered_map>
-#include "json.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 #define MESSAGE_SIZE 4096
@@ -19,7 +19,8 @@ using json = nlohmann::json;
 
 map<string, Arena*> arenas = {
     {"/ffa-1", new Arena},
-    {"/ffa-2", new Arena}
+    {"/ffa-2", new Arena},
+    {"/ffa-3", new Arena}
 };
 json server_info;
 unordered_map<ws28::Client*, string> paths; // HACK: store paths per client pointer
