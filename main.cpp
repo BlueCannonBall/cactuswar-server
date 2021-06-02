@@ -31,9 +31,9 @@ enum class Packet {
 };
 
 void kick(ws28::Client* client, bool destroy=false) {
+    Arena *arena = arenas[paths[client]];
     if (client->GetUserData() != nullptr) {
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-        Arena *arena = arenas[paths[client]];
         if (arena->entities.players.find(player_id) != arena->entities.players.end()) {
             delete arena->entities.players[player_id];
             arena->entities.players.erase(player_id);
@@ -44,6 +44,7 @@ void kick(ws28::Client* client, bool destroy=false) {
         client->Destroy();
         WARN("Forcefully kicked client");
     }
+    arena->update_size();
 }
 
 int main(int argc, char **argv) {
