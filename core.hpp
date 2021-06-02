@@ -307,7 +307,7 @@ class Arena {
             .width = static_cast<float>(size),
             .height = static_cast<float>(size)
         });
-        unsigned int target_shape_count = 50;
+        unsigned int target_shape_count = 62;
 #ifdef THREADING
         mutex qtmtx;
         mutex entitymtx;
