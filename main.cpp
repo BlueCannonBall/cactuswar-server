@@ -37,6 +37,7 @@ void kick(ws28::Client* client, bool destroy=false) {
         if (arena->entities.players.find(player_id) != arena->entities.players.end()) {
             delete arena->entities.players[player_id];
             arena->entities.players.erase(player_id);
+            arena->update_size();
         }
     }
     paths.erase(client);
@@ -44,7 +45,6 @@ void kick(ws28::Client* client, bool destroy=false) {
         client->Destroy();
         WARN("Forcefully kicked client");
     }
-    arena->update_size();
 }
 
 int main(int argc, char **argv) {
