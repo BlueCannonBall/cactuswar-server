@@ -194,7 +194,7 @@ class Barrel {
         void fire(Tank*, Arena*);
 };
 
-/// A domtank, stats vary based on mockups.
+/// A tank, stats vary based on mockups.
 class Tank: public Entity {
     public:
         struct Input {
@@ -213,6 +213,7 @@ class Tank: public Entity {
         static constexpr float friction = 0.8f;
         vector<Barrel*> barrels;
         unsigned int mockup;
+        unsigned char fov;
 
         void next_tick(Arena* arena);
         void collision_response(Arena *arena);
@@ -256,6 +257,9 @@ class Tank: public Entity {
                 new_barrel->bullet_penetration = barrel.bullet_penetration;
                 this->barrels.push_back(new_barrel);
             }
+
+            fov = tank.fov;
+
             mockup = index;
         }
 
@@ -739,13 +743,15 @@ void Tank::collision_response(Arena *arena) {
         }
     }
 
+    float dr = 112.5 * this->fov * 1.8;
+
     qt::Rect viewport = {
-        .x = this->position.x - 3250/2, 
-        .y = this->position.y - 2500/2, 
-        .width = 3250, 
-        .height = 2500, 
+        .x = this->position.x - dr/2, 
+        .y = this->position.y - dr/2, 
+        .width = dr, 
+        .height = dr, 
         .id = 0,
-        .radius = 3250/2
+        .radius = static_cast<unsigned int>(dr/2)
     };
 
     canidates = arena->tree.retrieve(viewport);
@@ -858,7 +864,9 @@ void Tank::next_tick(Arena *arena) {
     }
 
     if (health != max_health) {
-
+        health += max_health * 0.0005;
+        if (health > max_health)
+            health = max_health;
     }
 
     this->velocity *= Vector2(this->friction, this->friction);
