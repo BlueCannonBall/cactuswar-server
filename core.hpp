@@ -142,7 +142,7 @@ class Shape: public Entity {
         unsigned radius = 100;
         float mass = 5;
         float damage = 20;
-        float reward = 0.1f;
+        float reward = 0.075f;
 
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(1); // id
@@ -876,7 +876,7 @@ void Tank::next_tick(Arena *arena) {
             health = max_health;
     }
 
-    this->radius = 50 + level * 4;
+    this->radius = 50 + level * 2;
 
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity / Vector2(this->mass, this->mass);
