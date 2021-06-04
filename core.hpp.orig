@@ -194,7 +194,7 @@ class Barrel {
         void fire(Tank*, Arena*);
 };
 
-/// A tank, stats vary based on mockups.
+/// A domtank, stats vary based on mockups.
 class Tank: public Entity {
     public:
         struct Input {
@@ -213,7 +213,6 @@ class Tank: public Entity {
         static constexpr float friction = 0.8f;
         vector<Barrel*> barrels;
         unsigned int mockup;
-        unsigned char fov;
 
         void next_tick(Arena* arena);
         void collision_response(Arena *arena);
@@ -257,9 +256,6 @@ class Tank: public Entity {
                 new_barrel->bullet_penetration = barrel.bullet_penetration;
                 this->barrels.push_back(new_barrel);
             }
-
-            fov = tank.fov;
-
             mockup = index;
         }
 
@@ -304,19 +300,31 @@ class Arena {
 
         unsigned long ticks = 0;
         Entities entities;
+<<<<<<< HEAD
+        unsigned short size = 4000;
+=======
         unsigned short size = 5000;
+>>>>>>> 04608a8a99931b59d247553c72420fd42bfa206d
         qt::Quadtree tree = qt::Quadtree(qt::Rect {
             .x = 0,
             .y = 0,
             .width = static_cast<float>(size),
             .height = static_cast<float>(size)
         });
-        unsigned int target_shape_count = 50;
+        unsigned int target_shape_count = 62;
 #ifdef THREADING
         mutex qtmtx;
         mutex entitymtx;
 #endif
 
+<<<<<<< HEAD
+        Arena(unsigned short size=4000, unsigned int shape_count=40) {
+            set_size(size);
+            target_shape_count = shape_count;
+        }
+
+=======
+>>>>>>> 04608a8a99931b59d247553c72420fd42bfa206d
         ~Arena() {
             WARN("Arena destroyed, not freeing entities");
         }
@@ -337,7 +345,7 @@ class Arena {
 
         inline void update_size() {
             set_size(this->entities.players.size() * 500 + 5000); // 500 more per player
-            target_shape_count = size / 100;
+            target_shape_count = size / 80;
         }
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
@@ -455,25 +463,28 @@ class Arena {
                     entities.shapes[new_shape->id] = new_shape;
                 }
             }
+#ifndef THREADING
+            Arena* arena = this;
+#endif
             
 #ifdef THREADING
-            thread shape_tick([this]() {
+            thread shape_tick([](Arena* arena) {
 #endif
-                for (auto entity = this->entities.shapes.cbegin(); entity != this->entities.shapes.cend();) {
+                for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
                     if (entity->second == nullptr) {
-                        this->destroy_entity(entity++->first, this->entities.shapes);
+                        arena->destroy_entity(entity++->first, arena->entities.shapes);
                         continue;
                     }
                     
                     if (entity->second->health <= 0) {
-                        this->destroy_entity(entity++->first, this->entities.shapes);
+                        arena->destroy_entity(entity++->first, arena->entities.shapes);
                         continue;
                     }
-                    entity->second->next_tick(this);
+                    entity->second->next_tick(arena);
 #ifdef THREADING
-                    this->qtmtx.lock();
+                    arena->qtmtx.lock();
 #endif
-                    this->tree.insert(qt::Rect {
+                    arena->tree.insert(qt::Rect {
                         .x = entity->second->position.x - entity->second->radius, 
                         .y = entity->second->position.y - entity->second->radius, 
                         .width = static_cast<float>(entity->second->radius*2), 
@@ -482,32 +493,32 @@ class Arena {
                         .radius = entity->second->radius
                     });
 #ifdef THREADING
-                    this->qtmtx.unlock();
+                    arena->qtmtx.unlock();
 #endif
                     ++entity;
                 }
 #ifdef THREADING
-            });
+            }, this);
 #endif
             
 #ifdef THREADING
-            thread player_tick([this]() {
+            thread player_tick([](Arena* arena) {
 #endif
-                for (auto entity = this->entities.players.cbegin(); entity != this->entities.players.cend();) {
+                for (auto entity = arena->entities.players.cbegin(); entity != arena->entities.players.cend();) {
                     if (entity->second == nullptr) {
-                        this->entities.players.erase(entity++);
+                        arena->entities.players.erase(entity++);
                         continue;
                     }
                     
                     if (entity->second->health <= 0) {
-                        entity->second->position = Vector2(rand() % this->size-3000 + 3000, rand() % this->size-3000 + 3000);
+                        entity->second->position = Vector2(rand() % arena->size-3000 + 3000, rand() % arena->size-3000 + 3000);
                         entity->second->health = entity->second->max_health;
                     }
-                    entity->second->next_tick(this);
+                    entity->second->next_tick(arena);
 #ifdef THREADING
-                    this->qtmtx.lock();
+                    arena->qtmtx.lock();
 #endif
-                    this->tree.insert(qt::Rect {
+                    arena->tree.insert(qt::Rect {
                         .x = entity->second->position.x - entity->second->radius, 
                         .y = entity->second->position.y - entity->second->radius, 
                         .width = static_cast<float>(entity->second->radius*2), 
@@ -516,36 +527,36 @@ class Arena {
                         .radius = entity->second->radius
                     });
 #ifdef THREADING
-                    this->qtmtx.unlock();
+                    arena->qtmtx.unlock();
 #endif
                     ++entity;
                 }
 #ifdef THREADING
-            });
+            }, this);
 #endif
 
 #ifdef THREADING
-            thread bullet_tick([this]() {
+            thread bullet_tick([](Arena* arena) {
 #endif
-                for (auto entity = this->entities.bullets.cbegin(); entity != this->entities.bullets.cend();) {
+                for (auto entity = arena->entities.bullets.cbegin(); entity != arena->entities.bullets.cend();) {
                     if (entity->second == nullptr) {
-                        this->destroy_entity(entity++->first, this->entities.bullets);
+                        arena->destroy_entity(entity++->first, arena->entities.bullets);
                         continue;
                     }
                     
                     entity->second->lifetime--;
                     if (entity->second->lifetime <= 0) {
-                        this->destroy_entity(entity++->first, this->entities.bullets);
+                        arena->destroy_entity(entity++->first, arena->entities.bullets);
                         continue;
                     } else if (entity->second->health <= 0) {
-                        this->destroy_entity(entity++->first, this->entities.bullets);
+                        arena->destroy_entity(entity++->first, arena->entities.bullets);
                         continue;
                     }
-                    entity->second->next_tick(this);
+                    entity->second->next_tick(arena);
 #ifdef THREADING
-                    this->qtmtx.lock();
+                    arena->qtmtx.lock();
 #endif
-                    this->tree.insert(qt::Rect {
+                    arena->tree.insert(qt::Rect {
                         .x = entity->second->position.x - entity->second->radius, 
                         .y = entity->second->position.y - entity->second->radius, 
                         .width = static_cast<float>(entity->second->radius*2), 
@@ -554,12 +565,12 @@ class Arena {
                         .radius = entity->second->radius
                     });
 #ifdef THREADING
-                    this->qtmtx.unlock();
+                    arena->qtmtx.unlock();
 #endif
                     ++entity;
                 }
 #ifdef THREADING
-            });
+            }, this);
 #endif
 
 #ifdef THREADING
@@ -569,36 +580,36 @@ class Arena {
 #endif
 
 #ifdef THREADING
-            thread shape_collide([this]() {
+            thread shape_collide([](Arena* arena) {
 #endif
-                for (auto entity = this->entities.shapes.cbegin(); entity != this->entities.shapes.cend();) {
-                    entity->second->collision_response(this);
+                for (auto entity = arena->entities.shapes.cbegin(); entity != arena->entities.shapes.cend();) {
+                    entity->second->collision_response(arena);
                     ++entity;
                 }
 #ifdef THREADING
-            });
+            }, this);
 #endif
 
 #ifdef THREADING
-            thread player_collide([this]() {
+            thread player_collide([](Arena* arena) {
 #endif
-                for (auto entity = this->entities.players.cbegin(); entity != this->entities.players.cend();) {
-                    entity->second->collision_response(this);
+                for (auto entity = arena->entities.players.cbegin(); entity != arena->entities.players.cend();) {
+                    entity->second->collision_response(arena);
                     ++entity;
                 }
 #ifdef THREADING
-            });
+            }, this);
 #endif
 
 #ifdef THREADING
-            thread bullet_collide([this]() {
+            thread bullet_collide([](Arena* arena) {
 #endif
-                for (auto entity = this->entities.bullets.cbegin(); entity != this->entities.bullets.cend();) {
-                    entity->second->collision_response(this);
+                for (auto entity = arena->entities.bullets.cbegin(); entity != arena->entities.bullets.cend();) {
+                    entity->second->collision_response(arena);
                     ++entity;
                 }
 #ifdef THREADING
-            });
+            }, this);
 #endif
 
 #ifdef THREADING
@@ -743,15 +754,13 @@ void Tank::collision_response(Arena *arena) {
         }
     }
 
-    float dr = 112.5 * this->fov * 1.8;
-
     qt::Rect viewport = {
-        .x = this->position.x - dr/2, 
-        .y = this->position.y - dr/2, 
-        .width = dr, 
-        .height = dr, 
+        .x = this->position.x - 3250/2, 
+        .y = this->position.y - 2500/2, 
+        .width = 3250, 
+        .height = 2500, 
         .id = 0,
-        .radius = static_cast<unsigned int>(dr/2)
+        .radius = 3250/2
     };
 
     canidates = arena->tree.retrieve(viewport);
@@ -861,12 +870,6 @@ void Tank::next_tick(Arena *arena) {
                 };
             }
         }
-    }
-
-    if (health != max_health) {
-        health += max_health * 0.0013;
-        if (health > max_health)
-            health = max_health;
     }
 
     this->velocity *= Vector2(this->friction, this->friction);
