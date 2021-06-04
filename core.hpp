@@ -142,6 +142,7 @@ class Shape: public Entity {
         unsigned radius = 100;
         float mass = 5;
         float damage = 20;
+        float reward = 0.1f;
 
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(1); // id
@@ -699,6 +700,10 @@ void Shape::collision_response(Arena* arena) {
         if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
                 this->health -= arena->entities.bullets[canidate.id]->damage; // damage
+                if (this->health <= 0) {
+                    arena->entities.players[arena->entities.bullets[canidate.id]->owner]->level += this->reward;
+                    return; // death
+                }
             }
             
             // response
@@ -870,6 +875,8 @@ void Tank::next_tick(Arena *arena) {
         if (health > max_health)
             health = max_health;
     }
+
+    this->radius = 50 + level * 4;
 
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity / Vector2(this->mass, this->mass);
