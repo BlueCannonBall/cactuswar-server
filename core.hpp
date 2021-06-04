@@ -214,6 +214,7 @@ class Tank: public Entity {
         vector<Barrel*> barrels;
         unsigned int mockup;
         unsigned char fov;
+        float level = 1;
 
         void next_tick(Arena* arena);
         void collision_response(Arena *arena);
@@ -778,6 +779,7 @@ void Tank::collision_response(Arena *arena) {
     buf.put_u8(2);
     buf.put_u16(census_size);
     buf.put_u16(arena->size);
+    buf.put_float(this->level);
     this->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
 }
 
