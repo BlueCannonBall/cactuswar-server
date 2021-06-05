@@ -144,12 +144,17 @@ class Shape: public Entity {
         float damage = 20;
         float reward = 0.075f;
 
+        Shape() {
+            this->radius = rand() % 21 + 90;
+        }
+
         void take_census(StreamPeerBuffer& buf) {
             buf.put_u8(1); // id
             buf.put_u32(this->id); // game id
             buf.put_16(this->position.x); // position
             buf.put_16(this->position.y);
             buf.put_float(this->health / this->max_health); // health
+            buf.put_u32(this->radius); // radius
             //buf.put_u8(7); // sides
         }
 
