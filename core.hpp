@@ -145,7 +145,7 @@ class Shape: public Entity {
         float reward = 0.075f;
 
         Shape() {
-            this->radius = rand() % 21 + 90;
+            this->radius = rand() % 36 + 85;
         }
 
         void take_census(StreamPeerBuffer& buf) {
