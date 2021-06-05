@@ -111,7 +111,7 @@ const std::vector<TankConfig> tanksconfig = {
         },
     },
     TankConfig {
-        .name = "Auxillary",
+        .name = "Auxiliary",
         .fov = 20,
         .barrels = {
             BarrelConfig {
