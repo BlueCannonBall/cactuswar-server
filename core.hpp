@@ -504,6 +504,12 @@ class Arena {
                     if (entity->second->health <= 0) {
                         entity->second->position = Vector2(rand() % this->size-3000 + 3000, rand() % this->size-3000 + 3000);
                         entity->second->health = entity->second->max_health;
+                        if (entity->second->level / 2 >= 1) {
+                            entity->second->level = entity->second->level / 2;
+                        } else {
+                            entity->second->level = 1;
+                        }
+
                     }
                     entity->second->next_tick(this);
 #ifdef THREADING
@@ -737,6 +743,10 @@ void Tank::collision_response(Arena *arena) {
         if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
                 this->health -= arena->entities.bullets[canidate.id]->damage; // damage
+                if (this->health <= 0) {
+                    arena->entities.players[arena->entities.bullets[canidate.id]->owner]->level += this->level / 2;
+                    return; // death
+                }
             } else if (arena->entities.shapes.find(canidate.id) != arena->entities.shapes.end()) {
                 this->health -= arena->entities.shapes[canidate.id]->damage; // damage
             }
