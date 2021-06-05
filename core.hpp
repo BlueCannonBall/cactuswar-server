@@ -125,7 +125,7 @@ class Entity {
         float rotation = 0;
         static constexpr float friction = 0.9f;
         string name = "Entity";
-        unsigned radius = 50;
+        unsigned short radius = 50;
         float max_health = 500;
         float health = max_health;
         float damage = 0;
@@ -139,7 +139,7 @@ class Entity {
 /// A shape, includes cacti and rocks.
 class Shape: public Entity {
     public:
-        unsigned radius = 100;
+        unsigned short radius = 100;
         float mass = 5;
         float damage = 20;
         float reward = 0.075f;
@@ -154,7 +154,7 @@ class Shape: public Entity {
             buf.put_16(this->position.x); // position
             buf.put_16(this->position.y);
             buf.put_float(this->health / this->max_health); // health
-            buf.put_u32(this->radius); // radius
+            buf.put_u16(this->radius); // radius
             //buf.put_u8(7); // sides
         }
 
@@ -277,7 +277,7 @@ class Tank: public Entity {
 
 class Bullet: public Entity {
     public:
-        unsigned int radius = 25;
+        unsigned short radius = 25;
         static constexpr float friction = 1;
         short lifetime = 50;
         float damage = 20;
