@@ -696,7 +696,7 @@ class Arena {
                 new_tank->type = TankType::Bot;
                 new_tank->id = get_uid();
                 new_tank->position = Vector2(rand() % size, rand() % size);
-                new_tank->define(0);
+                new_tank->define(rand() % tanksconfig.size());
                 entities.tanks[new_tank->id] = new_tank;
             }
             this->update_size();
