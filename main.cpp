@@ -25,11 +25,6 @@ map<string, Arena*> arenas = {
 json server_info;
 unordered_map<ws28::Client*, string> paths; // HACK: store paths per client pointer
 
-enum class Packet {
-    Init = 0,
-    Input = 1
-};
-
 void kick(ws28::Client* client, bool destroy=false) {
     Arena *arena = arenas[paths[client]];
     if (client->GetUserData() != nullptr) {
@@ -82,7 +77,7 @@ int main(int argc, char **argv) {
         Arena* arena = arenas[paths[client]];
         unsigned char packet_id = buf.get_u8();
         switch (packet_id) {
-            case (int) Packet::Init:
+            case (int) Packet::InboundInit:
                 if (len < 3) {
                     kick(client);
                     return;

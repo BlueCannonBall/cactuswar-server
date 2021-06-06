@@ -19,6 +19,13 @@
 using namespace std;
 using namespace spb;
 
+enum class Packet {
+    InboundInit = 0,
+    Input = 1,
+    Census = 2,
+    OutboundInit = 3,
+};
+
 unsigned uid = 0;
 
 inline unsigned int get_uid() {
@@ -366,7 +373,7 @@ class Arena {
 
             buf.data_array.clear();
             buf.offset = 0;
-            buf.put_u8(3); // packet id
+            buf.put_u8((unsigned char) Packet::OutboundInit); // packet id
             buf.put_u32(player_id); // player id
             buf.put_u8(tanksconfig.size()); // amount of mockups
             for (const auto& tank : tanksconfig) {
@@ -796,7 +803,7 @@ void Tank::collision_response(Arena *arena) {
     }
 
     buf.offset = 0;
-    buf.put_u8(2);
+    buf.put_u8((unsigned char) Packet::Census);
     buf.put_u16(census_size);
     buf.put_u16(arena->size);
     buf.put_float(this->level);
