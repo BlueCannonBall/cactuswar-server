@@ -251,7 +251,7 @@ class Tank: public Entity {
             buf.put_float(this->health / this->max_health); // health
             buf.put_u16(this->radius); // radius
             buf.put_string(this->name); // player name
-            if (message.time == 0 || time - 210 > message.time) {
+            if (message.time == 0 || time - (30 * 7) > message.time) { // show chat messages for 7 seconds
                 buf.put_string(""); // empty message
             } else {
                 buf.put_string(message.content);
@@ -368,6 +368,9 @@ class Arena {
         
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
             string player_name = buf.get_string();
+            if (player_name.size() == 0) {
+                player_name = "Unnamed";
+            }
             Tank* new_player = new Tank;
             new_player->name = player_name;
             new_player->client = client;
@@ -456,6 +459,7 @@ class Arena {
 
             entities.players[player_id]->message.time = ticks;
             entities.players[player_id]->message.content = buf.get_string();
+            INFO("\"" << entities.players[player_id]->name << "\" says: " << entities.players[player_id]->message.content);
         }
         
         template<typename T>
