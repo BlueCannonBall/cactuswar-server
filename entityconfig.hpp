@@ -62,7 +62,7 @@ const std::vector<TankConfig> tanksconfig = {
     },
     TankConfig {
         .name = "Escort",
-        .fov = 20,
+        .fov = 25,
         .barrels = {
             BarrelConfig {
                 .angle = 0,
