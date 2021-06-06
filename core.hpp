@@ -767,10 +767,10 @@ void Tank::collision_response(Arena *arena) {
     float dr = 112.5 * this->fov * 1.8;
 
     qt::Rect viewport = {
-        .x = this->position.x - dr/2, 
-        .y = this->position.y - dr/2, 
-        .width = dr, 
-        .height = dr, 
+        .x = this->position.x - dr/2,
+        .y = this->position.y - dr/2,
+        .width = dr,
+        .height = dr,
         .id = 0,
         .radius = static_cast<unsigned int>(dr/2)
     };
