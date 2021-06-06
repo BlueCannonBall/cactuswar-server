@@ -24,6 +24,7 @@ enum class Packet {
     Input = 1,
     Census = 2,
     OutboundInit = 3,
+    Chat = 4
 };
 
 unsigned uid = 0;
@@ -207,6 +208,11 @@ class Barrel {
         void fire(Tank*, Arena*);
 };
 
+struct ChatMessage {
+    string content;
+    unsigned long time = 0;
+};
+
 /// A tank, stats vary based on mockups.
 class Tank: public Entity {
     public:
@@ -228,11 +234,12 @@ class Tank: public Entity {
         unsigned int mockup;
         unsigned char fov;
         float level = 1;
+        ChatMessage message;
 
         void next_tick(Arena* arena);
         void collision_response(Arena *arena);
 
-        void take_census(StreamPeerBuffer& buf) {
+        void take_census(StreamPeerBuffer& buf, unsigned long time) {
             buf.put_u8(0); // id
             buf.put_u32(this->id); // game id
             buf.put_16(this->position.x); // position
@@ -244,6 +251,11 @@ class Tank: public Entity {
             buf.put_float(this->health / this->max_health); // health
             buf.put_u16(this->radius); // radius
             buf.put_string(this->name); // player name
+            if (message.time == 0 || time - 210 > message.time) {
+                buf.put_string(""); // empty message
+            } else {
+                buf.put_string(message.content);
+            }
         }
 
         inline void clear_barrels() {
@@ -431,6 +443,19 @@ class Arena {
             // INFO("Player rotation: " << entities.players[player_id]->rotation);
             // INFO("Player position: " << entities.players[player_id]->position);
             // INFO("Mouse position: " << entities.players[player_id]->input.mousepos);
+        }
+
+        void handle_chat_packet(StreamPeerBuffer& buf, ws28::Client* client) {
+            unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
+            
+            if (this->entities.players.find(player_id) == this->entities.players.end()) {
+                WARN("Player without id tried to send chat packet");
+                client->Destroy();
+                return;
+            }
+
+            entities.players[player_id]->message.time = ticks;
+            entities.players[player_id]->message.content = buf.get_string();
         }
         
         template<typename T>
@@ -790,7 +815,7 @@ void Tank::collision_response(Arena *arena) {
     for (const auto& canidate : canidates) {
         if (aabb(viewport, canidate)) {
             if (arena->entities.players.find(canidate.id) != arena->entities.players.end()) {
-                arena->entities.players[canidate.id]->take_census(buf);
+                arena->entities.players[canidate.id]->take_census(buf, arena->ticks);
                 census_size++;
             } else if (arena->entities.shapes.find(canidate.id) != arena->entities.shapes.end()) {
                 arena->entities.shapes[canidate.id]->take_census(buf);

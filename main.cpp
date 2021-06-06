@@ -91,6 +91,13 @@ int main(int argc, char **argv) {
                 }
                 arena->handle_input_packet(buf, client);
                 break;
+            case (int) Packet::Chat:
+                if (len < 3) {
+                    kick(client);
+                    return;
+                }
+                arena->handle_chat_packet(buf, client);
+                break;
             default:
                 kick(client);
                 break;
