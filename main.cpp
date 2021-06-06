@@ -29,9 +29,9 @@ void kick(ws28::Client* client, bool destroy=false) {
     Arena *arena = arenas[paths[client]];
     if (client->GetUserData() != nullptr) {
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-        if (arena->entities.players.find(player_id) != arena->entities.players.end()) {
-            delete arena->entities.players[player_id];
-            arena->entities.players.erase(player_id);
+        if (arena->entities.tanks.find(player_id) != arena->entities.tanks.end()) {
+            delete arena->entities.tanks[player_id];
+            arena->entities.tanks.erase(player_id);
             arena->update_size();
         }
     }

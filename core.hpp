@@ -14,6 +14,7 @@
 
 #pragma once
 #define COLLISION_STRENGTH 5
+#define BOT_COUNT 3
 #define THREADING
 
 using namespace std;
@@ -40,6 +41,19 @@ inline bool aabb(qt::Rect rect1, qt::Rect rect2) {
         rect1.y < rect2.y + rect2.height &&
         rect1.y + rect1.height > rect2.y
     );
+}
+
+template<typename A, typename B>
+std::pair<B,A> flip_pair(const std::pair<A,B>& p) {
+    return std::pair<B,A>(p.second, p.first);
+}
+
+template<typename A, typename B>
+std::multimap<B,A> flip_map(const std::map<A,B>& src) {
+    std::multimap<B,A> dst;
+    std::transform(src.begin(), src.end(), std::inserter(dst, dst.begin()),
+        flip_pair<A,B>);
+    return dst;
 }
 
 class Vector2 {
@@ -213,6 +227,11 @@ struct ChatMessage {
     unsigned long time = 0;
 };
 
+enum class TankType {
+    Player,
+    Bot
+};
+
 /// A tank, stats vary based on mockups.
 class Tank: public Entity {
     public:
@@ -235,6 +254,7 @@ class Tank: public Entity {
         unsigned char fov;
         float level = 1;
         ChatMessage message;
+        TankType type = TankType::Player;
 
         void next_tick(Arena* arena);
         void collision_response(Arena *arena);
@@ -324,7 +344,7 @@ class Arena {
         struct Entities {
             map<unsigned int, Entity*> entities;
             map<unsigned int, Shape*> shapes;
-            map<unsigned int, Tank*> players;
+            map<unsigned int, Tank*> tanks;
             map<unsigned int, Bullet*> bullets;
         };
 
@@ -362,7 +382,7 @@ class Arena {
         }
 
         inline void update_size() {
-            set_size(this->entities.players.size() * 500 + 5000); // 500 more per player
+            set_size(this->entities.tanks.size() * 500 + 5000); // 500 more per player
             target_shape_count = size / 100;
         }
         
@@ -378,11 +398,11 @@ class Arena {
             unsigned int player_id = get_uid();
             client->SetUserData(reinterpret_cast<void*>(player_id));
             new_player->id = player_id;
-            this->entities.players[player_id] = new_player;
-            new_player->position = Vector2(rand() % size-3000 + 3000, rand() % size-3000 + 3000);
+            this->entities.tanks[player_id] = new_player;
+            new_player->position = Vector2(rand() % size, rand() % size);
             new_player->define(3);
 
-            INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.players.size() << " player(s) in game");
+            INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.tanks.size() << " player(s) in game");
             
             update_size();
 
@@ -409,57 +429,54 @@ class Arena {
             unsigned char movement_byte = buf.get_u8();
             unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
             
-            if (this->entities.players.find(player_id) == this->entities.players.end()) {
+            if (this->entities.tanks.find(player_id) == this->entities.tanks.end()) {
                 WARN("Player without id tried to send input packet");
                 client->Destroy();
                 return;
             }
-            entities.players[player_id]->input = {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
+            entities.tanks[player_id]->input = {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
             
             if (0b10000 & movement_byte) {
-                entities.players[player_id]->input.W = true;
+                entities.tanks[player_id]->input.W = true;
                 //puts("w");
             } else if (0b00100 & movement_byte) {
-                entities.players[player_id]->input.S = true;
+                entities.tanks[player_id]->input.S = true;
                 //puts("s");
             }
             
             if (0b01000 & movement_byte) {
-                entities.players[player_id]->input.A = true;
+                entities.tanks[player_id]->input.A = true;
                 //puts("a");
             } else if (0b00010 & movement_byte) {
-                entities.players[player_id]->input.D = true;
+                entities.tanks[player_id]->input.D = true;
                 //puts("d");
             }
 
             if (0b00001 & movement_byte) {
-                entities.players[player_id]->input.mousedown = true;
+                entities.tanks[player_id]->input.mousedown = true;
             }
 
             short mousex = buf.get_16();
             short mousey = buf.get_16();
-            entities.players[player_id]->input.mousepos = Vector2(mousex, mousey);
-            entities.players[player_id]->rotation = atan2(
-                entities.players[player_id]->input.mousepos.y - entities.players[player_id]->position.y,
-                entities.players[player_id]->input.mousepos.x - entities.players[player_id]->position.x
+            entities.tanks[player_id]->input.mousepos = Vector2(mousex, mousey);
+            entities.tanks[player_id]->rotation = atan2(
+                entities.tanks[player_id]->input.mousepos.y - entities.tanks[player_id]->position.y,
+                entities.tanks[player_id]->input.mousepos.x - entities.tanks[player_id]->position.x
             );
-            // INFO("Player rotation: " << entities.players[player_id]->rotation);
-            // INFO("Player position: " << entities.players[player_id]->position);
-            // INFO("Mouse position: " << entities.players[player_id]->input.mousepos);
         }
 
         void handle_chat_packet(StreamPeerBuffer& buf, ws28::Client* client) {
             unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
             
-            if (this->entities.players.find(player_id) == this->entities.players.end()) {
+            if (this->entities.tanks.find(player_id) == this->entities.tanks.end()) {
                 WARN("Player without id tried to send chat packet");
                 client->Destroy();
                 return;
             }
 
-            entities.players[player_id]->message.time = ticks;
-            entities.players[player_id]->message.content = buf.get_string();
-            INFO("\"" << entities.players[player_id]->name << "\" says: " << entities.players[player_id]->message.content);
+            entities.tanks[player_id]->message.time = ticks;
+            entities.tanks[player_id]->message.content = buf.get_string();
+            INFO("\"" << entities.tanks[player_id]->name << "\" says: " << entities.tanks[player_id]->message.content);
         }
         
         template<typename T>
@@ -480,7 +497,14 @@ class Arena {
         }
 
         void update() __attribute__((hot)) {
-            if (entities.players.size() == 0) {
+            bool found_player = false;
+            for (const auto& tank : entities.tanks) {
+                if (tank.second->type == TankType::Player) {
+                    found_player = true;
+                    break;
+                }
+            }
+            if (!found_player) {
                 return;
             }
 
@@ -534,11 +558,11 @@ class Arena {
 #endif
             
 #ifdef THREADING
-            thread player_tick([this]() {
+            thread tank_tick([this]() {
 #endif
-                for (auto entity = this->entities.players.cbegin(); entity != this->entities.players.cend();) {
+                for (auto entity = this->entities.tanks.cbegin(); entity != this->entities.tanks.cend();) {
                     if (entity->second == nullptr) {
-                        this->entities.players.erase(entity++);
+                        this->entities.tanks.erase(entity++);
                         continue;
                     }
                     
@@ -613,7 +637,7 @@ class Arena {
 
 #ifdef THREADING
             shape_tick.join();
-            player_tick.join();
+            tank_tick.join();
             bullet_tick.join();
 #endif
 
@@ -629,9 +653,9 @@ class Arena {
 #endif
 
 #ifdef THREADING
-            thread player_collide([this]() {
+            thread tank_collide([this]() {
 #endif
-                for (auto entity = this->entities.players.cbegin(); entity != this->entities.players.cend();) {
+                for (auto entity = this->entities.tanks.cbegin(); entity != this->entities.tanks.cend();) {
                     entity->second->collision_response(this);
                     ++entity;
                 }
@@ -652,7 +676,7 @@ class Arena {
 
 #ifdef THREADING
             shape_collide.join();
-            player_collide.join();
+            tank_collide.join();
             bullet_collide.join();
 #endif
         }
@@ -665,6 +689,17 @@ class Arena {
                 new_shape->position = Vector2(rand() % size, rand() % size);
                 entities.shapes[new_shape->id] = new_shape;
             }
+
+            #pragma omp for simd
+            for (unsigned int i = 0; i<BOT_COUNT; i++) {
+                Tank* new_tank = new Tank;
+                new_tank->type = TankType::Bot;
+                new_tank->id = get_uid();
+                new_tank->position = Vector2(rand() % size, rand() % size);
+                new_tank->define(0);
+                entities.tanks[new_tank->id] = new_tank;
+            }
+            this->update_size();
 
             uv_timer_t* timer = (uv_timer_t*) malloc(sizeof(uv_timer_t));
             uv_timer_init(uv_default_loop(), timer);
@@ -748,7 +783,7 @@ void Shape::collision_response(Arena* arena) {
             if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
                 this->health -= arena->entities.bullets[canidate.id]->damage; // damage
                 if (this->health <= 0) {
-                    arena->entities.players[arena->entities.bullets[canidate.id]->owner]->level += this->reward;
+                    arena->entities.tanks[arena->entities.bullets[canidate.id]->owner]->level += this->reward;
                     return; // death
                 }
             }
@@ -785,7 +820,7 @@ void Tank::collision_response(Arena *arena) {
             if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
                 this->health -= arena->entities.bullets[canidate.id]->damage; // damage
                 if (this->health <= 0) {
-                    arena->entities.players[arena->entities.bullets[canidate.id]->owner]->level += this->level / 2;
+                    arena->entities.tanks[arena->entities.bullets[canidate.id]->owner]->level += this->level / 2;
                     return; // death
                 }
             } else if (arena->entities.shapes.find(canidate.id) != arena->entities.shapes.end()) {
@@ -813,30 +848,76 @@ void Tank::collision_response(Arena *arena) {
 
     canidates = arena->tree.retrieve(viewport);
 
-    StreamPeerBuffer buf(true);
-    unsigned short census_size = 0;
+    if (this->type == TankType::Player) {
+        StreamPeerBuffer buf(true);
+        unsigned short census_size = 0;
 
-    for (const auto& canidate : canidates) {
-        if (aabb(viewport, canidate)) {
-            if (arena->entities.players.find(canidate.id) != arena->entities.players.end()) {
-                arena->entities.players[canidate.id]->take_census(buf, arena->ticks);
-                census_size++;
-            } else if (arena->entities.shapes.find(canidate.id) != arena->entities.shapes.end()) {
-                arena->entities.shapes[canidate.id]->take_census(buf);
-                census_size++;
-            } else if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
-                arena->entities.bullets[canidate.id]->take_census(buf);
-                census_size++;
+        for (const auto& canidate : canidates) {
+            if (aabb(viewport, canidate)) {
+                if (arena->entities.tanks.find(canidate.id) != arena->entities.tanks.end()) {
+                    arena->entities.tanks[canidate.id]->take_census(buf, arena->ticks);
+                    census_size++;
+                } else if (arena->entities.shapes.find(canidate.id) != arena->entities.shapes.end()) {
+                    arena->entities.shapes[canidate.id]->take_census(buf);
+                    census_size++;
+                } else if (arena->entities.bullets.find(canidate.id) != arena->entities.bullets.end()) {
+                    arena->entities.bullets[canidate.id]->take_census(buf);
+                    census_size++;
+                }
             }
         }
-    }
 
-    buf.offset = 0;
-    buf.put_u8((unsigned char) Packet::Census);
-    buf.put_u16(census_size);
-    buf.put_u16(arena->size);
-    buf.put_float(this->level);
-    this->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
+        buf.offset = 0;
+        buf.put_u8((unsigned char) Packet::Census);
+        buf.put_u16(census_size);
+        buf.put_u16(arena->size);
+        buf.put_float(this->level);
+        this->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
+    } else if (this->type == TankType::Bot) {
+        map<unsigned int, unsigned int> nearby_tanks;
+        map<unsigned int, unsigned int> nearby_shapes;
+
+        for (const auto& canidate : canidates) {
+            if (canidate.id == this->id) {
+                continue;
+            }
+
+            if (aabb(viewport, canidate)) {
+                if (arena->entities.tanks.find(canidate.id) != arena->entities.tanks.end()) {
+                    nearby_tanks[canidate.id] = arena->entities.tanks[canidate.id]->position.distance_to(this->position);
+                } else if (arena->entities.shapes.find(canidate.id) != arena->entities.shapes.end()) {
+                    nearby_shapes[canidate.id] = arena->entities.shapes[canidate.id]->position.distance_to(this->position);
+                }
+            }
+        }
+
+        input = {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
+        
+        unsigned int dist;
+        if (nearby_tanks.size() > 0) {
+            auto sorted_nearby_tanks = flip_map(nearby_tanks);
+            this->input.mousepos = arena->entities.tanks[sorted_nearby_tanks.begin()->second]->position;
+            dist = sorted_nearby_tanks.begin()->first;
+        } else if (nearby_shapes.size() > 0) {
+            auto sorted_nearby_shapes = flip_map(nearby_shapes);
+            this->input.mousepos = arena->entities.shapes[sorted_nearby_shapes.begin()->second]->position;
+            dist = sorted_nearby_shapes.begin()->first;
+        } else {
+            return;
+        }
+
+        this->rotation = atan2(
+            this->input.mousepos.y - this->position.y,
+            this->input.mousepos.x - this->position.x
+        );
+        this->input.mousedown = true;
+        if (dist > 400) {
+            if (position.x > input.mousepos.x) input.A = true;
+            else input.D = true;
+            if (position.y > input.mousepos.y) input.W = true;
+            else input.S = true;
+        }
+    }
 }
 
 
