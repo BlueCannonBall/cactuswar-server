@@ -270,7 +270,7 @@ class Tank: public Entity {
             buf.put_u8(this->mockup); // mockup id
             buf.put_float(this->health / this->max_health); // health
             buf.put_u16(this->radius); // radius
-            buf.put_string(this->name); // player name
+            buf.put_string(this->name); // tank name
             if (message.time == 0 || time - (30 * 7) > message.time) { // show chat messages for 7 seconds
                 buf.put_string(""); // empty message
             } else {
@@ -382,7 +382,7 @@ class Arena {
         }
 
         inline void update_size() {
-            set_size(this->entities.tanks.size() * 500 + 5000); // 500 more per player
+            set_size(this->entities.tanks.size() * 500 + 5000); // 500 more per tank
             target_shape_count = size / 100;
         }
         
@@ -721,15 +721,14 @@ class Arena {
 
 /* OVERLOADS */
 
-void Barrel::fire(Tank* player, Arena* arena) {
+void Barrel::fire(Tank* tank, Arena* arena) {
     Bullet *new_bullet = new Bullet;
-    new_bullet->position = player->position + (Vector2(cos(player->rotation + angle), sin(player->rotation + angle)).normalize() * Vector2(player->radius + new_bullet->radius + 1, player->radius + new_bullet->radius + 1));
-    // new_bullet->position = player->input.mousepos;
-    new_bullet->velocity = Vector2(cos(player->rotation + this->angle) * bullet_speed, sin(player->rotation + this->angle) * bullet_speed);
-    player->velocity -= Vector2(cos(player->rotation + angle) * this->recoil, sin(player->rotation + angle) * this->recoil);
+    new_bullet->position = tank->position + (Vector2(cos(tank->rotation + angle), sin(tank->rotation + angle)).normalize() * Vector2(tank->radius + new_bullet->radius + 1, tank->radius + new_bullet->radius + 1));
+    new_bullet->velocity = Vector2(cos(tank->rotation + this->angle) * bullet_speed, sin(tank->rotation + this->angle) * bullet_speed);
+    tank->velocity -= Vector2(cos(tank->rotation + angle) * this->recoil, sin(tank->rotation + angle) * this->recoil);
     new_bullet->id = get_uid();
-    new_bullet->owner = player->id;
-    new_bullet->radius = this->width * player->radius;
+    new_bullet->owner = tank->id;
+    new_bullet->radius = this->width * tank->radius;
 
     // set stats
     new_bullet->damage = this->bullet_damage;
