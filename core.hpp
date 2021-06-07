@@ -383,7 +383,7 @@ class Arena {
         }
 
         inline void update_size() {
-            set_size(this->entities.tanks.size() * 500 + 5000); // 500 more per tank
+            set_size(this->entities.tanks.size() * 1000 + 5000); // 500 more per tank
             target_shape_count = size*size / 500000;
         }
         
