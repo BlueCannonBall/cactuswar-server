@@ -407,8 +407,7 @@ class Arena {
             
             update_size();
 
-            buf.data_array.clear();
-            buf.offset = 0;
+            buf.reset();
             buf.put_u8((unsigned char) Packet::OutboundInit); // packet id
             buf.put_u32(player_id); // player id
             buf.put_u8(tanksconfig.size()); // amount of mockups

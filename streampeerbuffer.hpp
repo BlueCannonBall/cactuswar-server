@@ -46,5 +46,7 @@ namespace spb
 
           void put_float(float);
           float get_float();
+
+          void reset();
     };
 }

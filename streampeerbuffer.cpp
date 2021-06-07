@@ -210,4 +210,10 @@ namespace spb
         }
         return number;
     }
+
+    void StreamPeerBuffer::reset()
+    {
+        offset = 0;
+        data_array.clear();
+    }
 }
