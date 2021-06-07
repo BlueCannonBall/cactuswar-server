@@ -142,8 +142,8 @@ class Arena;
 /// Base entity
 class Entity {
     public:
-        Vector2 position = Vector2(0, 0);
-        Vector2 velocity = Vector2(0, 0);
+        Vector2 position;
+        Vector2 velocity;
         unsigned int id;
         float rotation = 0;
         static constexpr float friction = 0.9f;
@@ -237,17 +237,17 @@ enum class TankType {
 class Tank: public Entity {
     public:
         struct Input {
-            bool W;
-            bool A;
-            bool S;
-            bool D;
-            bool mousedown;
+            bool W = false;
+            bool A = false;
+            bool S = false;
+            bool D = false;
+            bool mousedown = false;
             Vector2 mousepos;
         };
 
         string name = "Unnamed";
         ws28::Client *client = nullptr;
-        Input input = Input {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
+        Input input;
         float movement_speed = 4;
         static constexpr float friction = 0.8f;
         vector<Barrel*> barrels;
