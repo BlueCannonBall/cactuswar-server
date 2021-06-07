@@ -14,7 +14,7 @@
 
 #pragma once
 #define COLLISION_STRENGTH 5
-#define BOT_COUNT 3
+#define BOT_COUNT 6
 #define THREADING
 #define RAND(a, b) rand() % (b - a + 1) + a
 

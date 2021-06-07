@@ -35,6 +35,7 @@ run: $(TARGET)
 
 clean:
 	rm -rf build
+	rm -rf *.gch ws28/*.gch
 
 cleanobj:
 	rm -rf $(OBJDIR)/*.o
