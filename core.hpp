@@ -220,7 +220,7 @@ class Barrel {
         float bullet_damage;
         float bullet_penetration;
 
-        void fire(Tank*, Arena*);
+        void fire(Tank*, Arena*) __attribute__((hot));
 };
 
 struct ChatMessage {
@@ -258,7 +258,7 @@ class Tank: public Entity {
         TankType type = TankType::Remote;
 
         void next_tick(Arena* arena);
-        void collision_response(Arena *arena);
+        void collision_response(Arena *arena) __attribute__((hot));
 
         void take_census(StreamPeerBuffer& buf, unsigned long time) {
             buf.put_u8(0); // id
