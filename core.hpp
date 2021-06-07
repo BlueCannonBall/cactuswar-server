@@ -16,6 +16,7 @@
 #define COLLISION_STRENGTH 5
 #define BOT_COUNT 3
 #define THREADING
+#define RAND(a, b) rand() % (b - a + 1) + a
 
 using namespace std;
 using namespace spb;
@@ -167,7 +168,7 @@ class Shape: public Entity {
         float reward = 0.075f;
 
         Shape() {
-            this->radius = rand() % 36 + 85;
+            this->radius = RAND(85, 115);
         }
 
         void take_census(StreamPeerBuffer& buf) {
@@ -399,7 +400,7 @@ class Arena {
             client->SetUserData(reinterpret_cast<void*>(player_id));
             new_player->id = player_id;
             this->entities.tanks[player_id] = new_player;
-            new_player->position = Vector2(rand() % size, rand() % size);
+            new_player->position = Vector2(RAND(0, size), RAND(0, size));
             new_player->define(3);
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.tanks.size() << " player(s) in game");
@@ -524,7 +525,7 @@ class Arena {
                 for (unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
                     Shape *new_shape = new Shape;
                     new_shape->id = get_uid();
-                    new_shape->position = Vector2(rand() % size, rand() % size);
+                    new_shape->position = Vector2(RAND(0, size), RAND(0, size));
                     entities.shapes[new_shape->id] = new_shape;
                 }
             }
@@ -573,7 +574,7 @@ class Arena {
                     }
                     
                     if (entity->second->health <= 0) {
-                        entity->second->position = Vector2(rand() % this->size-3000 + 3000, rand() % this->size-3000 + 3000);
+                        entity->second->position = Vector2(RAND(0, size), RAND(0, size));
                         entity->second->health = entity->second->max_health;
                         if (entity->second->level / 2 >= 1) {
                             entity->second->level = entity->second->level / 2;
@@ -692,7 +693,7 @@ class Arena {
             for (unsigned int i = 0; i<target_shape_count; i++) {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uid();
-                new_shape->position = Vector2(rand() % size, rand() % size);
+                new_shape->position = Vector2(RAND(0, size), RAND(0, size));
                 entities.shapes[new_shape->id] = new_shape;
             }
 
@@ -701,8 +702,8 @@ class Arena {
                 Tank* new_tank = new Tank;
                 new_tank->type = TankType::Local;
                 new_tank->id = get_uid();
-                new_tank->position = Vector2(rand() % size, rand() % size);
-                new_tank->define(rand() % tanksconfig.size());
+                new_tank->position = Vector2(RAND(0, size), RAND(0, size));
+                new_tank->define(RAND(0, tanksconfig.size()));
                 entities.tanks[new_tank->id] = new_tank;
             }
             this->update_size();
@@ -840,7 +841,7 @@ void Tank::collision_response(Arena *arena) {
         }
     }
 
-    float dr = 112.5 * this->fov * 1.8;
+    float dr = 112.5 * this->fov * 1.6;
 
     qt::Rect viewport = {
         .x = this->position.x - dr/2,
