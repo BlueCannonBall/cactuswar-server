@@ -364,11 +364,11 @@ class Arena {
         mutex entitymtx;
 #endif
 
-        ~Arena() {
+        ~Arena() __attribute__((cold)) {
             WARN("Arena destroyed, not freeing entities");
         }
 
-        void set_size(unsigned short _size) __attribute__((cold)) {
+        void set_size(unsigned short _size) {
             if (_size == this->size) {
                 return;
             }
@@ -688,7 +688,7 @@ class Arena {
 #endif
         }
 
-        void run() __attribute__((cold)) {
+        void run() {
             #pragma omp simd
             for (unsigned int i = 0; i<target_shape_count; i++) {
                 Shape *new_shape = new Shape;
@@ -712,8 +712,8 @@ class Arena {
             uv_timer_init(uv_default_loop(), timer);
             timer->data = this;
             uv_timer_start(timer, [](uv_timer_t *timer) {
-                auto &arena = *(Arena*)(timer->data);
-                arena.update();
+                Arena* arena = (Arena*) timer->data;
+                arena->update();
                 //uv_update_time(uv_default_loop());
             }, 0, 1000/30);
         }
