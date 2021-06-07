@@ -228,8 +228,8 @@ struct ChatMessage {
 };
 
 enum class TankType {
-    Player,
-    Bot
+    Local,
+    Remote
 };
 
 /// A tank, stats vary based on mockups.
@@ -254,7 +254,7 @@ class Tank: public Entity {
         unsigned char fov;
         float level = 1;
         ChatMessage message;
-        TankType type = TankType::Player;
+        TankType type = TankType::Remote;
 
         void next_tick(Arena* arena);
         void collision_response(Arena *arena);
@@ -505,7 +505,7 @@ class Arena {
         void update() __attribute__((hot)) {
             bool found_player = false;
             for (const auto& tank : entities.tanks) {
-                if (tank.second->type == TankType::Player) {
+                if (tank.second->type == TankType::Remote) {
                     found_player = true;
                     break;
                 }
@@ -699,7 +699,7 @@ class Arena {
             #pragma omp for simd
             for (unsigned int i = 0; i<BOT_COUNT; i++) {
                 Tank* new_tank = new Tank;
-                new_tank->type = TankType::Bot;
+                new_tank->type = TankType::Local;
                 new_tank->id = get_uid();
                 new_tank->position = Vector2(rand() % size, rand() % size);
                 new_tank->define(rand() % tanksconfig.size());
@@ -853,7 +853,7 @@ void Tank::collision_response(Arena *arena) {
 
     canidates = arena->tree.retrieve(viewport);
 
-    if (this->type == TankType::Player) {
+    if (this->type == TankType::Remote) {
         StreamPeerBuffer buf(true);
         unsigned short census_size = 0;
 
@@ -878,7 +878,7 @@ void Tank::collision_response(Arena *arena) {
         buf.put_u16(arena->size);
         buf.put_float(this->level);
         this->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
-    } else if (this->type == TankType::Bot) {
+    } else {
         map<unsigned int, unsigned int> nearby_tanks;
         map<unsigned int, unsigned int> nearby_shapes;
 
