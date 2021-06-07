@@ -474,8 +474,14 @@ class Arena {
                 return;
             }
 
+            string message = buf.get_string();
+            if (message.size() == 0) {
+                entities.tanks[player_id]->message.time = 0;
+                return;
+            }
+
             entities.tanks[player_id]->message.time = ticks;
-            entities.tanks[player_id]->message.content = buf.get_string();
+            entities.tanks[player_id]->message.content = message;
             INFO("\"" << entities.tanks[player_id]->name << "\" says: " << entities.tanks[player_id]->message.content);
         }
         
