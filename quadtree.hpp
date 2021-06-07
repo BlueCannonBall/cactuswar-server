@@ -155,7 +155,7 @@ namespace qt {
                     // add all objects to their corresponding subnode
                     for(i=0; i<this->objects.size(); i++) {
                         indexes = this->getIndex(this->objects[i]);
-                        #pragma omp for simd
+                        #pragma omp simd
                         for(long unsigned int k=0; k<indexes.size(); k++) {
                             this->nodes[indexes[k]].insert(this->objects[i]);
                         }
@@ -172,7 +172,7 @@ namespace qt {
 
                 // if we have subnodes, retrieve their objects
                 if(this->nodes.size()) {
-                    #pragma omp for simd
+                    #pragma omp simd
                     for(long unsigned int i=0; i<indexes.size(); i++) {
                         std::vector<Rect> concatCanidate = this->nodes[indexes[i]].retrieve(pRect);
                         returnObjects.insert(returnObjects.end(), concatCanidate.begin(), concatCanidate.end());
@@ -187,7 +187,7 @@ namespace qt {
             void clear() {
                 this->objects.clear();
 
-                #pragma omp for simd
+                #pragma omp simd
                 for(long unsigned int i=0; i < this->nodes.size(); i++) {
                     if(this->nodes.size()) {
                         this->nodes[i].clear();

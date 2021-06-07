@@ -521,7 +521,7 @@ class Arena {
 
             if (entities.shapes.size() <= target_shape_count - 12) {
                 INFO("Replenishing shapes");
-                #pragma omp for simd
+                #pragma omp simd
                 for (unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
                     Shape *new_shape = new Shape;
                     new_shape->id = get_uid();
@@ -689,7 +689,7 @@ class Arena {
         }
 
         void run() __attribute__((cold)) {
-            #pragma omp for simd
+            #pragma omp simd
             for (unsigned int i = 0; i<target_shape_count; i++) {
                 Shape *new_shape = new Shape;
                 new_shape->id = get_uid();
@@ -697,13 +697,13 @@ class Arena {
                 entities.shapes[new_shape->id] = new_shape;
             }
 
-            #pragma omp for simd
+            #pragma omp simd
             for (unsigned int i = 0; i<BOT_COUNT; i++) {
                 Tank* new_tank = new Tank;
                 new_tank->type = TankType::Local;
                 new_tank->id = get_uid();
                 new_tank->position = Vector2(RAND(0, size), RAND(0, size));
-                new_tank->define(RAND(0, tanksconfig.size()));
+                new_tank->define(RAND(0, tanksconfig.size() - 1));
                 entities.tanks[new_tank->id] = new_tank;
             }
             this->update_size();
