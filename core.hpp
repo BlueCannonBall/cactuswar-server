@@ -916,7 +916,7 @@ void Tank::collision_response(Arena *arena) {
             this->input.mousepos.x - this->position.x
         );
         this->input.mousedown = true;
-        if (dist > 400) {
+        if (dist > (400 + this->radius)) {
             if (position.x > input.mousepos.x) input.A = true;
             else input.D = true;
             if (position.y > input.mousepos.y) input.W = true;
