@@ -433,12 +433,12 @@ class Arena {
             client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
 
             // tracking
-            fstream player_file("players.json");
+            fstream ip_file("ips.json");
             string data;
-            player_file.seekg(0, std::ios::end);   
-            data.reserve(player_file.tellg());
-            player_file.seekg(0, std::ios::beg);
-            data.assign((std::istreambuf_iterator<char>(player_file)), 
+            ip_file.seekg(0, std::ios::end);   
+            data.reserve(ip_file.tellg());
+            ip_file.seekg(0, std::ios::beg);
+            data.assign((std::istreambuf_iterator<char>(ip_file)), 
                 std::istreambuf_iterator<char>());
             json ips = json::parse(data);
             if (ips.find(client->GetIP()) == ips.end()) {
@@ -454,9 +454,9 @@ class Arena {
                 ips[client->GetIP()]["names"].push_back(player_name);
             }
             data = ips.dump(4);
-            player_file.seekp(0);
-            player_file.write(data.c_str(), data.size());
-            player_file.close();
+            ip_file.seekp(0);
+            ip_file.write(data.c_str(), data.size());
+            ip_file.close();
         }
         
         void handle_input_packet(StreamPeerBuffer& buf, ws28::Client *client) {

@@ -42,12 +42,12 @@ void kick(ws28::Client* client, bool destroy=false) {
         WARN("Forcefully kicked client");
 
         // ban player
-        fstream player_file("players.json");
+        fstream ip_file("ips.json");
         string data;
-        player_file.seekg(0, std::ios::end);   
-        data.reserve(player_file.tellg());
-        player_file.seekg(0, std::ios::beg);
-        data.assign((std::istreambuf_iterator<char>(player_file)), 
+        ip_file.seekg(0, std::ios::end);   
+        data.reserve(ip_file.tellg());
+        ip_file.seekg(0, std::ios::beg);
+        data.assign((std::istreambuf_iterator<char>(ip_file)), 
             std::istreambuf_iterator<char>());
         json ips = json::parse(data);
         if (ips.find(client->GetIP()) == ips.end()) {
@@ -61,9 +61,9 @@ void kick(ws28::Client* client, bool destroy=false) {
             ips[client->GetIP()]["banned"] = true;
         }
         data = ips.dump(4);
-        player_file.seekp(0);
-        player_file.write(data.c_str(), data.size());
-        player_file.close();
+        ip_file.seekp(0);
+        ip_file.write(data.c_str(), data.size());
+        ip_file.close();
     }
 }
 
@@ -77,10 +77,10 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if (!file_exists("players.json")) {
-        ofstream player_file("players.json");
-        player_file << "{}";
-        player_file.close();
+    if (!file_exists("ips.json")) {
+        ofstream ip_file("ips.json");
+        ip_file << "{}";
+        ip_file.close();
     }
 
     ws28::Server server{uv_default_loop(), nullptr};
@@ -155,15 +155,15 @@ int main(int argc, char **argv) {
 
     // check if player banned
     server.SetCheckConnectionCallback([](ws28::Client *client, ws28::HTTPRequest&) {
-        ifstream player_file("players.json");
+        ifstream ip_file("ips.json");
         string data;
-        player_file.seekg(0, std::ios::end);   
-        data.reserve(player_file.tellg());
-        player_file.seekg(0, std::ios::beg);
-        data.assign((std::istreambuf_iterator<char>(player_file)), 
+        ip_file.seekg(0, std::ios::end);   
+        data.reserve(ip_file.tellg());
+        ip_file.seekg(0, std::ios::beg);
+        data.assign((std::istreambuf_iterator<char>(ip_file)), 
             std::istreambuf_iterator<char>());
         json ips = json::parse(data);
-        player_file.close();
+        ip_file.close();
         if (ips[client->GetIP()]["banned"]) {
             WARN("BANNED IP TRIED TO CONNECT, REJECTING CONNECTION");
             return false;
