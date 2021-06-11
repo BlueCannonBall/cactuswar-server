@@ -164,9 +164,11 @@ int main(int argc, char **argv) {
             std::istreambuf_iterator<char>());
         json ips = json::parse(data);
         ip_file.close();
-        if (ips[client->GetIP()]["banned"]) {
-            WARN("BANNED IP TRIED TO CONNECT, REJECTING CONNECTION");
-            return false;
+        if (ips.find(client->GetIP()) != ips.end()) {
+            if (ips[client->GetIP()]["banned"]) {
+                WARN("BANNED IP TRIED TO CONNECT, REJECTING CONNECTION");
+                return false;
+            }
         }
         return true;
     });
