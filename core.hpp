@@ -11,6 +11,8 @@
 #include <thread>
 #include <mutex>
 #include "entityconfig.hpp"
+#include <fstream>
+#include "json.hpp"
 
 #pragma once
 #define COLLISION_STRENGTH 5
@@ -20,6 +22,7 @@
 
 using namespace std;
 using namespace spb;
+using json = nlohmann::json;
 
 enum class Packet {
     InboundInit = 0,
@@ -42,6 +45,11 @@ inline bool aabb(qt::Rect rect1, qt::Rect rect2) {
         rect1.y < rect2.y + rect2.height &&
         rect1.y + rect1.height > rect2.y
     );
+}
+
+inline bool file_exists(const std::string& name) {
+    struct stat buffer;
+    return (stat (name.c_str(), &buffer) == 0);
 }
 
 template<typename A, typename B>
@@ -423,6 +431,32 @@ class Arena {
             }
 
             client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
+
+            // tracking
+            fstream player_file("players.json");
+            string data;
+            player_file.seekg(0, std::ios::end);   
+            data.reserve(player_file.tellg());
+            player_file.seekg(0, std::ios::beg);
+            data.assign((std::istreambuf_iterator<char>(player_file)), 
+                std::istreambuf_iterator<char>());
+            json ips = json::parse(data);
+            if (ips.find(client->GetIP()) == ips.end()) {
+                ips[client->GetIP()] = R"(
+                    {
+                        "names": [],
+                        "banned": false
+                    }
+                )"_json;
+            }
+            if (find(ips[client->GetIP()]["names"].begin(), ips[client->GetIP()]["names"].end(), player_name) ==
+                ips[client->GetIP()]["names"].end()) {
+                ips[client->GetIP()]["names"].push_back(player_name);
+            }
+            data = ips.dump(4);
+            player_file.seekp(0);
+            player_file.write(data.c_str(), data.size());
+            player_file.close();
         }
         
         void handle_input_packet(StreamPeerBuffer& buf, ws28::Client *client) {

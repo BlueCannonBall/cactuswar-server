@@ -3,6 +3,7 @@ build/
 .vscode/
 core
 compile_commands.json
+players.json
 
 *.slo
 *.lo

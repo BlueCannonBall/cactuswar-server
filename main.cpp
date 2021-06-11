@@ -9,6 +9,7 @@
 #include "core.hpp"
 #include <map>
 #include <unordered_map>
+#include <fstream>
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 #define MESSAGE_SIZE 4096
@@ -39,6 +40,30 @@ void kick(ws28::Client* client, bool destroy=false) {
     if (destroy) {
         client->Destroy();
         WARN("Forcefully kicked client");
+
+        // ban player
+        fstream player_file("players.json");
+        string data;
+        player_file.seekg(0, std::ios::end);   
+        data.reserve(player_file.tellg());
+        player_file.seekg(0, std::ios::beg);
+        data.assign((std::istreambuf_iterator<char>(player_file)), 
+            std::istreambuf_iterator<char>());
+        json ips = json::parse(data);
+        if (ips.find(client->GetIP()) == ips.end()) {
+            ips[client->GetIP()] = R"(
+                {
+                    "names": [],
+                    "banned": true
+                }
+            )"_json;
+        } else {
+            ips[client->GetIP()]["banned"] = true;
+        }
+        data = ips.dump(4);
+        player_file.seekp(0);
+        player_file.write(data.c_str(), data.size());
+        player_file.close();
     }
 }
 
@@ -50,6 +75,12 @@ int main(int argc, char **argv) {
     } else {
         ERR("Please supply a port number");
         return 1;
+    }
+
+    if (!file_exists("players.json")) {
+        ofstream player_file("players.json");
+        player_file << "{}";
+        player_file.close();
     }
 
     ws28::Server server{uv_default_loop(), nullptr};
@@ -122,7 +153,21 @@ int main(int argc, char **argv) {
         }
     });
 
+    // check if player banned
     server.SetCheckConnectionCallback([](ws28::Client *client, ws28::HTTPRequest&) {
+        ifstream player_file("players.json");
+        string data;
+        player_file.seekg(0, std::ios::end);   
+        data.reserve(player_file.tellg());
+        player_file.seekg(0, std::ios::beg);
+        data.assign((std::istreambuf_iterator<char>(player_file)), 
+            std::istreambuf_iterator<char>());
+        json ips = json::parse(data);
+        player_file.close();
+        if (ips[client->GetIP()]["banned"]) {
+            WARN("BANNED IP TRIED TO CONNECT, REJECTING CONNECTION");
+            return false;
+        }
         return true;
     });
     
