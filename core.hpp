@@ -16,7 +16,6 @@
 
 #pragma once
 #define COLLISION_STRENGTH 5
-#define BOT_COUNT 6
 #define THREADING
 #define RAND(a, b) rand() % (b - a + 1) + a
 
@@ -367,12 +366,18 @@ class Arena {
             .height = static_cast<float>(size)
         });
         unsigned int target_shape_count = 50;
+        unsigned short bot_count = 6;
 #ifdef THREADING
         mutex qtmtx;
-        mutex entitymtx;
+        uv_rwlock_t entitymtx;
 #endif
 
+        Arena() {
+            uv_rwlock_init(&entitymtx);
+        }
+
         ~Arena() __attribute__((cold)) {
+            uv_rwlock_destroy(&entitymtx);
             WARN("Arena destroyed, not freeing entities");
         }
 
@@ -521,11 +526,11 @@ class Arena {
         void destroy_entity(unsigned int entity_id, map<unsigned int, T>& entity_map) {
             T entity_ptr = entity_map[entity_id];
 #ifdef THREADING
-            entitymtx.lock();
+            uv_rwlock_wrlock(&entitymtx);
 #endif
             entity_map.erase(entity_id);
 #ifdef THREADING
-            entitymtx.unlock();
+            uv_rwlock_wrunlock(&entitymtx);
 #endif
             if (entity_ptr != nullptr) {
                 delete entity_ptr;
@@ -569,11 +574,14 @@ class Arena {
                         this->destroy_entity(entity++->first, this->entities.shapes);
                         continue;
                     }
-                    
+
                     if (entity->second->health <= 0) {
                         this->destroy_entity(entity++->first, this->entities.shapes);
                         continue;
                     }
+#ifdef THREADING
+                    uv_rwlock_rdlock(&entitymtx);
+#endif
                     entity->second->next_tick(this);
 #ifdef THREADING
                     this->qtmtx.lock();
@@ -588,6 +596,7 @@ class Arena {
                     });
 #ifdef THREADING
                     this->qtmtx.unlock();
+                    uv_rwlock_rdunlock(&entitymtx);
 #endif
                     ++entity;
                 }
@@ -603,7 +612,9 @@ class Arena {
                         this->entities.tanks.erase(entity++);
                         continue;
                     }
-                    
+#ifdef THREADING
+                    uv_rwlock_rdlock(&entitymtx);
+#endif
                     if (entity->second->health <= 0) {
                         entity->second->position = Vector2(RAND(0, size), RAND(0, size));
                         entity->second->health = entity->second->max_health;
@@ -614,8 +625,12 @@ class Arena {
                         }
 
                     }
+#ifdef THREADING
+                    uv_rwlock_rdunlock(&entitymtx);
+#endif
                     entity->second->next_tick(this);
 #ifdef THREADING
+                    uv_rwlock_rdlock(&entitymtx);
                     this->qtmtx.lock();
 #endif
                     this->tree.insert(qt::Rect {
@@ -628,6 +643,7 @@ class Arena {
                     });
 #ifdef THREADING
                     this->qtmtx.unlock();
+                    uv_rwlock_rdunlock(&entitymtx);
 #endif
                     ++entity;
                 }
@@ -652,6 +668,9 @@ class Arena {
                         this->destroy_entity(entity++->first, this->entities.bullets);
                         continue;
                     }
+#ifdef THREADING
+                    uv_rwlock_rdlock(&entitymtx);
+#endif
                     entity->second->next_tick(this);
 #ifdef THREADING
                     this->qtmtx.lock();
@@ -666,6 +685,7 @@ class Arena {
                     });
 #ifdef THREADING
                     this->qtmtx.unlock();
+                    uv_rwlock_rdunlock(&entitymtx);
 #endif
                     ++entity;
                 }
@@ -729,7 +749,7 @@ class Arena {
             }
 
             #pragma omp simd
-            for (unsigned int i = 0; i<BOT_COUNT; i++) {
+            for (unsigned int i = 0; i<bot_count; i++) {
                 Tank* new_tank = new Tank;
                 new_tank->type = TankType::Local;
                 new_tank->id = get_uid();
@@ -768,11 +788,11 @@ void Barrel::fire(Tank* tank, Arena* arena) {
     new_bullet->health = new_bullet->max_health;
 
 #ifdef THREADING
-    arena->entitymtx.lock();
+    uv_rwlock_wrlock(&arena->entitymtx);
 #endif
     arena->entities.bullets[new_bullet->id] = new_bullet;
 #ifdef THREADING
-    arena->entitymtx.unlock();
+    uv_rwlock_wrunlock(&arena->entitymtx);
 #endif
 }
 
@@ -997,6 +1017,9 @@ void Bullet::collision_response(Arena *arena) {
 
 
 void Tank::next_tick(Arena *arena) {
+#ifdef THREADING
+    uv_rwlock_rdlock(&arena->entitymtx);
+#endif
     if (this->input.W) {
         this->velocity.y -= this->movement_speed;
     } else if (this->input.S) {
@@ -1022,7 +1045,13 @@ void Tank::next_tick(Arena *arena) {
             if (barrel->target_time.time <= arena->ticks) {
                 switch (barrel->target_time.target) {
                     case BarrelTarget::ReloadDelay: {
+#ifdef THREADING
+                        uv_rwlock_rdunlock(&arena->entitymtx);
+#endif
                         barrel->fire(this, arena); // SAFETY: `this` and `arena` are supposedly always valid.
+#ifdef THREADING
+                        uv_rwlock_rdlock(&arena->entitymtx);
+#endif
                         barrel->cooling_down = true;
                         barrel->target_time.time = arena->ticks + barrel->full_reload;
                         barrel->target_time.target = BarrelTarget::CoolingDown;
@@ -1064,6 +1093,9 @@ void Tank::next_tick(Arena *arena) {
         this->position.y = 0;
         this->velocity.y = 0;
     }
+#ifdef THREADING
+    uv_rwlock_rdunlock(&arena->entitymtx);
+#endif
 }
 
 void Bullet::next_tick(Arena* arena) {
