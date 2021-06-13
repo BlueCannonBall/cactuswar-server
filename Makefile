@@ -3,7 +3,7 @@ LINKS=-luv -lssl -lcrypto -pthread -ltcmalloc_minimal
 CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -fdiagnostics-color=always \
 	 -g -Ofast -march=native -mtune=native -fno-signed-zeros \
 	-fno-trapping-math -frename-registers -funroll-loops -fno-builtin-malloc -fno-builtin-calloc \
-	-fno-builtin-realloc -fno-builtin-free -fopenmp-simd
+	-fno-builtin-realloc -fno-builtin-free -fopenmp-simd -Bsymbolic -fno-semantic-interposition
 TARGET=./build/server
 OBJDIR=build/obj
 

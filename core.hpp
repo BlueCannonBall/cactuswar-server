@@ -442,12 +442,10 @@ class Arena {
                 std::istreambuf_iterator<char>());
             json ips = json::parse(data);
             if (ips.find(client->GetIP()) == ips.end()) {
-                ips[client->GetIP()] = R"(
-                    {
-                        "names": [],
-                        "banned": false
-                    }
-                )"_json;
+                ips[client->GetIP()] = {
+                    {"names", json::array()},
+                    {"banned", false}
+                };
             }
             if (find(ips[client->GetIP()]["names"].begin(), ips[client->GetIP()]["names"].end(), player_name) ==
                 ips[client->GetIP()]["names"].end()) {

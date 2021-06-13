@@ -51,12 +51,10 @@ void kick(ws28::Client* client, bool destroy=false) {
             std::istreambuf_iterator<char>());
         json ips = json::parse(data);
         if (ips.find(client->GetIP()) == ips.end()) {
-            ips[client->GetIP()] = R"(
-                {
-                    "names": [],
-                    "banned": true
-                }
-            )"_json;
+            ips[client->GetIP()] = {
+                {"names", json::array()},
+                {"banned", true}
+            };
         } else {
             ips[client->GetIP()]["banned"] = true;
         }
