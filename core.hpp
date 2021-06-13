@@ -788,11 +788,13 @@ void Barrel::fire(Tank* tank, Arena* arena) {
     new_bullet->health = new_bullet->max_health;
 
 #ifdef THREADING
+    uv_rwlock_rdunlock(&arena->entitymtx);
     uv_rwlock_wrlock(&arena->entitymtx);
 #endif
     arena->entities.bullets[new_bullet->id] = new_bullet;
 #ifdef THREADING
     uv_rwlock_wrunlock(&arena->entitymtx);
+    uv_rwlock_rdlock(&arena->entitymtx);
 #endif
 }
 
@@ -1045,13 +1047,7 @@ void Tank::next_tick(Arena *arena) {
             if (barrel->target_time.time <= arena->ticks) {
                 switch (barrel->target_time.target) {
                     case BarrelTarget::ReloadDelay: {
-#ifdef THREADING
-                        uv_rwlock_rdunlock(&arena->entitymtx);
-#endif
                         barrel->fire(this, arena); // SAFETY: `this` and `arena` are supposedly always valid.
-#ifdef THREADING
-                        uv_rwlock_rdlock(&arena->entitymtx);
-#endif
                         barrel->cooling_down = true;
                         barrel->target_time.time = arena->ticks + barrel->full_reload;
                         barrel->target_time.target = BarrelTarget::CoolingDown;
