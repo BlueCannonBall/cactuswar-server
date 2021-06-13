@@ -409,7 +409,7 @@ class Arena {
             new_player->id = player_id;
             this->entities.tanks[player_id] = new_player;
             new_player->position = Vector2(RAND(0, size), RAND(0, size));
-            new_player->define(3);
+            new_player->define(1);
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.tanks.size() << " player(s) in game");
             
@@ -1045,7 +1045,7 @@ void Tank::next_tick(Arena *arena) {
             health = max_health;
     }
 
-    this->radius = 50 + level * 2;
+    this->radius = 50 + (level * 0.25);
 
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity / Vector2(this->mass, this->mass);
