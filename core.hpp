@@ -368,17 +368,32 @@ class Arena {
         unsigned int target_shape_count = 50;
         unsigned short bot_count = 6;
 #ifdef THREADING
-        mutex qtmtx;
-        uv_rwlock_t entitymtx;
+        mutex qt_mtx;
+        uv_rwlock_t entity_lock;
 #endif
 
         Arena() {
-            uv_rwlock_init(&entitymtx);
+            uv_rwlock_init(&entity_lock);
         }
 
-        ~Arena() __attribute__((cold)) {
-            uv_rwlock_destroy(&entitymtx);
-            WARN("Arena destroyed, not freeing entities");
+        ~Arena() {
+            uv_rwlock_wrlock(&entity_lock);
+
+            for (auto entity = this->entities.entities.cbegin(); entity != this->entities.entities.cend();) {
+                destroy_entity(entity++->first, this->entities.entities);
+            }
+            for (auto entity = this->entities.shapes.cbegin(); entity != this->entities.shapes.cend();) {
+                destroy_entity(entity++->first, this->entities.shapes);
+            }
+            for (auto entity = this->entities.tanks.cbegin(); entity != this->entities.tanks.cend();) {
+                destroy_entity(entity++->first, this->entities.tanks);
+            }
+            for (auto entity = this->entities.bullets.cbegin(); entity != this->entities.bullets.cend();) {
+                destroy_entity(entity++->first, this->entities.bullets);
+            }
+
+            uv_rwlock_wrunlock(&entity_lock);
+            uv_rwlock_destroy(&entity_lock);
         }
 
         void set_size(unsigned short _size) {
@@ -526,11 +541,11 @@ class Arena {
         void destroy_entity(unsigned int entity_id, map<unsigned int, T>& entity_map) {
             T entity_ptr = entity_map[entity_id];
 #ifdef THREADING
-            uv_rwlock_wrlock(&entitymtx);
+            uv_rwlock_wrlock(&entity_lock);
 #endif
             entity_map.erase(entity_id);
 #ifdef THREADING
-            uv_rwlock_wrunlock(&entitymtx);
+            uv_rwlock_wrunlock(&entity_lock);
 #endif
             if (entity_ptr != nullptr) {
                 delete entity_ptr;
@@ -580,11 +595,11 @@ class Arena {
                         continue;
                     }
 #ifdef THREADING
-                    uv_rwlock_rdlock(&entitymtx);
+                    uv_rwlock_rdlock(&entity_lock);
 #endif
                     entity->second->next_tick(this);
 #ifdef THREADING
-                    this->qtmtx.lock();
+                    this->qt_mtx.lock();
 #endif
                     this->tree.insert(qt::Rect {
                         .x = entity->second->position.x - entity->second->radius, 
@@ -595,8 +610,8 @@ class Arena {
                         .radius = entity->second->radius
                     });
 #ifdef THREADING
-                    this->qtmtx.unlock();
-                    uv_rwlock_rdunlock(&entitymtx);
+                    this->qt_mtx.unlock();
+                    uv_rwlock_rdunlock(&entity_lock);
 #endif
                     ++entity;
                 }
@@ -613,7 +628,7 @@ class Arena {
                         continue;
                     }
 #ifdef THREADING
-                    uv_rwlock_rdlock(&entitymtx);
+                    uv_rwlock_rdlock(&entity_lock);
 #endif
                     if (entity->second->health <= 0) {
                         entity->second->position = Vector2(RAND(0, size), RAND(0, size));
@@ -626,12 +641,12 @@ class Arena {
 
                     }
 #ifdef THREADING
-                    uv_rwlock_rdunlock(&entitymtx);
+                    uv_rwlock_rdunlock(&entity_lock);
 #endif
                     entity->second->next_tick(this);
 #ifdef THREADING
-                    uv_rwlock_rdlock(&entitymtx);
-                    this->qtmtx.lock();
+                    uv_rwlock_rdlock(&entity_lock);
+                    this->qt_mtx.lock();
 #endif
                     this->tree.insert(qt::Rect {
                         .x = entity->second->position.x - entity->second->radius, 
@@ -642,8 +657,8 @@ class Arena {
                         .radius = entity->second->radius
                     });
 #ifdef THREADING
-                    this->qtmtx.unlock();
-                    uv_rwlock_rdunlock(&entitymtx);
+                    this->qt_mtx.unlock();
+                    uv_rwlock_rdunlock(&entity_lock);
 #endif
                     ++entity;
                 }
@@ -669,11 +684,11 @@ class Arena {
                         continue;
                     }
 #ifdef THREADING
-                    uv_rwlock_rdlock(&entitymtx);
+                    uv_rwlock_rdlock(&entity_lock);
 #endif
                     entity->second->next_tick(this);
 #ifdef THREADING
-                    this->qtmtx.lock();
+                    this->qt_mtx.lock();
 #endif
                     this->tree.insert(qt::Rect {
                         .x = entity->second->position.x - entity->second->radius, 
@@ -684,8 +699,8 @@ class Arena {
                         .radius = entity->second->radius
                     });
 #ifdef THREADING
-                    this->qtmtx.unlock();
-                    uv_rwlock_rdunlock(&entitymtx);
+                    this->qt_mtx.unlock();
+                    uv_rwlock_rdunlock(&entity_lock);
 #endif
                     ++entity;
                 }
@@ -788,13 +803,13 @@ void Barrel::fire(Tank* tank, Arena* arena) {
     new_bullet->health = new_bullet->max_health;
 
 #ifdef THREADING
-    uv_rwlock_rdunlock(&arena->entitymtx);
-    uv_rwlock_wrlock(&arena->entitymtx);
+    uv_rwlock_rdunlock(&arena->entity_lock);
+    uv_rwlock_wrlock(&arena->entity_lock);
 #endif
     arena->entities.bullets[new_bullet->id] = new_bullet;
 #ifdef THREADING
-    uv_rwlock_wrunlock(&arena->entitymtx);
-    uv_rwlock_rdlock(&arena->entitymtx);
+    uv_rwlock_wrunlock(&arena->entity_lock);
+    uv_rwlock_rdlock(&arena->entity_lock);
 #endif
 }
 
@@ -1020,7 +1035,7 @@ void Bullet::collision_response(Arena *arena) {
 
 void Tank::next_tick(Arena *arena) {
 #ifdef THREADING
-    uv_rwlock_rdlock(&arena->entitymtx);
+    uv_rwlock_rdlock(&arena->entity_lock);
 #endif
     if (this->input.W) {
         this->velocity.y -= this->movement_speed;
@@ -1090,7 +1105,7 @@ void Tank::next_tick(Arena *arena) {
         this->velocity.y = 0;
     }
 #ifdef THREADING
-    uv_rwlock_rdunlock(&arena->entitymtx);
+    uv_rwlock_rdunlock(&arena->entity_lock);
 #endif
 }
 
