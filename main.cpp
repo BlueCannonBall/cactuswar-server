@@ -42,6 +42,12 @@ void kick(ws28::Client* client, bool destroy=false) {
         WARN("Forcefully kicked client");
 
         // ban player
+        if (!file_exists("ips.json")) {
+            ofstream ip_file("ips.json");
+            ip_file << "{}";
+            ip_file.close();
+        }
+    
         fstream ip_file("ips.json");
         string data;
         ip_file.seekg(0, std::ios::end);   
@@ -153,6 +159,13 @@ int main(int argc, char **argv) {
 
     // check if player banned
     server.SetCheckConnectionCallback([](ws28::Client *client, ws28::HTTPRequest&) {
+        if (!file_exists("ips.json")) {
+            ofstream ip_file("ips.json");
+            ip_file << "{}";
+            ip_file.close();
+            return true;
+        }
+
         ifstream ip_file("ips.json");
         string data;
         ip_file.seekg(0, std::ios::end);   

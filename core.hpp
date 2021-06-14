@@ -453,6 +453,12 @@ class Arena {
             client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
 
             // tracking
+            if (!file_exists("ips.json")) {
+                ofstream ip_file("ips.json");
+                ip_file << "{}";
+                ip_file.close();
+            }
+            
             fstream ip_file("ips.json");
             string data;
             ip_file.seekg(0, std::ios::end);   
