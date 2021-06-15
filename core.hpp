@@ -10,6 +10,7 @@
 #include "quadtree.hpp"
 #include <thread>
 #include <mutex>
+#include <chrono>
 #include "entityconfig.hpp"
 #include <fstream>
 #include "json.hpp"
@@ -370,6 +371,7 @@ class Arena {
                 if (events & UV_CHANGE) {
                     INFO("Hot reloading entityconfig.json");
                     tanksconfig.clear();
+                    std::this_thread::sleep_for(std::chrono::milliseconds(16));
                     assert(load_tanks_from_json(filename) == 0);
                     Arena* arena = (Arena*) handle->data;
                     StreamPeerBuffer buf(true);
