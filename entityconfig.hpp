@@ -2,6 +2,8 @@
 #include <string>
 #include <cmath>
 #include <fstream>
+#include <chrono>
+#include <thread>
 #include "json.hpp"
 
 #pragma once
@@ -32,6 +34,7 @@ struct TankConfig {
 std::vector<TankConfig> tanksconfig;
 
 int load_tanks_from_json(const std::string& filename) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(16));
     std::ifstream tanks_file(filename);
     if (!tanks_file.is_open()) {
         perror(std::string("Failed to open " + filename).c_str());
@@ -65,5 +68,6 @@ int load_tanks_from_json(const std::string& filename) {
         }
     }
 
+    tanks_file.close();
     return 0;
 }

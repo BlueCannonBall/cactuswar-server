@@ -353,6 +353,10 @@ class Arena {
         });
         unsigned int target_shape_count = 50;
         unsigned short bot_count = 6;
+
+        uv_fs_event_t entityconfig_event_handle;
+        uv_timer_t timer;
+
 #ifdef THREADING
         mutex qt_mtx;
         uv_rwlock_t entity_lock;
@@ -360,14 +364,29 @@ class Arena {
 
         Arena() {
             uv_rwlock_init(&entity_lock);
+            uv_fs_event_init(uv_default_loop(), &entityconfig_event_handle);
+            entityconfig_event_handle.data = this;
+            uv_fs_event_start(&entityconfig_event_handle, [](uv_fs_event_t *handle, const char *filename, int events, int status) {
+                if (events & UV_CHANGE) {
+                    INFO("Hot reloading entityconfig.json");
+                    tanksconfig.clear();
+                    assert(load_tanks_from_json(filename) == 0);
+                    Arena* arena = (Arena*) handle->data;
+                    StreamPeerBuffer buf(true);
+                    for (const auto& tank : arena->entities.tanks) {
+                        if (tank.second->type == TankType::Remote) {
+                            buf.reset();
+                            arena->send_init_packet(buf, tank.second);
+                            tank.second->define(tank.second->mockup);
+                        }
+                    }
+                }
+            }, "entityconfig.json", 0);
         }
 
         ~Arena() {
             uv_rwlock_wrlock(&entity_lock);
 
-            for (auto entity = this->entities.entities.cbegin(); entity != this->entities.entities.cend();) {
-                destroy_entity(entity++->first, this->entities.entities);
-            }
             for (auto entity = this->entities.shapes.cbegin(); entity != this->entities.shapes.cend();) {
                 destroy_entity(entity++->first, this->entities.shapes);
             }
@@ -380,6 +399,8 @@ class Arena {
 
             uv_rwlock_wrunlock(&entity_lock);
             uv_rwlock_destroy(&entity_lock);
+            uv_fs_event_stop(&entityconfig_event_handle);
+            uv_timer_stop(&timer);
         }
 
         void set_size(unsigned short _size) {
@@ -397,10 +418,28 @@ class Arena {
         }
 
         inline void update_size() {
-            set_size(this->entities.tanks.size() * 1000 + 5000); // 500 more per tank
+            set_size(this->entities.tanks.size() * 1000 + 5000); // 1000 more per tank
             target_shape_count = size*size / 500000;
         }
         
+        void send_init_packet(StreamPeerBuffer& buf, Tank* player) {
+            buf.put_u8((unsigned char) Packet::OutboundInit); // packet id
+            buf.put_u32(player->id); // player id
+            buf.put_u8(tanksconfig.size()); // amount of mockups
+            for (const auto& tank : tanksconfig) {
+                buf.put_string(tank.name);
+                buf.put_u8(tank.fov);
+                buf.put_u8(tank.barrels.size());
+                for (const auto& barrel : tank.barrels) {
+                    buf.put_float(barrel.width);
+                    buf.put_float(barrel.length);
+                    buf.put_float(barrel.angle);
+                }
+            }
+
+            player->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
+        }
+
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
             string player_name = buf.get_string();
             if (player_name.size() == 0) {
@@ -422,21 +461,7 @@ class Arena {
             update_size();
 
             buf.reset();
-            buf.put_u8((unsigned char) Packet::OutboundInit); // packet id
-            buf.put_u32(player_id); // player id
-            buf.put_u8(tanksconfig.size()); // amount of mockups
-            for (const auto& tank : tanksconfig) {
-                buf.put_string(tank.name);
-                buf.put_u8(tank.fov);
-                buf.put_u8(tank.barrels.size());
-                for (const auto& barrel : tank.barrels) {
-                    buf.put_float(barrel.width);
-                    buf.put_float(barrel.length);
-                    buf.put_float(barrel.angle);
-                }
-            }
-
-            client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
+            send_init_packet(buf, new_player);
 
             // tracking
             if (!file_exists("ips.json")) {
@@ -766,10 +791,9 @@ class Arena {
             }
             this->update_size();
 
-            uv_timer_t* timer = (uv_timer_t*) malloc(sizeof(uv_timer_t));
-            uv_timer_init(uv_default_loop(), timer);
-            timer->data = this;
-            uv_timer_start(timer, [](uv_timer_t *timer) {
+            uv_timer_init(uv_default_loop(), &timer);
+            timer.data = this;
+            uv_timer_start(&timer, [](uv_timer_t *timer) {
                 Arena* arena = (Arena*) timer->data;
                 arena->update();
                 //uv_update_time(uv_default_loop());
