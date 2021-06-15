@@ -1,9 +1,13 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include <fstream>
+#include "json.hpp"
 
 #pragma once
 #define PI M_PI
+
+using json = nlohmann::json;
 
 struct BarrelConfig {
     float angle;
@@ -25,167 +29,41 @@ struct TankConfig {
     std::vector<BarrelConfig> barrels;
 };
 
-const std::vector<TankConfig> tanksconfig = {
-    TankConfig {
-        .name = "Station",
-        .fov = 20,
-        .barrels = {
-            BarrelConfig {
-                .angle = 0,
-                .width = 0.5f,
-                .length = 1.0,
-                .full_reload = 6,
-                .reload_delay = 0,
-                .recoil = 3,
-                .bullet_speed = 50,
-                .bullet_damage = 20,
-                .bullet_penetration = 30,
-            }
+std::vector<TankConfig> tanksconfig;
+
+int load_tanks_from_json(const std::string& filename) {
+    std::ifstream tanks_file(filename);
+    if (!tanks_file.is_open()) {
+        perror(std::string("Failed to open " + filename).c_str());
+        return -1;
+    }
+    std::string data;
+    tanks_file.seekg(0, std::ios::end);   
+    data.reserve(tanks_file.tellg());
+    tanks_file.seekg(0, std::ios::beg);
+    data.assign((std::istreambuf_iterator<char>(tanks_file)), 
+        std::istreambuf_iterator<char>());
+    json tanks = json::parse(data);
+    for (const auto& tank : tanks) {
+        tanksconfig.push_back(TankConfig {
+            .name = tank["name"],
+            .fov = tank["fov"]
+        });
+        int index = tanksconfig.size() - 1;
+        for (const auto& barrel : tank["barrels"]) {
+            tanksconfig[index].barrels.push_back(BarrelConfig {
+                .angle = barrel["angle"],
+                .width = barrel["width"],
+                .length = barrel["length"],
+                .full_reload = barrel["full_reload"],
+                .reload_delay = barrel["reload_delay"],
+                .recoil = barrel["recoil"],
+                .bullet_speed = barrel["bullet_speed"],
+                .bullet_damage = barrel["bullet_damage"],
+                .bullet_penetration = barrel["bullet_penetration"]
+            });
         }
-    },
-    TankConfig {
-        .name = "Obliterator",
-        .fov = 20,
-        .barrels = {
-            BarrelConfig {
-                .angle = 0,
-                .width = 1,
-                .length = 1,
-                .full_reload = 40,
-                .reload_delay = 0,
-                .recoil = 100,
-                .bullet_speed = 30,
-                .bullet_damage = 50000,
-                .bullet_penetration = 300,
-            }
-        }
-    },
-    TankConfig {
-        .name = "Escort",
-        .fov = 25,
-        .barrels = {
-            BarrelConfig {
-                .angle = 0,
-                .width = 0.5f,
-                .length = 1.0,
-                .full_reload = 6,
-                .reload_delay = 0,
-                .recoil = 3,
-                .bullet_speed = 50,
-                .bullet_damage = 20,
-                .bullet_penetration = 30,
-            },
-            BarrelConfig {
-                .angle = PI/2,
-                .width = 0.5f,
-                .length = 1.0,
-                .full_reload = 6,
-                .reload_delay = 0,
-                .recoil = 3,
-                .bullet_speed = 50,
-                .bullet_damage = 20,
-                .bullet_penetration = 30,
-            },
-            BarrelConfig {
-                .angle = PI,
-                .width = 0.5f,
-                .length = 1.0,
-                .full_reload = 6,
-                .reload_delay = 0,
-                .recoil = 3,
-                .bullet_speed = 50,
-                .bullet_damage = 20,
-                .bullet_penetration = 30,
-            },
-            BarrelConfig {
-                .angle = (PI/2) * 3,
-                .width = 0.5f,
-                .length = 1.0,
-                .full_reload = 6,
-                .reload_delay = 0,
-                .recoil = 3,
-                .bullet_speed = 50,
-                .bullet_damage = 20,
-                .bullet_penetration = 30,
-            }
-        },
-    },
-    TankConfig {
-        .name = "Auxiliary",
-        .fov = 20,
-        .barrels = {
-            BarrelConfig {
-                .angle = -0.2,
-                .width = 0.3f,
-                .length = 1,
-                .full_reload = 6,
-                .reload_delay = 3,
-                .recoil = 1,
-                .bullet_speed = 50,
-                .bullet_damage = 20,
-                .bullet_penetration = 30,
-            },
-            BarrelConfig {
-                .angle = 0.2,
-                .width = 0.3f,
-                .length = 1,
-                .full_reload = 6,
-                .reload_delay = 3,
-                .recoil = 1,
-                .bullet_speed = 50,
-                .bullet_damage = 20,
-                .bullet_penetration = 30,
-            },
-            BarrelConfig {
-                .angle = 0,
-                .width = 0.5f,
-                .length = 1.0,
-                .full_reload = 6,
-                .reload_delay = 0,
-                .recoil = 3,
-                .bullet_speed = 50,
-                .bullet_damage = 20,
-                .bullet_penetration = 30,
-            },
-        }
-    },
-    TankConfig {
-        .name = "Assailant",
-        .fov = 20,
-        .barrels = {
-            BarrelConfig {
-                .angle = PI + 0.45,
-                .width = 0.5f,
-                .length = 0.75,
-                .full_reload = 6,
-                .reload_delay = 3,
-                .recoil = 10,
-                .bullet_speed = 10,
-                .bullet_damage = 20,
-                .bullet_penetration = 30,
-            },
-            BarrelConfig {
-                .angle = PI - 0.45,
-                .width = 0.5f,
-                .length = 0.75,
-                .full_reload = 6,
-                .reload_delay = 3,
-                .recoil = 10,
-                .bullet_speed = 10,
-                .bullet_damage = 20,
-                .bullet_penetration = 30,
-            },
-            BarrelConfig {
-                .angle = 0,
-                .width = 0.5f,
-                .length = 1.0,
-                .full_reload = 6,
-                .reload_delay = 0,
-                .recoil = 0.35f,
-                .bullet_speed = 50,
-                .bullet_damage = 20,
-                .bullet_penetration = 30,
-            },
-        }
-    },
-};
+    }
+
+    return 0;
+}

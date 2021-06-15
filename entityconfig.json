@@ -1,0 +1,125 @@
+[
+    {
+        "name": "Station",
+        "fov": 20,
+        "barrels": [
+            {
+                "angle": 0,
+                "width": 0.5,
+                "length": 1.0,
+                "full_reload": 6,
+                "reload_delay": 0,
+                "recoil": 3,
+                "bullet_speed": 50,
+                "bullet_damage": 20,
+                "bullet_penetration": 30
+            }
+        ]
+    },
+    {
+        "name": "Obliterator",
+        "fov": 20,
+        "barrels": [
+            {
+                "angle": 0,
+                "width": 1,
+                "length": 1,
+                "full_reload": 40,
+                "reload_delay": 0,
+                "recoil": 100,
+                "bullet_speed": 30,
+                "bullet_damage": 50000,
+                "bullet_penetration": 300
+            }
+        ]
+    },
+    {
+        "name": "Escort",
+        "fov": 25,
+        "barrels": [
+            {
+                "angle": 0,
+                "width": 0.5,
+                "length": 1.0,
+                "full_reload": 6,
+                "reload_delay": 0,
+                "recoil": 3,
+                "bullet_speed": 50,
+                "bullet_damage": 20,
+                "bullet_penetration": 30
+            },
+            {
+                "angle": 1.5707963267948966,
+                "width": 0.5,
+                "length": 1.0,
+                "full_reload": 6,
+                "reload_delay": 0,
+                "recoil": 3,
+                "bullet_speed": 50,
+                "bullet_damage": 20,
+                "bullet_penetration": 30
+            },
+            {
+                "angle": 3.141592653589793,
+                "width": 0.5,
+                "length": 1.0,
+                "full_reload": 6,
+                "reload_delay": 0,
+                "recoil": 3,
+                "bullet_speed": 50,
+                "bullet_damage": 20,
+                "bullet_penetration": 30
+            },
+            {
+                "angle": 4.71238898038469,
+                "width": 0.5,
+                "length": 1.0,
+                "full_reload": 6,
+                "reload_delay": 0,
+                "recoil": 3,
+                "bullet_speed": 50,
+                "bullet_damage": 20,
+                "bullet_penetration": 30
+            }
+        ]
+    },
+    {
+        "name": "Auxiliary",
+        "fov": 20,
+        "barrels": [
+            {
+                "angle": -0.2,
+                "width": 0.3,
+                "length": 1,
+                "full_reload": 6,
+                "reload_delay": 3,
+                "recoil": 1,
+                "bullet_speed": 50,
+                "bullet_damage": 20,
+                "bullet_penetration": 30
+            },
+            {
+                "angle": 0.2,
+                "width": 0.3,
+                "length": 1,
+                "full_reload": 6,
+                "reload_delay": 3,
+                "recoil": 1,
+                "bullet_speed": 50,
+                "bullet_damage": 20,
+                "bullet_penetration": 30
+            },
+            {
+                "angle": 0,
+                "width": 0.5,
+                "length": 1.0,
+                "full_reload": 6,
+                "reload_delay": 0,
+                "recoil": 3,
+                "bullet_speed": 50,
+                "bullet_damage": 20,
+                "bullet_penetration": 30
+            }
+        ]
+    }
+]

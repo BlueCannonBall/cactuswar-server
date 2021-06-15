@@ -86,6 +86,7 @@ int main(int argc, char **argv) {
         ip_file << "{}";
         ip_file.close();
     }
+    assert(load_tanks_from_json("entityconfig.json") == 0);
 
     ws28::Server server{uv_default_loop(), nullptr};
     server.SetMaxMessageSize(MESSAGE_SIZE);

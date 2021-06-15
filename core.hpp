@@ -208,26 +208,12 @@ struct Timer {
 };
 
 /// A tank barrel.
-class Barrel {
-    public:
-        /* All these values get overridden */
-        unsigned full_reload = 6;
-        unsigned reload_delay;
-        unsigned reload = full_reload;
-        Timer target_time;
-        bool cooling_down = false;
+struct Barrel: public BarrelConfig {
+    Timer target_time;
+    bool cooling_down = false;
+    unsigned reload = full_reload;
 
-        float recoil;
-        float width;
-        float length;
-        float angle;
-
-        // stats
-        float bullet_speed;
-        float bullet_damage;
-        float bullet_penetration;
-
-        void fire(Tank*, Arena*) __attribute__((hot));
+    void fire(Tank*, Arena*) __attribute__((hot));
 };
 
 struct ChatMessage {
