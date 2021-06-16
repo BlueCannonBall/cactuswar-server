@@ -176,5 +176,78 @@
         ],
         "fov": 18.0,
         "name": "Blaster"
+    },
+    {
+        "barrels":
+        [
+            {
+                "angle": 3.1415927410125732,
+                "bullet_damage": 5.0,
+                "bullet_penetration": 20.0,
+                "bullet_speed": 25.0,
+                "full_reload": 6.0,
+                "length": 0.6700000166893005,
+                "recoil": 15.0,
+                "reload_delay": 3.0,
+                "width": 0.75
+            },
+            {
+                "angle": 2.617985248565674,
+                "bullet_damage": 20.0,
+                "bullet_penetration": 30.0,
+                "bullet_speed": 50.0,
+                "full_reload": 13.0,
+                "length": 0.8700000047683716,
+                "recoil": 15.0,
+                "reload_delay": 0.0,
+                "width": 0.42500001192092896
+            },
+            {
+                "angle": -2.617985248565674,
+                "bullet_damage": 20.0,
+                "bullet_penetration": 30.0,
+                "bullet_speed": 50.0,
+                "full_reload": 13.0,
+                "length": 0.8700000047683716,
+                "recoil": 15.0,
+                "reload_delay": 0.0,
+                "width": 0.42500001192092896
+            },
+            {
+                "angle": -2.216555595397949,
+                "bullet_damage": 20.0,
+                "bullet_penetration": 30.0,
+                "bullet_speed": 50.0,
+                "full_reload": 20.0,
+                "length": 1.1050000190734863,
+                "recoil": 30.0,
+                "reload_delay": 0.0,
+                "width": 0.42500001192092896
+            },
+            {
+                "angle": 2.216555595397949,
+                "bullet_damage": 20.0,
+                "bullet_penetration": 30.0,
+                "bullet_speed": 50.0,
+                "full_reload": 20.0,
+                "length": 1.1050000190734863,
+                "recoil": 30.0,
+                "reload_delay": 0.0,
+                "width": 0.42500001192092896
+            },
+            {
+                "angle": 0.0,
+                "bullet_damage": 30.0,
+                "bullet_penetration": 25.0,
+                "bullet_speed": 55.0,
+                "full_reload": 4.0,
+                "length": 1.1100000143051147,
+                "recoil": 2.0,
+                "reload_delay": 0.0,
+                "width": 0.42500001192092896
+            }
+        ],
+        "fov": 20.0,
+        "name": "Falcon"
     }
 ]
