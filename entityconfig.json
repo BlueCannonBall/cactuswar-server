@@ -2,7 +2,8 @@
     {
         "name": "Station",
         "fov": 20,
-        "barrels": [
+        "barrels":
+        [
             {
                 "angle": 0,
                 "width": 0.5,
@@ -19,7 +20,8 @@
     {
         "name": "Obliterator",
         "fov": 20,
-        "barrels": [
+        "barrels":
+        [
             {
                 "angle": 0,
                 "width": 1,
@@ -36,7 +38,8 @@
     {
         "name": "Escort",
         "fov": 25,
-        "barrels": [
+        "barrels":
+        [
             {
                 "angle": 0,
                 "width": 0.5,
@@ -86,7 +89,8 @@
     {
         "name": "Auxiliary",
         "fov": 20,
-        "barrels": [
+        "barrels":
+        [
             {
                 "angle": -0.2,
                 "width": 0.3,
@@ -121,5 +125,56 @@
                 "bullet_penetration": 30
             }
         ]
+    },
+    {
+        "barrels":
+        [
+            {
+                "angle": -0.22689270973205566,
+                "bullet_damage": 13.0,
+                "bullet_penetration": 30.0,
+                "bullet_speed": 45.0,
+                "full_reload": 10.0,
+                "length": 1.100000023841858,
+                "recoil": 3.0,
+                "reload_delay": 3.0,
+                "width": 0.32499998807907104
+            },
+            {
+                "angle": 0.22689270973205566,
+                "bullet_damage": 13.0,
+                "bullet_penetration": 30.0,
+                "bullet_speed": 45.0,
+                "full_reload": 10.0,
+                "length": 1.100000023841858,
+                "recoil": 3.0,
+                "reload_delay": 3.0,
+                "width": 0.32499998807907104
+            },
+            {
+                "angle": 0.0,
+                "bullet_damage": 20.0,
+                "bullet_penetration": 30.0,
+                "bullet_speed": 50.0,
+                "full_reload": 8.0,
+                "length": 0.675000011920929,
+                "recoil": 3.0,
+                "reload_delay": 3.0,
+                "width": 0.7649999856948853
+            },
+            {
+                "angle": 0.0,
+                "bullet_damage": 20.0,
+                "bullet_penetration": 30.0,
+                "bullet_speed": 50.0,
+                "full_reload": 12.0,
+                "length": 1.1449999809265137,
+                "recoil": 3.0,
+                "reload_delay": 0.0,
+                "width": 0.32499998807907104
+            }
+        ],
+        "fov": 18.0,
+        "name": "Blaster"
     }
 ]

@@ -456,7 +456,7 @@ class Arena {
             new_player->id = player_id;
             this->entities.tanks[player_id] = new_player;
             new_player->position = Vector2(RAND(0, size), RAND(0, size));
-            new_player->define(1);
+            new_player->define(tanksconfig.size() - 1);
 
             INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.tanks.size() << " player(s) in game");
             
