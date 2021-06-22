@@ -24,7 +24,8 @@ namespace spb
 #endif
     }
     template <typename T>
-    std::array<uint8_t, sizeof(T)> StreamPeerBuffer::to_bytes(const T& object) {
+    std::array<uint8_t, sizeof(T)> StreamPeerBuffer::to_bytes(const T& object)
+    {
         std::array<uint8_t, sizeof(T)> bytes;
 
         const uint8_t *begin =
@@ -36,7 +37,8 @@ namespace spb
     }
     template <typename T>
     void StreamPeerBuffer::from_bytes(const std::array<uint8_t, sizeof(T)>& bytes,
-        T& object) {
+        T& object)
+    {
         union {T object; uint8_t bytes[sizeof(T)];} converter;
         memcpy(converter.bytes, bytes.data(), sizeof(T));
         object = converter.object;
@@ -48,7 +50,8 @@ namespace spb
         int8_t *pVal = (int8_t*) &val;
         int8_t *pRetVal = (int8_t*) &retVal;
         size_t size = sizeof(T);
-        for (size_t i = 0; i<size; i++) {
+        for (size_t i = 0; i<size; i++)
+        {
             pRetVal[size-1-i] = pVal[i];
         }
 
@@ -73,6 +76,19 @@ namespace spb
         }
     }
     void StreamPeerBuffer::put_u32(uint32_t number)
+    {
+        if (endian_swap)
+        {
+            number = bswap(number);
+        }
+        const auto bytes = to_bytes(number);
+        for (uint8_t b : bytes)
+        {
+            data_array.insert(data_array.begin() + offset, b);
+            offset++;
+        }
+    }
+    void StreamPeerBuffer::put_u64(uint64_t number)
     {
         if (endian_swap)
         {
@@ -120,6 +136,19 @@ namespace spb
             offset++;
         }
     }
+    void StreamPeerBuffer::put_64(int64_t number)
+    {
+        if (endian_swap)
+        {
+            number = bswap(number);
+        }
+        const auto bytes = to_bytes(number);
+        for (uint8_t b : bytes)
+        {
+            data_array.insert(data_array.begin() + offset, b);
+            offset++;
+        }
+    }
     uint8_t StreamPeerBuffer::get_u8()
     {
         uint8_t number;
@@ -149,6 +178,26 @@ namespace spb
         }
         return number;
     }
+    uint64_t StreamPeerBuffer::get_u64()
+    {
+        uint64_t number;
+        from_bytes({
+            data_array[offset],
+            data_array[offset + 1],
+            data_array[offset + 2],
+            data_array[offset + 3],
+            data_array[offset + 4],
+            data_array[offset + 5],
+            data_array[offset + 6],
+            data_array[offset + 7],
+        }, number);
+        offset += 8;
+        if (endian_swap)
+        {
+            number = bswap(number);
+        }
+        return number;
+    }
     int8_t StreamPeerBuffer::get_8()
     {
         int8_t number;
@@ -172,6 +221,26 @@ namespace spb
         int32_t number;
         from_bytes({data_array[offset], data_array[offset + 1], data_array[offset + 2], data_array[offset + 3]}, number);
         offset += 4;
+        if (endian_swap)
+        {
+            number = bswap(number);
+        }
+        return number;
+    }
+    int64_t StreamPeerBuffer::get_64()
+    {
+        int64_t number;
+        from_bytes({
+            data_array[offset],
+            data_array[offset + 1],
+            data_array[offset + 2],
+            data_array[offset + 3],
+            data_array[offset + 4],
+            data_array[offset + 5],
+            data_array[offset + 6],
+            data_array[offset + 7],
+        }, number);
+        offset += 8;
         if (endian_swap)
         {
             number = bswap(number);
