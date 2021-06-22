@@ -1,8 +1,8 @@
 CC=g++
 LINKS=-luv -lssl -lcrypto -pthread -ltcmalloc_minimal
-CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -fdiagnostics-color=always \
-	 -g -Ofast -march=native -mtune=native -fno-signed-zeros \
-	-fno-trapping-math -frename-registers -funroll-loops -fno-builtin-malloc -fno-builtin-calloc \
+CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -g -Ofast \
+	-march=native -mtune=native -fno-signed-zeros -fno-trapping-math \
+	-frename-registers -funroll-loops -fno-builtin-malloc -fno-builtin-calloc \
 	-fno-builtin-realloc -fno-builtin-free -fopenmp-simd -Bsymbolic -fno-semantic-interposition
 TARGET=./build/server
 OBJDIR=build/obj
@@ -11,7 +11,7 @@ $(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json
 	mkdir -p build
 	$(CC) $(OBJDIR)/*.o $(OBJDIR)/ws28/*.o $(LINKS) $(CFLAGS) -o $(TARGET)
 
-$(OBJDIR)/main.o: main.cpp core.hpp entityconfig.hpp quadtree.hpp bcblog.hpp json.hpp
+$(OBJDIR)/main.o: main.cpp core.hpp entityconfig.hpp quadtree.hpp bcblog.hpp json.hpp streampeerbuffer.hpp
 	@mkdir -p build
 	@mkdir -p $(OBJDIR)
 	$(CC) -c main.cpp $(LINKS) $(CFLAGS) -o $(OBJDIR)/main.o

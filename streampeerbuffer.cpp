@@ -1,129 +1,135 @@
+#include <cmath>
 #include <vector>
 #include <array>
+#include <string.h>
 #include <memory>
 #include <type_traits>
 #include <iomanip>
 #include <string>
 #include "streampeerbuffer.hpp"
 
+#ifndef _WIN32
+#include <endian.h>
+#endif
+
 namespace spb
 {
     StreamPeerBuffer::StreamPeerBuffer(bool is_opposite_endian)
     {
         endian_swap = is_opposite_endian;
+#ifndef _WIN32
+#if __BYTE_ORDER == __BIG_ENDIAN
+        endian_swap = !endian_swap;
+#endif
+#endif
     }
     template <typename T>
-    std::array<unsigned char, sizeof(T)> StreamPeerBuffer::to_bytes(const T &object) {
-        std::array<unsigned char, sizeof(T)> bytes;
+    std::array<uint8_t, sizeof(T)> StreamPeerBuffer::to_bytes(const T& object) {
+        std::array<uint8_t, sizeof(T)> bytes;
 
-        const unsigned char *begin =
-            reinterpret_cast<const unsigned char *>(std::addressof(object));
-        const unsigned char *end = begin + sizeof(T);
+        const uint8_t *begin =
+            reinterpret_cast<const uint8_t*>(std::addressof(object));
+        const uint8_t *end = begin + sizeof(T);
         std::copy(begin, end, std::begin(bytes));
 
         return bytes;
     }
     template <typename T>
-      T& StreamPeerBuffer::from_bytes(const std::array<unsigned char, sizeof(T)> &bytes,
-                    T &object) {
-        static_assert(std::is_trivially_copyable<T>::value,
-                      "not a TriviallyCopyable type");
-
-        unsigned char *begin_object =
-            reinterpret_cast<unsigned char *>(std::addressof(object));
-        std::copy(std::begin(bytes), std::end(bytes), begin_object);
-
-        return object;
+    void StreamPeerBuffer::from_bytes(const std::array<uint8_t, sizeof(T)>& bytes,
+        T& object) {
+        union {T object; uint8_t bytes[sizeof(T)];} converter;
+        memcpy(converter.bytes, bytes.data(), sizeof(T));
+        object = converter.object;
     }
     template <typename T>
     T StreamPeerBuffer::bswap(T val)
     {
         T retVal;
-        char *pVal = (char *) &val;
-        char *pRetVal = (char *) &retVal;
-        int size = sizeof(T);
-        for (int i=0; i<size; i++) {
+        int8_t *pVal = (int8_t*) &val;
+        int8_t *pRetVal = (int8_t*) &retVal;
+        size_t size = sizeof(T);
+        for (size_t i = 0; i<size; i++) {
             pRetVal[size-1-i] = pVal[i];
         }
 
         return retVal;
     }
-    void StreamPeerBuffer::put_u8(unsigned char number)
+    void StreamPeerBuffer::put_u8(uint8_t number)
     {
         data_array.insert(data_array.begin() + offset, number);
         offset++;
     }
-    void StreamPeerBuffer::put_u16(unsigned short int number)
+    void StreamPeerBuffer::put_u16(uint16_t number)
     {
         if (endian_swap)
         {
             number = bswap(number);
         }
         const auto bytes = to_bytes(number);
-        for (unsigned char b : bytes)
+        for (uint8_t b : bytes)
         {
             data_array.insert(data_array.begin() + offset, b);
             offset++;
         }
     }
-    void StreamPeerBuffer::put_u32(unsigned int number)
+    void StreamPeerBuffer::put_u32(uint32_t number)
     {
         if (endian_swap)
         {
             number = bswap(number);
         }
         const auto bytes = to_bytes(number);
-        for (unsigned char b : bytes)
+        for (uint8_t b : bytes)
         {
             data_array.insert(data_array.begin() + offset, b);
             offset++;
         }
     }
-    void StreamPeerBuffer::put_8(char number)
+    void StreamPeerBuffer::put_8(int8_t number)
     {
         const auto bytes = to_bytes(number);
-        for (unsigned char b : bytes)
+        for (uint8_t b : bytes)
         {
             data_array.insert(data_array.begin() + offset, b);
             offset++;
         }
     }
-    void StreamPeerBuffer::put_16(short int number)
+    void StreamPeerBuffer::put_16(int16_t number)
     {
         if (endian_swap)
         {
             number = bswap(number);
         }
         const auto bytes = to_bytes(number);
-        for (unsigned char b : bytes)
+        for (uint8_t b : bytes)
         {
             data_array.insert(data_array.begin() + offset, b);
             offset++;
         }
     }
-    void StreamPeerBuffer::put_32(int number)
+    void StreamPeerBuffer::put_32(int32_t number)
     {
         if (endian_swap)
         {
             number = bswap(number);
         }
         const auto bytes = to_bytes(number);
-        for (unsigned char b : bytes)
+        for (uint8_t b : bytes)
         {
             data_array.insert(data_array.begin() + offset, b);
             offset++;
         }
     }
-    unsigned char StreamPeerBuffer::get_u8()
+    uint8_t StreamPeerBuffer::get_u8()
     {
-        unsigned char number;
+        uint8_t number;
         from_bytes({data_array[offset]}, number);
         offset++;
         return number;
     }
-    unsigned short int StreamPeerBuffer::get_u16()
+    uint16_t StreamPeerBuffer::get_u16()
     {
-        unsigned short int number;
+        uint16_t number;
         from_bytes({data_array[offset], data_array[offset + 1]}, number);
         offset += 2;
         if (endian_swap)
@@ -132,9 +138,9 @@ namespace spb
         }
         return number;
     }
-    unsigned int StreamPeerBuffer::get_u32()
+    uint32_t StreamPeerBuffer::get_u32()
     {
-        unsigned int number;
+        uint32_t number;
         from_bytes({data_array[offset], data_array[offset + 1], data_array[offset + 2], data_array[offset + 3]}, number);
         offset += 4;
         if (endian_swap)
@@ -143,16 +149,16 @@ namespace spb
         }
         return number;
     }
-    char StreamPeerBuffer::get_8()
+    int8_t StreamPeerBuffer::get_8()
     {
-        char number;
+        int8_t number;
         from_bytes({data_array[offset]}, number);
         offset++;
         return number;
     }
-    short int StreamPeerBuffer::get_16()
+    int16_t StreamPeerBuffer::get_16()
     {
-        short int number;
+        int16_t number;
         from_bytes({data_array[offset], data_array[offset + 1]}, number);
         offset += 2;
         if (endian_swap)
@@ -161,9 +167,9 @@ namespace spb
         }
         return number;
     }
-    int StreamPeerBuffer::get_32()
+    int32_t StreamPeerBuffer::get_32()
     {
-        int number;
+        int32_t number;
         from_bytes({data_array[offset], data_array[offset + 1], data_array[offset + 2], data_array[offset + 3]}, number);
         offset += 4;
         if (endian_swap)
@@ -173,15 +179,15 @@ namespace spb
         return number;
     }
     void StreamPeerBuffer::put_string(const std::string& str) {
-        std::vector<char> bytes(str.begin(), str.end());
+        std::vector<int8_t> bytes(str.begin(), str.end());
         put_u16(str.length());
         for (auto b : bytes)
             put_8(b);
     }
     std::string StreamPeerBuffer::get_string() {
-        unsigned short int length = get_u16();
-        std::vector<char> bytes;
-        for (unsigned short int b = 0; b < length; b++)
+        uint16_t length = get_u16();
+        std::vector<int8_t> bytes;
+        for (uint16_t b = 0; b < length; b++)
             bytes.push_back(get_8());
         std::string str(bytes.begin(), bytes.end());
         return str;
@@ -193,7 +199,7 @@ namespace spb
             number = bswap(number);
         }
         const auto bytes = to_bytes(number);
-        for (unsigned char b : bytes)
+        for (uint8_t b : bytes)
         {
             data_array.insert(data_array.begin() + offset, b);
             offset++;
@@ -210,7 +216,39 @@ namespace spb
         }
         return number;
     }
-
+    void StreamPeerBuffer::put_double(double number)
+    {
+        if (endian_swap)
+        {
+            number = bswap(number);
+        }
+        const auto bytes = to_bytes(number);
+        for (uint8_t b : bytes)
+        {
+            data_array.insert(data_array.begin() + offset, b);
+            offset++;
+        }
+    }
+    double StreamPeerBuffer::get_double()
+    {
+        double number;
+        from_bytes({
+            data_array[offset],
+            data_array[offset + 1],
+            data_array[offset + 2],
+            data_array[offset + 3],
+            data_array[offset + 4],
+            data_array[offset + 5],
+            data_array[offset + 6],
+            data_array[offset + 7],
+        }, number);
+        offset += 8;
+        if (endian_swap)
+        {
+            number = bswap(number);
+        }
+        return number;
+    }
     void StreamPeerBuffer::reset()
     {
         offset = 0;

@@ -10,42 +10,45 @@ namespace spb
     {
         private:
           template <typename T>
-          std::array<unsigned char, sizeof(T)> to_bytes(const T &object);
+          std::array<uint8_t, sizeof(T)> to_bytes(const T& object);
 
           template <typename T>
-          T &from_bytes(const std::array<unsigned char, sizeof(T)> &bytes,
-                        T &object);
+          void from_bytes(const std::array<uint8_t, sizeof(T)>& bytes,
+                        T& object);
 
           template <typename T>
           T bswap(T val);
         
         public:
-          std::vector<unsigned char> data_array;
-          unsigned int offset = 0;
+          std::vector<uint8_t> data_array;
+          size_t offset = 0;
           bool endian_swap = false;
-          StreamPeerBuffer(bool);
+          
+          StreamPeerBuffer(bool is_opposite_endian=true);
 
-          void put_u8(unsigned char);
-          void put_u16(unsigned short int);
-          void put_u32(unsigned int);
+          void put_u8(uint8_t);
+          void put_u16(uint16_t);
+          void put_u32(uint32_t);
 
-          void put_8(char);
-          void put_16(short int);
-          void put_32(int);
+          void put_8(int8_t);
+          void put_16(int16_t);
+          void put_32(int32_t);
 
-          unsigned char get_u8();
-          unsigned short int get_u16();
-          unsigned int get_u32();
+          uint8_t get_u8();
+          uint16_t get_u16();
+          uint32_t get_u32();
 
-          char get_8();
-          short int get_16();
-          int get_32();
+          int8_t get_8();
+          int16_t get_16();
+          int32_t get_32();
 
           void put_string(const std::string&);
           std::string get_string();
 
           void put_float(float);
           float get_float();
+          void put_double(double);
+          double get_double();
 
           void reset();
     };
