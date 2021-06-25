@@ -291,12 +291,12 @@ namespace spb {
         return number;
     }
 
-    inline void StreamPeerBuffer::reset() {
+    void StreamPeerBuffer::reset() {
         offset = 0;
         data_array.clear();
     }
 
-    inline size_t StreamPeerBuffer::size() {
+    size_t StreamPeerBuffer::size() {
         return data_array.size();
     }
 }

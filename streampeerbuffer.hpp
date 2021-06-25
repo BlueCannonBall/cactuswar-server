@@ -54,7 +54,7 @@ namespace spb
             void put_double(double);
             double get_double();
 
-            inline void reset();
-            inline size_t size();
+            void reset();
+            size_t size();
     };
 }
