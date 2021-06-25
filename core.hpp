@@ -590,7 +590,6 @@ class Arena {
             this->tree.clear();
 
             if (entities.shapes.size() <= target_shape_count - 12) {
-                INFO("Replenishing shapes");
                 #pragma omp simd
                 for (unsigned int i = 0; i<(target_shape_count - entities.shapes.size()); i++) {
                     Shape *new_shape = new Shape;
