@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
         }
 
         StreamPeerBuffer buf(true);
-        buf.data_array = vector<unsigned char>(data, data+len);
+        buf.data_array = vector<uint8_t>(data, data+len);
         
         Arena* arena = arenas[paths[client]];
         unsigned char packet_id = buf.get_u8();
