@@ -964,7 +964,7 @@ void Tank::collision_response(Arena *arena) {
         buf.put_u16(arena->size);
         buf.put_float(this->level);
         this->client->Send(reinterpret_cast<char*>(buf.data_array.data()), buf.data_array.size(), 0x2);
-    } else {
+    } else if (arena->ticks % 2 == 0) {
         map<unsigned int, unsigned int> nearby_tanks;
         map<unsigned int, unsigned int> nearby_shapes;
 
