@@ -14,6 +14,7 @@
 #include "entityconfig.hpp"
 #include <fstream>
 #include "json.hpp"
+#include <memory>
 
 #pragma once
 #define COLLISION_STRENGTH 5
@@ -244,7 +245,7 @@ class Tank: public Entity {
         Input input;
         float movement_speed = 4;
         static constexpr float friction = 0.8f;
-        vector<Barrel*> barrels;
+        vector<unique_ptr<Barrel>> barrels;
         unsigned int mockup;
         unsigned char fov;
         float level = 1;
@@ -273,15 +274,8 @@ class Tank: public Entity {
             }
         }
 
-        inline void clear_barrels() {
-            for (const auto barrel : barrels) {
-                delete barrel;
-            }
-            this->barrels.clear();
-        }
-
         void define(unsigned int index) {
-            clear_barrels();
+            this->barrels.clear();
 
             const TankConfig& tank = tanksconfig[index];
             for (const auto& barrel : tank.barrels) {
@@ -296,16 +290,12 @@ class Tank: public Entity {
                 new_barrel->width = barrel.width;
                 new_barrel->length = barrel.length;
                 new_barrel->bullet_penetration = barrel.bullet_penetration;
-                this->barrels.push_back(new_barrel);
+                this->barrels.push_back(make_unique<Barrel>(new_barrel));
             }
 
             fov = tank.fov;
 
             mockup = index;
-        }
-
-        ~Tank() {
-            clear_barrels();
         }
 };
 
@@ -1066,7 +1056,7 @@ void Tank::next_tick(Arena *arena) {
         this->velocity.x += this->movement_speed;
     }
 
-    for (auto barrel : barrels) {
+    for (const auto& barrel : barrels) {
         if (this->input.mousedown) {
             if (!barrel->cooling_down) {
                 barrel->cooling_down = true;
