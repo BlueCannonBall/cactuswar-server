@@ -290,7 +290,7 @@ class Tank: public Entity {
                 new_barrel->width = barrel.width;
                 new_barrel->length = barrel.length;
                 new_barrel->bullet_penetration = barrel.bullet_penetration;
-                this->barrels.push_back(make_unique<Barrel>(new_barrel));
+                this->barrels.push_back(std::move(unique_ptr<Barrel>(new_barrel)));
             }
 
             fov = tank.fov;
