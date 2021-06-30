@@ -9,17 +9,17 @@ OBJDIR=build/obj
 
 $(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json.hpp.gch
 	mkdir -p build
-	$(CC) $(OBJDIR)/*.o $(OBJDIR)/ws28/*.o $(LINKS) $(CFLAGS) -o $(TARGET)
+	$(CC) $(OBJDIR)/*.o $(OBJDIR)/ws28/*.o $(LINKS) $(CFLAGS) -o $@
 
 $(OBJDIR)/main.o: main.cpp core.hpp entityconfig.hpp quadtree.hpp bcblog.hpp json.hpp streampeerbuffer.hpp
 	@mkdir -p build
 	@mkdir -p $(OBJDIR)
-	$(CC) -c main.cpp $(LINKS) $(CFLAGS) -o $(OBJDIR)/main.o
+	$(CC) -c main.cpp $(LINKS) $(CFLAGS) -o $@
 
 $(OBJDIR)/streampeerbuffer.o: streampeerbuffer.cpp streampeerbuffer.hpp
 	@mkdir -p build
 	@mkdir -p $(OBJDIR)
-	$(CC) -c streampeerbuffer.cpp $(LINKS) $(CFLAGS) -o $(OBJDIR)/streampeerbuffer.o
+	$(CC) -c streampeerbuffer.cpp $(LINKS) $(CFLAGS) -o $@
 
 $(OBJDIR)/ws28/*.o: $(wildcard ws28/**/*)
 	@mkdir -p build
