@@ -30,6 +30,8 @@ $(OBJDIR)/ws28/*.o: $(wildcard ws28/**/*)
 json.hpp.gch: json.hpp
 	$(CC) json.hpp $(CFLAGS)
 
+.PHONY: run clean cleanobj
+
 run: $(TARGET)
 	$(TARGET) 8000
 
