@@ -30,7 +30,7 @@ void kick(ws28::Client* client, bool destroy=false) {
     Arena *arena = arenas[paths[client]];
     if (client->GetUserData() != nullptr) {
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-        if (arena->entities.tanks.find(player_id) != arena->entities.tanks.end()) {
+        if (in_container(arena->entities.tanks, player_id)) {
             delete arena->entities.tanks[player_id];
             arena->entities.tanks.erase(player_id);
             arena->update_size();
@@ -56,7 +56,7 @@ void kick(ws28::Client* client, bool destroy=false) {
         data.assign((std::istreambuf_iterator<char>(ip_file)), 
             std::istreambuf_iterator<char>());
         json ips = json::parse(data);
-        if (ips.find(client->GetIP()) == ips.end()) {
+        if (!in_container(ips, client->GetIP())) {
             ips[client->GetIP()] = {
                 {"names", json::array()},
                 {"banned", true}
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     // screw lambdas
     server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest& req) {
         INFO("Client with ip " << client->GetIP() << " connected to room \"" << req.path << "\"");
-        if (arenas.find(req.path) == arenas.end()) {
+        if (!in_container(arenas, req.path)) {
             client->Destroy();
             return;
         }
@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
             std::istreambuf_iterator<char>());
         json ips = json::parse(data);
         ip_file.close();
-        if (ips.find(client->GetIP()) != ips.end()) {
+        if (in_container(ips, client->GetIP())) {
             if (ips[client->GetIP()]["banned"]) {
                 WARN("BANNED IP TRIED TO CONNECT, REJECTING CONNECTION");
                 return false;
