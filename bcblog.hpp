@@ -28,6 +28,7 @@
 #define SUCCESS(log) bcblog::mtx.lock(); std::cout << BOLDGREEN << "[" << bcblog::get_time() << "] " << "[SUCCESS] [" << __FILE__ << ":" << __LINE__ << "] " << RESET << log << std::endl; bcblog::mtx.unlock()
 #define ERR(log) bcblog::mtx.lock(); std::cerr << BOLDRED << "[" << bcblog::get_time() << "] " << "[ERR] [" << __FILE__ << ":" << __LINE__ << "] " << RESET << log << std::endl; bcblog::mtx.unlock()
 #define WARN(log) bcblog::mtx.lock(); std::cerr << BOLDYELLOW << "[" << bcblog::get_time() << "] " << "[WARN] [" << __FILE__ << ":" << __LINE__ << "] " << RESET << log << std::endl; bcblog::mtx.unlock()
+#define BRUH(log) bcblog::mtx.lock(); std::cout << BOLDMAGENTA << "[" << bcblog::get_time() << "] " << "[BRUH] [" << __FILE__ << ":" << __LINE__ << "] " << RESET << log << std::endl; bcblog::mtx.unlock()
 
 namespace bcblog {
     std::mutex mtx;
