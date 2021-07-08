@@ -18,6 +18,7 @@
 
 #pragma once
 #define COLLISION_STRENGTH 5
+#define BOT_ACCURACY_THRESHOLD 30
 #define THREADING
 #define RAND(a, b) rand() % (b - a + 1) + a
 
@@ -284,7 +285,7 @@ class Tank: public Entity {
 
             const TankConfig& tank = tanksconfig[index];
             for (const auto& barrel : tank.barrels) {
-                Barrel* new_barrel = new Barrel;
+                unique_ptr<Barrel> new_barrel(new Barrel);
                 new_barrel->full_reload = barrel.full_reload - barrel.reload_delay;
                 new_barrel->reload = barrel.full_reload;
                 new_barrel->reload_delay = barrel.reload_delay;
@@ -295,7 +296,7 @@ class Tank: public Entity {
                 new_barrel->width = barrel.width;
                 new_barrel->length = barrel.length;
                 new_barrel->bullet_penetration = barrel.bullet_penetration;
-                this->barrels.push_back(std::move(unique_ptr<Barrel>(new_barrel)));
+                this->barrels.push_back(std::move(new_barrel));
             }
 
             fov = tank.fov;
@@ -985,7 +986,7 @@ void Tank::collision_response(Arena *arena) {
             }
         }
 
-        input = {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
+        input = {.W = false, .A = false, .S = false, .D = false, .mousedown = true, .mousepos = Vector2(0, 0)};
         
         unsigned int dist;
         if (nearby_tanks.size() > 0) {
@@ -1004,12 +1005,14 @@ void Tank::collision_response(Arena *arena) {
             this->input.mousepos.y - this->position.y,
             this->input.mousepos.x - this->position.x
         );
-        this->input.mousedown = true;
         if (dist > static_cast<unsigned>(400 + this->radius)) {
-            if (position.x > input.mousepos.x) input.A = true;
-            else input.D = true;
-            if (position.y > input.mousepos.y) input.W = true;
-            else input.S = true;
+            if (position.x > input.mousepos.x &&
+                abs(position.x - input.mousepos.x) > BOT_ACCURACY_THRESHOLD) input.A = true;
+            else if (abs(position.x - input.mousepos.x) > BOT_ACCURACY_THRESHOLD) input.D = true;
+            
+            if (position.y > input.mousepos.y &&
+                abs(position.y - input.mousepos.y) > BOT_ACCURACY_THRESHOLD) input.W = true;
+            else if (abs(position.y - input.mousepos.y) > BOT_ACCURACY_THRESHOLD) input.S = true;
         }
     }
 }
