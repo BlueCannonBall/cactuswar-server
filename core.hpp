@@ -18,9 +18,10 @@
 #include <memory>
 
 #pragma once
+#define THREADING
 #define COLLISION_STRENGTH 5
 #define BOT_ACCURACY_THRESHOLD 30
-#define THREADING
+#define HOT_RELOAD_TIMEOUT 30
 #define RAND(a, b) rand() % (b - a + 1) + a
 
 using namespace std;
@@ -375,7 +376,7 @@ class Arena {
                 if (events & UV_CHANGE) {
                     INFO("Hot reloading entityconfig.json");
                     tanksconfig.clear();
-                    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(HOT_RELOAD_TIMEOUT));
                     assert(load_tanks_from_json(filename) == 0);
                     Arena* arena = (Arena*) handle->data;
                     StreamPeerBuffer buf(true);
