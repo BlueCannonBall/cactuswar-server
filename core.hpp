@@ -430,7 +430,7 @@ class Arena {
 
         inline void update_size() {
             set_size(this->entities.tanks.size() * 1000 + 5000); // 1000 more per tank
-            target_shape_count = size*size / 500000;
+            target_shape_count = size*size / 575000;
         }
         
         void send_init_packet(StreamPeerBuffer& buf, Tank* player) {
