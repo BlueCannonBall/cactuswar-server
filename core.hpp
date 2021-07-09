@@ -149,8 +149,13 @@ bool circle_collision(const Vector2& pos1, unsigned int radius1, const Vector2& 
 }
 
 template<class T1, class T2>
-inline bool in_container(T1& container, T2 object) {
-    return container.find(object) != container.end();
+inline bool in_map(T1& map, const T2& object) {
+    return map.find(object) != map.end();
+}
+
+template<class T1, class T2>
+inline bool in_vec(T1& vec, const T2& object) {
+    return find(vec.begin(), vec.end(), object) != vec.end();
 }
 
 class Arena;
@@ -477,18 +482,19 @@ class Arena {
             data.assign((std::istreambuf_iterator<char>(ip_file)), 
                 std::istreambuf_iterator<char>());
             json ips = json::parse(data);
-            if (!in_container(ips, client->GetIP())) {
+            if (!in_map(ips, client->GetIP())) {
                 ips[client->GetIP()] = {
                     {"names", json::array()},
                     {"banned", false}
                 };
             }
-            if (!in_container(ips[client->GetIP()]["names"], player_name)) {
+            if (!in_vec(ips[client->GetIP()]["names"], player_name)) {
                 ips[client->GetIP()]["names"].push_back(player_name);
             }
             data = ips.dump(4);
             ip_file.seekp(0);
             ip_file.write(data.c_str(), data.size());
+            ip_file.flush();
             ip_file.close();
         }
         
@@ -496,7 +502,7 @@ class Arena {
             unsigned char movement_byte = buf.get_u8();
             unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
             
-            if (!in_container(this->entities.tanks, player_id)) {
+            if (!in_map(this->entities.tanks, player_id)) {
                 WARN("Player without id tried to send input packet");
                 client->Destroy();
                 return;
@@ -535,7 +541,7 @@ class Arena {
         void handle_chat_packet(StreamPeerBuffer& buf, ws28::Client* client) {
             unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
             
-            if (!in_container(this->entities.tanks, player_id)) {
+            if (!in_map(this->entities.tanks, player_id)) {
                 WARN("Player without id tried to send chat packet");
                 client->Destroy();
                 return;
@@ -868,10 +874,10 @@ void Shape::collision_response(Arena* arena) {
         }
         
         if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
-            if (in_container(arena->entities.bullets, canidate.id)) {
+            if (in_map(arena->entities.bullets, canidate.id)) {
                 this->health -= arena->entities.bullets[canidate.id]->damage; // damage
                 if (this->health <= 0) {
-                    if (in_container(arena->entities.tanks, arena->entities.bullets[canidate.id]->owner)) {
+                    if (in_map(arena->entities.tanks, arena->entities.bullets[canidate.id]->owner)) {
                         arena->entities.tanks[arena->entities.bullets[canidate.id]->owner]->level += this->reward;
                     } else {
                         BRUH("The bullet of a non-existent player hit and killed a shape");
@@ -902,24 +908,24 @@ void Tank::collision_response(Arena *arena) {
     for (const auto& canidate : canidates) {
         if (canidate.id == this->id) {
             continue;
-        } else if (in_container(arena->entities.bullets, canidate.id)) {
+        } else if (in_map(arena->entities.bullets, canidate.id)) {
             if (arena->entities.bullets[canidate.id]->owner == this->id) {
                 continue;
             }
         }
         
         if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
-            if (in_container(arena->entities.bullets, canidate.id)) {
+            if (in_map(arena->entities.bullets, canidate.id)) {
                 this->health -= arena->entities.bullets[canidate.id]->damage; // damage
                 if (this->health <= 0) {
-                    if (in_container(arena->entities.tanks, arena->entities.bullets[canidate.id]->owner)) {
+                    if (in_map(arena->entities.tanks, arena->entities.bullets[canidate.id]->owner)) {
                         arena->entities.tanks[arena->entities.bullets[canidate.id]->owner]->level += this->level / 2;
                     } else {
                         BRUH("The bullet of a non-existent player hit and killed another tank");
                     }
                     return; // death
                 }
-            } else if (in_container(arena->entities.shapes, canidate.id)) {
+            } else if (in_map(arena->entities.shapes, canidate.id)) {
                 this->health -= arena->entities.shapes[canidate.id]->damage; // damage
             }
             
@@ -950,13 +956,13 @@ void Tank::collision_response(Arena *arena) {
 
         for (const auto& canidate : canidates) {
             if (aabb(viewport, canidate)) {
-                if (in_container(arena->entities.tanks, canidate.id)) {
+                if (in_map(arena->entities.tanks, canidate.id)) {
                     arena->entities.tanks[canidate.id]->take_census(buf, arena->ticks);
                     census_size++;
-                } else if (in_container(arena->entities.shapes, canidate.id)) {
+                } else if (in_map(arena->entities.shapes, canidate.id)) {
                     arena->entities.shapes[canidate.id]->take_census(buf);
                     census_size++;
-                } else if (in_container(arena->entities.bullets, canidate.id)) {
+                } else if (in_map(arena->entities.bullets, canidate.id)) {
                     arena->entities.bullets[canidate.id]->take_census(buf);
                     census_size++;
                 }
@@ -979,9 +985,9 @@ void Tank::collision_response(Arena *arena) {
             }
 
             if (aabb(viewport, canidate)) {
-                if (in_container(arena->entities.tanks, canidate.id)) {
+                if (in_map(arena->entities.tanks, canidate.id)) {
                     nearby_tanks[canidate.id] = arena->entities.tanks[canidate.id]->position.distance_to(this->position);
-                } else if (in_container(arena->entities.shapes, canidate.id)) {
+                } else if (in_map(arena->entities.shapes, canidate.id)) {
                     nearby_shapes[canidate.id] = arena->entities.shapes[canidate.id]->position.distance_to(this->position);
                 }
             }
@@ -1034,16 +1040,16 @@ void Bullet::collision_response(Arena *arena) {
             continue;
         } else if (canidate.id == this->owner) {
             continue;
-        } else if (in_container(arena->entities.bullets, canidate.id)) {
+        } else if (in_map(arena->entities.bullets, canidate.id)) {
             if (arena->entities.bullets[canidate.id]->owner == this->owner) {
                 continue;
             }
         }
         
         if (circle_collision(Vector2(canidate.x + canidate.radius, canidate.y + canidate.radius), canidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
-            if (in_container(arena->entities.bullets, canidate.id)) {
+            if (in_map(arena->entities.bullets, canidate.id)) {
                 this->health -= arena->entities.bullets[canidate.id]->damage; // damage
-            } else if (in_container(arena->entities.shapes, canidate.id)) {
+            } else if (in_map(arena->entities.shapes, canidate.id)) {
                 this->health -= arena->entities.shapes[canidate.id]->damage; // damage
             }
 
