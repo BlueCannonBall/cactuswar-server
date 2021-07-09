@@ -357,7 +357,7 @@ class Arena {
             .height = static_cast<float>(size)
         });
         unsigned int target_shape_count = 50;
-        unsigned short bot_count = 6;
+        unsigned short target_bot_count = 6;
 
         uv_fs_event_t entityconfig_event_handle;
         uv_timer_t timer;
@@ -804,7 +804,7 @@ class Arena {
             }
 
             #pragma omp simd
-            for (unsigned int i = 0; i<bot_count; i++) {
+            for (unsigned int i = 0; i<target_bot_count; i++) {
                 Tank* new_tank = new Tank;
                 new_tank->type = TankType::Local;
                 new_tank->id = get_uid();
