@@ -22,6 +22,7 @@
 #define COLLISION_STRENGTH 5
 #define BOT_ACCURACY_THRESHOLD 30
 #define HOT_RELOAD_TIMEOUT 30
+#define TARGET_TPS 30
 #define RAND(a, b) rand() % (b - a + 1) + a
 
 using namespace std;
@@ -780,6 +781,19 @@ class Arena {
 #endif
         }
 
+        static void timer_callback(uv_timer_t *timer) {
+            auto before = chrono::high_resolution_clock::now();
+            Arena* arena = (Arena*) timer->data;
+            arena->update();
+            auto after = chrono::high_resolution_clock::now();
+            auto duration = chrono::duration_cast<chrono::milliseconds>(after - before).count();
+            if (1000/TARGET_TPS - duration > 0) {
+                uv_timer_start(timer, &timer_callback, 1000/TARGET_TPS - duration, 0);
+            } else {
+                uv_timer_start(timer, &timer_callback, 0, 0);
+            }
+        }
+
         void run() {
             #pragma omp simd
             for (unsigned int i = 0; i<target_shape_count; i++) {
@@ -802,11 +816,7 @@ class Arena {
 
             uv_timer_init(uv_default_loop(), &timer);
             timer.data = this;
-            uv_timer_start(&timer, [](uv_timer_t *timer) {
-                Arena* arena = (Arena*) timer->data;
-                arena->update();
-                //uv_update_time(uv_default_loop());
-            }, 0, 1000/30);
+            uv_timer_start(&timer, &timer_callback, 1000/TARGET_TPS, 0);
         }
 };
 
