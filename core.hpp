@@ -651,7 +651,7 @@ class Arena {
 #endif
                 for (auto entity = this->entities.tanks.cbegin(); entity != this->entities.tanks.cend();) {
                     if (entity->second == nullptr) {
-                        this->entities.tanks.erase(entity++);
+                        this->destroy_entity(entity++->first, this->entities.tanks);
                         continue;
                     }
 #ifdef THREADING
