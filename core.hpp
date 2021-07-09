@@ -366,7 +366,9 @@ class Arena {
 #endif
 
         Arena() {
+#ifdef THREADING
             uv_rwlock_init(&entity_lock);
+#endif
             uv_fs_event_init(uv_default_loop(), &entityconfig_event_handle);
             entityconfig_event_handle.data = this;
             uv_fs_event_start(&entityconfig_event_handle, [](uv_fs_event_t *handle, const char *filename, int events, int status) {
@@ -389,7 +391,9 @@ class Arena {
         }
 
         ~Arena() {
+#ifdef THREADING
             uv_rwlock_wrlock(&entity_lock);
+#endif
 
             for (auto entity = this->entities.shapes.cbegin(); entity != this->entities.shapes.cend();) {
                 destroy_entity(entity++->first, this->entities.shapes);
@@ -400,9 +404,10 @@ class Arena {
             for (auto entity = this->entities.bullets.cbegin(); entity != this->entities.bullets.cend();) {
                 destroy_entity(entity++->first, this->entities.bullets);
             }
-
+#ifdef THREADING
             uv_rwlock_wrunlock(&entity_lock);
             uv_rwlock_destroy(&entity_lock);
+#endif
             uv_fs_event_stop(&entityconfig_event_handle);
             uv_timer_stop(&timer);
         }
