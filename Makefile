@@ -1,11 +1,12 @@
 CC=g++
 LINKS=-luv -lssl -lcrypto -pthread -ltcmalloc_minimal
-CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -g -Ofast \
-	-march=native -mtune=native -fno-signed-zeros -fno-trapping-math -finline-functions \
+CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -g -Ofast -march=native \
+	-mtune=native -fno-signed-zeros -fno-trapping-math -finline-functions \
 	-frename-registers -funroll-loops -fno-builtin-malloc -fno-builtin-calloc  \
 	-fno-builtin-realloc -fno-builtin-free -fopenmp-simd -Bsymbolic -fno-semantic-interposition
 TARGET=./build/server
 OBJDIR=build/obj
+RUN_PORT=8000
 
 $(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json.hpp.gch
 	mkdir -p build
@@ -33,7 +34,7 @@ json.hpp.gch: json.hpp
 .PHONY: run clean cleanobj
 
 run: $(TARGET)
-	$(TARGET) 8000
+	$(TARGET) $(RUN_PORT)
 
 clean:
 	rm -rf build
