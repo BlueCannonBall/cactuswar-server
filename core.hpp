@@ -5,6 +5,7 @@
 #include "streampeerbuffer.hpp"
 #include <cmath>
 #include <vector>
+#include <unordered_map>
 #include <map>
 #include "bcblog.hpp"
 #include "quadtree.hpp"
@@ -333,10 +334,10 @@ class Bullet: public Entity {
 class Arena {
     public:
         struct Entities {
-            map<unsigned int, Entity*> entities;
-            map<unsigned int, Shape*> shapes;
-            map<unsigned int, Tank*> tanks;
-            map<unsigned int, Bullet*> bullets;
+            unordered_map<unsigned int, Entity*> entities;
+            unordered_map<unsigned int, Shape*> shapes;
+            unordered_map<unsigned int, Tank*> tanks;
+            unordered_map<unsigned int, Bullet*> bullets;
         };
 
         unsigned long ticks = 0;
@@ -552,7 +553,7 @@ class Arena {
         }
         
         template<typename T>
-        void destroy_entity(unsigned int entity_id, map<unsigned int, T*>& entity_map) {
+        void destroy_entity(unsigned int entity_id, unordered_map<unsigned int, T*>& entity_map) {
             T* entity_ptr = entity_map[entity_id];
 #ifdef THREADING
             uv_rwlock_wrlock(&entity_lock);
