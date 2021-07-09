@@ -140,7 +140,6 @@ namespace qt {
                 if (this->nodes.size()) {
                     indexes = this->getIndex(pRect);
 
-                    #pragma omp simd
                     for (i=0; i<indexes.size(); i++) {
                         this->nodes[indexes[i]].insert(pRect);
                     }
