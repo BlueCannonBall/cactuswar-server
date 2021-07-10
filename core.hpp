@@ -577,8 +577,6 @@ class Arena {
 #endif
             if (entity_ptr != nullptr) {
                 delete entity_ptr;
-            } else {
-                WARN("Tried to destroy null entity");
             }
         }
 
