@@ -70,6 +70,17 @@ std::multimap<B, A> flip_map(const std::map<A,B>& src) {
     return dst;
 }
 
+std::string truncate(std::string& str, size_t width, bool ellipsis=true) {
+    if (str.length() > width) {
+        if (ellipsis) {
+            return str.substr(0, width) + "...";
+        } else {
+            return str.substr(0, width);
+        }
+    }
+    return str;
+}
+
 class Vector2 {
     public:
         float x = 0;
@@ -456,6 +467,7 @@ class Arena {
             if (player_name.size() == 0) {
                 player_name = "Unnamed";
             }
+            player_name = truncate(player_name, 14);
             Tank* new_player = new Tank;
             new_player->name = player_name;
             new_player->client = client;
