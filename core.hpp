@@ -583,17 +583,6 @@ class Arena {
         }
 
         void update() __attribute__((hot)) {
-            bool found_player = false;
-            for (const auto& tank : entities.tanks) {
-                if (tank.second->type == TankType::Remote) {
-                    found_player = true;
-                    break;
-                }
-            }
-            if (!found_player) {
-                return;
-            }
-
             ticks++;
 
             this->tree.clear();
