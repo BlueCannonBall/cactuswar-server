@@ -581,6 +581,17 @@ class Arena {
         }
 
         void update() __attribute__((hot)) {
+            bool found_player = false;
+            for (const auto& tank : entities.tanks) {
+                if (tank.second->type == TankType::Remote) {
+                    found_player = true;
+                    break;
+                }
+            }
+            if (!found_player) {
+                return;
+            }
+
             ticks++;
 
             this->tree.clear();
@@ -768,19 +779,6 @@ class Arena {
 #endif
         }
 
-        static void timer_callback(uv_timer_t *timer) {
-            auto before = chrono::high_resolution_clock::now();
-            Arena* arena = (Arena*) timer->data;
-            arena->update();
-            auto after = chrono::high_resolution_clock::now();
-            auto duration = chrono::duration_cast<chrono::milliseconds>(after - before).count();
-            if (1000/TARGET_TPS - duration > 0) {
-                uv_timer_start(timer, &timer_callback, 1000/TARGET_TPS - duration, 0);
-            } else {
-                uv_timer_start(timer, &timer_callback, 0, 0);
-            }
-        }
-
         void run() {
             #pragma omp simd
             for (unsigned int i = 0; i<target_shape_count; i++) {
@@ -803,7 +801,10 @@ class Arena {
 
             uv_timer_init(uv_default_loop(), &timer);
             timer.data = this;
-            uv_timer_start(&timer, &timer_callback, 1000/TARGET_TPS, 0);
+            uv_timer_start(&timer, [](uv_timer_t *timer) {
+                Arena* arena = (Arena*) timer->data;
+                arena->update();
+            }, 0, 1000/30);
         }
 };
 
