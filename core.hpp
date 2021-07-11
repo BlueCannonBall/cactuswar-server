@@ -19,6 +19,7 @@
 
 #pragma once
 #define THREADING
+//#define DEBUG_MAINLOOP_SPEED
 #define COLLISION_STRENGTH 5
 #define BOT_ACCURACY_THRESHOLD 30
 #define HOT_RELOAD_TIMEOUT 30
@@ -814,8 +815,15 @@ class Arena {
             uv_timer_init(uv_default_loop(), &timer);
             timer.data = this;
             uv_timer_start(&timer, [](uv_timer_t *timer) {
+#ifdef DEBUG_MAINLOOP_SPEED
+                auto t0 = chrono::high_resolution_clock::now();
+#endif
                 Arena* arena = (Arena*) timer->data;
                 arena->update();
+#ifdef DEBUG_MAINLOOP_SPEED
+                auto t1 = chrono::high_resolution_clock::now();
+                INFO("Mainloop took " << chrono::duration_cast<chrono::microseconds>(t1 - t0).count() << "μs");
+#endif
             }, 0, 1000/30);
         }
 };
