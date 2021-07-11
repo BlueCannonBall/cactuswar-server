@@ -467,7 +467,7 @@ class Arena {
             if (player_name.size() == 0) {
                 player_name = "Unnamed";
             }
-            player_name = truncate(player_name, 14);
+            player_name = truncate(player_name, 14, false);
             Tank* new_player = new Tank;
             new_player->name = player_name;
             new_player->client = client;
