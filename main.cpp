@@ -20,8 +20,7 @@ using json = nlohmann::json;
 
 map<string, Arena*> arenas = {
     {"/ffa-1", new Arena},
-    {"/ffa-2", new Arena},
-    {"/ffa-3", new Arena}
+    {"/ffa-2", new Arena}
 };
 json server_info;
 unordered_map<ws28::Client*, string> paths; // HACK: store paths per client pointer
