@@ -173,7 +173,7 @@ inline bool in_vec(T1& vec, const T2& object) {
 
 class Arena;
 
-/// Base entity
+// Base entity
 class Entity {
     public:
         Vector2 position;
@@ -193,7 +193,7 @@ class Entity {
         void next_tick(Arena*);
 };
 
-/// A shape, includes cacti and rocks.
+// A shape, includes cacti and rocks.
 class Shape: public Entity {
     public:
         unsigned short radius = 100;
@@ -221,20 +221,20 @@ class Shape: public Entity {
 
 class Tank;
 
-/// Dictates current barrel timer state
+// Dictates current barrel timer state
 enum class BarrelTarget {
     ReloadDelay,
     CoolingDown,
     None
 };
 
-/// Represents a timer
+// Represents a timer
 struct Timer {
     BarrelTarget target = BarrelTarget::None;
     unsigned long time = 0;
 };
 
-/// A tank barrel.
+// A tank barrel.
 struct Barrel: public BarrelConfig {
     Timer target_time;
     bool cooling_down = false;
@@ -253,7 +253,7 @@ enum class TankType {
     Remote
 };
 
-/// A tank, stats vary based on mockups.
+// A tank, stats vary based on mockups.
 class Tank: public Entity {
     public:
         struct Input {
