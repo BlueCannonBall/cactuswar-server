@@ -18,4 +18,4 @@ jobs:
     - name: Remove build artefacts
       run: make clean
     - name: Build
-      run: make
+      run: make -j
