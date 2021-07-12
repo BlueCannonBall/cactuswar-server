@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
     assert(load_tanks_from_json("entityconfig.json") == 0);
 
     ws28::Server server{uv_default_loop(), nullptr};
-    server.SetMaxMessageSize(MESSAGE
+    server.SetMaxMessageSize(MESSAGE_SIZE);
     
     // screw lambdas
     server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest& req) {
