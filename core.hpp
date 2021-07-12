@@ -353,7 +353,6 @@ class Bullet: public Entity {
 class Arena {
     public:
         struct Entities {
-            unordered_map<unsigned int, Entity*> entities;
             unordered_map<unsigned int, Shape*> shapes;
             unordered_map<unsigned int, Tank*> tanks;
             unordered_map<unsigned int, Bullet*> bullets;
