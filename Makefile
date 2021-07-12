@@ -1,5 +1,5 @@
 CC=g++
-LINKS=-luv -lssl -lcrypto -pthread -ltcmalloc
+LDFLAGS=-luv -lssl -lcrypto -pthread -ltcmalloc
 CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -g -Ofast -march=native \
 	-mtune=native -fno-signed-zeros -fno-trapping-math -finline-functions \
 	-frename-registers -funroll-loops -fno-builtin-malloc -fno-builtin-calloc  \
@@ -10,7 +10,7 @@ RUN_PORT=8000
 
 $(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json.hpp.gch
 	mkdir -p build
-	$(CC) $(OBJDIR)/*.o $(OBJDIR)/ws28/*.o $(LINKS) $(CFLAGS) -o $@
+	$(CC) $(OBJDIR)/*.o $(OBJDIR)/ws28/*.o $(LDFLAGS) $(CFLAGS) -o $@
 
 $(OBJDIR)/main.o: main.cpp core.hpp entityconfig.hpp quadtree.hpp bcblog.hpp json.hpp streampeerbuffer.hpp
 	@mkdir -p build
