@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install dependencies
-      run: sudo apt update && sudo apt install libuv1 libuv1-dev google-perftools libgoogle-perftools-dev
+      run: sudo apt-get update && sudo apt-get install libuv1 libuv1-dev google-perftools libgoogle-perftools-dev
     - name: Remove build artefacts
       run: make clean
     - name: Build
