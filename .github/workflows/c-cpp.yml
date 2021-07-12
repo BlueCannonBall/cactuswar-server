@@ -19,3 +19,8 @@ jobs:
       run: make clean
     - name: Build
       run: make -j
+    - uses: actions/upload-artifact@v2
+      with:
+        name: server
+        path: build/server
+        if-no-files-found: error
