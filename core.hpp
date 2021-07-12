@@ -41,7 +41,7 @@ enum class Packet {
 unsigned uid = 0;
 
 inline unsigned int get_uid() {
-    if (uid > 4294957295) {
+    if (uid > 4294947295) {
         WARN("IDs are close to the 32-bit unsigned integer limit");
     }
     return uid++;
