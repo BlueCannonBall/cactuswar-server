@@ -824,7 +824,7 @@ class Arena {
                 auto t1 = chrono::high_resolution_clock::now();
                 INFO("Mainloop took " << chrono::duration_cast<chrono::microseconds>(t1 - t0).count() << "μs");
 #endif
-            }, 0, 1000/30);
+            }, 0, 1000/TARGET_TPS);
         }
 };
 
