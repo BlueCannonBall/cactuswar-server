@@ -8,7 +8,7 @@ TARGET=./build/server
 OBJDIR=build/obj
 RUN_PORT=8000
 
-$(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json.hpp.gch
+$(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json.hpp.gch quadtree.hpp.gch
 	mkdir -p build
 	$(CC) $(OBJDIR)/*.o $(OBJDIR)/ws28/*.o $(LDFLAGS) $(CFLAGS) -o $@
 
@@ -30,6 +30,9 @@ $(OBJDIR)/ws28/*.o: $(wildcard ws28/**/*)
 
 json.hpp.gch: json.hpp
 	$(CC) json.hpp $(CFLAGS)
+
+quadtree.hpp.gch: quadtree.hpp
+	$(CC) quadtree.hpp $(CFLAGS)
 
 .PHONY: run clean cleanobj
 

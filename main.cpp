@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
     if (argc >= 2) {
         port = atoi(argv[1]);
     } else {
+        cout << "Usage: " << argv[0] << " <PORT>\n";
         ERR("Please supply a port number");
         return 1;
     }

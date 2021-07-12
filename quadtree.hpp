@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <vector>
 
-#pragma once
 #pragma clang diagnostic ignored "-Wgnu-designator"
 
 namespace qt {
