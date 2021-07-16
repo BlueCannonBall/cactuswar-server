@@ -3,6 +3,7 @@
 #include <cmath>
 #include <fstream>
 #include "json.hpp"
+#include "bcblog.hpp"
 
 #pragma once
 #define PI M_PI
@@ -43,7 +44,15 @@ int load_tanks_from_json(const std::string& filename) {
     tanks_file.seekg(0, std::ios::beg);
     data.assign((std::istreambuf_iterator<char>(tanks_file)), 
         std::istreambuf_iterator<char>());
-    json tanks = json::parse(data);
+
+    json tanks;
+    try {
+        tanks = json::parse(data);
+    } catch (std::exception& e) {
+        ERR("Failed to parse " << filename << ": " << e.what());
+        return -1;
+    }
+
     for (const auto& tank : tanks) {
         tanksconfig.push_back(TankConfig {
             .name = tank["name"],
