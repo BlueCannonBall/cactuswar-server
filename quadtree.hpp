@@ -173,8 +173,8 @@ namespace qt {
                 if(this->nodes.size()) {
                     #pragma omp simd
                     for(long unsigned int i=0; i<indexes.size(); i++) {
-                        std::vector<Rect> concatCanidate = this->nodes[indexes[i]].retrieve(pRect);
-                        returnObjects.insert(returnObjects.end(), concatCanidate.begin(), concatCanidate.end());
+                        std::vector<Rect> concatCandidate = this->nodes[indexes[i]].retrieve(pRect);
+                        returnObjects.insert(returnObjects.end(), concatCandidate.begin(), concatCandidate.end());
                     }
                 }
 
