@@ -24,11 +24,11 @@
 #define BOLDCYAN    "\033[1m\033[36m"
 #define BOLDWHITE   "\033[1m\033[37m"
 
-#define INFO(log) bcblog::mtx.lock(); std::cout << BOLDBLUE << "[" << bcblog::get_time() << "] " << "[INFO] [" << __FILE__ << ":" << __LINE__ << "] " << RESET << log << std::endl; bcblog::mtx.unlock()
-#define SUCCESS(log) bcblog::mtx.lock(); std::cout << BOLDGREEN << "[" << bcblog::get_time() << "] " << "[SUCCESS] [" << __FILE__ << ":" << __LINE__ << "] " << RESET << log << std::endl; bcblog::mtx.unlock()
-#define ERR(log) bcblog::mtx.lock(); std::cerr << BOLDRED << "[" << bcblog::get_time() << "] " << "[ERR] [" << __FILE__ << ":" << __LINE__ << "] " << RESET << log << std::endl; bcblog::mtx.unlock()
-#define WARN(log) bcblog::mtx.lock(); std::cerr << BOLDYELLOW << "[" << bcblog::get_time() << "] " << "[WARN] [" << __FILE__ << ":" << __LINE__ << "] " << RESET << log << std::endl; bcblog::mtx.unlock()
-#define BRUH(log) bcblog::mtx.lock(); std::cout << BOLDMAGENTA << "[" << bcblog::get_time() << "] " << "[BRUH] [" << __FILE__ << ":" << __LINE__ << "] " << RESET << log << std::endl; bcblog::mtx.unlock()
+#define INFO(log) bcblog::mtx.lock(); std::cout << BOLDBLUE << "[" << bcblog::get_time() << "] " << "[INFO] " << RESET << log << std::endl; bcblog::mtx.unlock()
+#define SUCCESS(log) bcblog::mtx.lock(); std::cout << BOLDGREEN << "[" << bcblog::get_time() << "] " << "[SUCCESS] " << RESET << log << std::endl; bcblog::mtx.unlock()
+#define ERR(log) bcblog::mtx.lock(); std::cerr << BOLDRED << "[" << bcblog::get_time() << "] " << "[ERR] " << RESET << log << std::endl; bcblog::mtx.unlock()
+#define WARN(log) bcblog::mtx.lock(); std::cerr << BOLDYELLOW << "[" << bcblog::get_time() << "] " << "[WARN] " << RESET << log << std::endl; bcblog::mtx.unlock()
+#define BRUH(log) bcblog::mtx.lock(); std::cout << BOLDMAGENTA << "[" << bcblog::get_time() << "] " << "[BRUH] " << RESET << log << std::endl; bcblog::mtx.unlock()
 
 namespace bcblog {
     std::mutex mtx;
