@@ -478,11 +478,14 @@ class Arena {
 
         void send_death_packet(StreamPeerBuffer& buf, Tank* player) {
             buf.put_u8((unsigned char) Packet::Death); // packet id
-            buf.put_float(player->level); // level
             auto death_time = chrono::steady_clock::now();
             chrono::duration<double> elapsed_seconds = death_time - player->spawn_time;
-            INFO("\"" << player->name << "\" lived for " << elapsed_seconds.count() << " before dying");
-            buf.put_u32(elapsed_seconds.count()); // seconds elapsed since spawn
+            if (elapsed_seconds.count() > 15) {
+                INFO("\"" << player->name << "\" lived for " << elapsed_seconds.count() << "s before dying");
+            } else {
+                BRUH("Noob \"" << player->name << "\" lived for " << elapsed_seconds.count() << "s before dying");
+            }
+            buf.put_double(elapsed_seconds.count()); // seconds elapsed since spawn
             player->client->Send(reinterpret_cast<char*>(buf.data()), buf.data_array.size(), 0x2);
         }
 
