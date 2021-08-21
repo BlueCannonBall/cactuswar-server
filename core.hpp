@@ -16,6 +16,7 @@
 #include <fstream>
 #include "json.hpp"
 #include <memory>
+#include <typeinfo>
 
 #pragma once
 #define THREADING
@@ -35,7 +36,10 @@ enum class Packet {
     Input = 1,
     Census = 2,
     OutboundInit = 3,
-    Chat = 4
+    Mockups = 3,
+    Chat = 4,
+    Death = 5,
+    Respawn = 6
 };
 
 unsigned uid = 0;
@@ -257,6 +261,11 @@ enum class TankType {
     Remote
 };
 
+enum class TankState {
+    Alive,
+    Dead
+};
+
 // A tank, stats vary based on mockups.
 class Tank: public Entity {
     public:
@@ -280,6 +289,8 @@ class Tank: public Entity {
         float level = 1;
         ChatMessage message;
         TankType type = TankType::Remote;
+        TankState state = TankState::Alive;
+        chrono::time_point<chrono::steady_clock> spawn_time = chrono::steady_clock::now();
 
         void next_tick(Arena* arena);
         void collision_response(Arena *arena) __attribute__((hot));
@@ -465,7 +476,27 @@ class Arena {
             player->client->Send(reinterpret_cast<char*>(buf.data()), buf.data_array.size(), 0x2);
         }
 
+        void send_death_packet(StreamPeerBuffer& buf, Tank* player) {
+            buf.put_u8((unsigned char) Packet::Death); // packet id
+            buf.put_float(player->level); // level
+            auto death_time = chrono::steady_clock::now();
+            chrono::duration<double> elapsed_seconds = death_time - player->spawn_time;
+            INFO("\"" << player->name << "\" lived for " << elapsed_seconds.count() << " before dying");
+            buf.put_u32(elapsed_seconds.count()); // seconds elapsed since spawn
+            player->client->Send(reinterpret_cast<char*>(buf.data()), buf.data_array.size(), 0x2);
+        }
+
         void handle_init_packet(StreamPeerBuffer& buf, ws28::Client *client) {
+            if (client->GetUserData() != nullptr) {
+                unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
+                if (in_map(entities.tanks, player_id)) {
+                    WARN("Existing player tried to send init packet");
+                    destroy_entity(player_id, entities.tanks);
+                    client->Destroy();
+                    return;
+                }
+            }
+
             string player_name = buf.get_string();
             if (player_name.size() == 0) {
                 player_name = "Unnamed";
@@ -528,6 +559,11 @@ class Arena {
                 WARN("Player without id tried to send input packet");
                 client->Destroy();
                 return;
+            } else if (entities.tanks[player_id]->state == TankState::Dead) {
+                WARN("Dead player tried to send input packet");
+                destroy_entity(player_id, entities.tanks);
+                client->Destroy();
+                return;
             }
             entities.tanks[player_id]->input = {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
             
@@ -567,6 +603,11 @@ class Arena {
                 WARN("Player without id tried to send chat packet");
                 client->Destroy();
                 return;
+            } else if (entities.tanks[player_id]->state == TankState::Dead) {
+                WARN("Dead player tried to send chat packet");
+                destroy_entity(player_id, entities.tanks);
+                client->Destroy();
+                return;
             }
 
             string message = buf.get_string();
@@ -578,6 +619,31 @@ class Arena {
             entities.tanks[player_id]->message.time = ticks;
             entities.tanks[player_id]->message.content = message;
             INFO("\"" << entities.tanks[player_id]->name << "\" says: " << entities.tanks[player_id]->message.content);
+        }
+
+        void handle_respawn_packet(StreamPeerBuffer& buf, ws28::Client* client) {
+            unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
+            
+            if (!in_map(this->entities.tanks, player_id)) {
+                WARN("Player without id tried to send respawn packet");
+                client->Destroy();
+                return;
+            } else if (entities.tanks[player_id]->state == TankState::Alive) {
+                WARN("Living player tried to send respawn packet");
+                destroy_entity(player_id, entities.tanks);
+                client->Destroy();
+                return;
+            }
+
+            entities.tanks[player_id]->position = Vector2(RAND(0, size), RAND(0, size));
+            entities.tanks[player_id]->health = entities.tanks[player_id]->max_health;
+            if (entities.tanks[player_id]->level / 2 >= 1) {
+                entities.tanks[player_id]->level = entities.tanks[player_id]->level / 2;
+            } else {
+                entities.tanks[player_id]->level = 1;
+            }
+            entities.tanks[player_id]->state = TankState::Alive;
+            entities.tanks[player_id]->spawn_time = chrono::steady_clock::now();
         }
         
         template<typename T>
@@ -592,6 +658,9 @@ class Arena {
 #endif
             if (entity_ptr != nullptr) {
                 delete entity_ptr;
+            }
+            if (typeid(T) == typeid(Tank)) {
+                update_size();
             }
         }
 
@@ -671,12 +740,18 @@ class Arena {
                     uv_rwlock_rdlock(&entity_lock);
 #endif
                     if (entity->second->health <= 0) {
-                        entity->second->position = Vector2(RAND(0, size), RAND(0, size));
-                        entity->second->health = entity->second->max_health;
-                        if (entity->second->level / 2 >= 1) {
-                            entity->second->level = entity->second->level / 2;
+                        if (entity->second->type == TankType::Local) {
+                            entity->second->position = Vector2(RAND(0, size), RAND(0, size));
+                            entity->second->health = entity->second->max_health;
+                            if (entity->second->level / 2 >= 1) {
+                                entity->second->level = entity->second->level / 2;
+                            } else {
+                                entity->second->level = 1;
+                            }
                         } else {
-                            entity->second->level = 1;
+                            entity->second->state = TankState::Dead;
+                            StreamPeerBuffer buf(true);
+                            send_death_packet(buf, entity->second);
                         }
 
                     }
@@ -858,7 +933,7 @@ void Barrel::fire(Tank* tank, Arena* arena) {
 #endif
 }
 
-// example collision response
+// Example collision response 👇
 void Entity::collision_response(Arena* arena) {
     vector<qt::Rect> candidates = arena->tree.retrieve(qt::Rect {
         .x = this->position.x - this->radius,
@@ -872,6 +947,10 @@ void Entity::collision_response(Arena* arena) {
     for (const auto& candidate : candidates) {
         if (candidate.id == this->id) {
             continue;
+        } else if (in_map(arena->entities.tanks, candidate.id)) {
+            if (arena->entities.tanks[candidate.id]->state == TankState::Dead) {
+                continue;
+            }
         }
         
         if (circle_collision(Vector2(candidate.x + candidate.radius, candidate.y + candidate.radius), candidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
@@ -897,6 +976,10 @@ void Shape::collision_response(Arena* arena) {
     for (const auto& candidate : candidates) {
         if (candidate.id == this->id) {
             continue;
+        } else if (in_map(arena->entities.tanks, candidate.id)) {
+            if (arena->entities.tanks[candidate.id]->state == TankState::Dead) {
+                continue;
+            }
         }
         
         if (circle_collision(Vector2(candidate.x + candidate.radius, candidate.y + candidate.radius), candidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
@@ -936,6 +1019,10 @@ void Tank::collision_response(Arena *arena) {
             continue;
         } else if (in_map(arena->entities.bullets, candidate.id)) {
             if (arena->entities.bullets[candidate.id]->owner == this->id) {
+                continue;
+            }
+        } else if (in_map(arena->entities.tanks, candidate.id)) {
+            if (arena->entities.tanks[candidate.id]->state == TankState::Dead) {
                 continue;
             }
         }
@@ -983,8 +1070,10 @@ void Tank::collision_response(Arena *arena) {
         for (const auto& candidate : candidates) {
             if (aabb(viewport, candidate)) {
                 if (in_map(arena->entities.tanks, candidate.id)) {
-                    arena->entities.tanks[candidate.id]->take_census(buf, arena->ticks);
-                    census_size++;
+                    if (arena->entities.tanks[candidate.id]->state == TankState::Alive) {
+                        arena->entities.tanks[candidate.id]->take_census(buf, arena->ticks);
+                        census_size++;
+                    }
                 } else if (in_map(arena->entities.shapes, candidate.id)) {
                     arena->entities.shapes[candidate.id]->take_census(buf);
                     census_size++;
@@ -1012,7 +1101,9 @@ void Tank::collision_response(Arena *arena) {
 
             if (aabb(viewport, candidate)) {
                 if (in_map(arena->entities.tanks, candidate.id)) {
-                    nearby_tanks[candidate.id] = arena->entities.tanks[candidate.id]->position.distance_to(this->position);
+                    if (arena->entities.tanks[candidate.id]->state == TankState::Alive) {
+                        nearby_tanks[candidate.id] = arena->entities.tanks[candidate.id]->position.distance_to(this->position);
+                    }
                 } else if (in_map(arena->entities.shapes, candidate.id)) {
                     nearby_shapes[candidate.id] = arena->entities.shapes[candidate.id]->position.distance_to(this->position);
                 }
@@ -1068,6 +1159,10 @@ void Bullet::collision_response(Arena *arena) {
             continue;
         } else if (in_map(arena->entities.bullets, candidate.id)) {
             if (arena->entities.bullets[candidate.id]->owner == this->owner) {
+                continue;
+            }
+        } else if (in_map(arena->entities.tanks, candidate.id)) {
+            if (arena->entities.tanks[candidate.id]->state == TankState::Dead) {
                 continue;
             }
         }

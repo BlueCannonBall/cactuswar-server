@@ -30,9 +30,7 @@ void kick(ws28::Client* client, bool destroy=false) {
     if (client->GetUserData() != nullptr) {
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
         if (in_map(arena->entities.tanks, player_id)) {
-            delete arena->entities.tanks[player_id];
-            arena->entities.tanks.erase(player_id);
-            arena->update_size();
+            arena->destroy_entity(player_id, arena->entities.tanks);
         }
     }
     paths.erase(client);
@@ -114,6 +112,10 @@ int main(int argc, char **argv) {
         Arena* arena = arenas[paths[client]];
         unsigned char packet_id = buf.get_u8();
         switch (packet_id) {
+            default:
+                kick(client);
+                break;
+
             case (int) Packet::InboundInit:
                 if (len < 3) {
                     kick(client);
@@ -121,6 +123,7 @@ int main(int argc, char **argv) {
                 }
                 arena->handle_init_packet(buf, client);
                 break;
+
             case (int) Packet::Input:
                 if (len != 6) {
                     kick(client);
@@ -128,6 +131,7 @@ int main(int argc, char **argv) {
                 }
                 arena->handle_input_packet(buf, client);
                 break;
+
             case (int) Packet::Chat:
                 if (len < 3) {
                     kick(client);
@@ -135,8 +139,13 @@ int main(int argc, char **argv) {
                 }
                 arena->handle_chat_packet(buf, client);
                 break;
-            default:
-                kick(client);
+
+            case (int) Packet::Respawn:
+                if (len > 1) {
+                    kick(client);
+                    return;
+                }
+                arena->handle_respawn_packet(buf, client);
                 break;
         }
     });
