@@ -36,7 +36,7 @@ void kick(ws28::Client* client, bool destroy=false) {
     paths.erase(client);
     if (destroy) {
         client->Destroy();
-        WARN("Forcefully kicked client");
+        BRUH("Forcefully kicked client");
 
         // ban player
         if (!file_exists("ips.json")) {
