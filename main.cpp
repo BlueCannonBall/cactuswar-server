@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
         ip_file.close();
         if (in_map(ips, client->GetIP())) {
             if (ips[client->GetIP()]["banned"]) {
-                WARN("BANNED IP TRIED TO CONNECT, REJECTING CONNECTION");
+                BRUH("BANNED IP TRIED TO CONNECT, REJECTING CONNECTION");
                 return false;
             }
         }
