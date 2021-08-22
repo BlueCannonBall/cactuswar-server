@@ -13,7 +13,6 @@
 #include <mutex>
 #include <chrono>
 #include "entityconfig.hpp"
-#include <fstream>
 #include <leveldb/db.h>
 #include <memory>
 #include <typeinfo>
