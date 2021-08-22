@@ -760,11 +760,10 @@ class Arena {
                         } else {
                             entity->second->state = TankState::Dead;
                             StreamPeerBuffer buf(true);
-                            send_death_packet(buf, entity->second);
+                            send_death_packet(buf, entity++->second);
 #ifdef THREADING
                             uv_rwlock_rdunlock(&entity_lock);
 #endif
-                            ++entity;
                             continue;
                         }
                     }
