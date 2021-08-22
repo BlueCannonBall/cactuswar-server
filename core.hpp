@@ -564,8 +564,6 @@ class Arena {
                 return;
             } else if (entities.tanks[player_id]->state == TankState::Dead) {
                 WARN("Dead player tried to send input packet");
-                destroy_entity(player_id, entities.tanks);
-                client->Destroy();
                 return;
             }
             entities.tanks[player_id]->input = {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
@@ -608,8 +606,6 @@ class Arena {
                 return;
             } else if (entities.tanks[player_id]->state == TankState::Dead) {
                 WARN("Dead player tried to send chat packet");
-                destroy_entity(player_id, entities.tanks);
-                client->Destroy();
                 return;
             }
 
@@ -742,7 +738,17 @@ class Arena {
 #ifdef THREADING
                     uv_rwlock_rdlock(&entity_lock);
 #endif
+                    if (entity->second->state == TankState::Dead) {
+#ifdef THREADING
+                        uv_rwlock_rdunlock(&entity_lock);
+#endif
+                        ++entity;
+                        continue;
+                    }
+
                     if (entity->second->health <= 0) {
+                        entity->second->input = {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
+                        entity->second->health = entity->second->max_health;
                         if (entity->second->type == TankType::Local) {
                             entity->second->position = Vector2(RAND(0, size), RAND(0, size));
                             entity->second->health = entity->second->max_health;
@@ -755,8 +761,12 @@ class Arena {
                             entity->second->state = TankState::Dead;
                             StreamPeerBuffer buf(true);
                             send_death_packet(buf, entity->second);
+#ifdef THREADING
+                            uv_rwlock_rdunlock(&entity_lock);
+#endif
+                            ++entity;
+                            continue;
                         }
-
                     }
 #ifdef THREADING
                     uv_rwlock_rdunlock(&entity_lock);
