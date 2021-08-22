@@ -19,7 +19,7 @@
 #include <typeinfo>
 
 #pragma once
-#define THREADING
+//#define THREADING
 //#define DEBUG_MAINLOOP_SPEED
 #define COLLISION_STRENGTH 5
 #define BOT_ACCURACY_THRESHOLD 30
