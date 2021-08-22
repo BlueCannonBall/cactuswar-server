@@ -947,14 +947,15 @@ void Barrel::fire(Tank* tank, Arena* arena) {
 
 // Example collision response 👇
 void Entity::collision_response(Arena* arena) {
-    vector<shared_ptr<qt::Rect>> candidates = arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
+    vector<shared_ptr<qt::Rect>> candidates;
+    arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - this->radius,
         .y = this->position.y - this->radius,
         .width = static_cast<float>(this->radius*2),
         .height = static_cast<float>(this->radius*2),
         .id = this->id,
         .radius = this->radius
-    }));
+    }), candidates);
 
     for (const auto& candidate : candidates) {
         if (candidate->id == this->id) {
@@ -976,14 +977,15 @@ void Entity::collision_response(Arena* arena) {
 }
 
 void Shape::collision_response(Arena* arena) {
-    vector<shared_ptr<qt::Rect>> candidates = arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
+    vector<shared_ptr<qt::Rect>> candidates;
+    arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - this->radius,
         .y = this->position.y - this->radius,
         .width = static_cast<float>(this->radius*2),
         .height = static_cast<float>(this->radius*2),
         .id = this->id,
         .radius = this->radius
-    }));
+    }), candidates);
 
     for (const auto& candidate : candidates) {
         if (candidate->id == this->id) {
@@ -1017,14 +1019,15 @@ void Shape::collision_response(Arena* arena) {
 }
 
 void Tank::collision_response(Arena *arena) {
-    vector<shared_ptr<qt::Rect>> candidates = arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
+    vector<shared_ptr<qt::Rect>> candidates;
+    arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - this->radius, 
         .y = this->position.y - this->radius, 
         .width = static_cast<float>(this->radius*2), 
         .height = static_cast<float>(this->radius*2), 
         .id = this->id, 
         .radius = this->radius
-    }));
+    }), candidates);
 
     for (const auto& candidate : candidates) {
         if (candidate->id == this->id) {
@@ -1073,7 +1076,7 @@ void Tank::collision_response(Arena *arena) {
         .radius = static_cast<unsigned int>(dr/2)
     });
 
-    candidates = arena->tree.retrieve(viewport);
+    arena->tree.retrieve(viewport, candidates);
 
     if (this->type == TankType::Remote) {
         StreamPeerBuffer buf(true);
@@ -1155,14 +1158,15 @@ void Tank::collision_response(Arena *arena) {
 
 
 void Bullet::collision_response(Arena *arena) {
-    vector<shared_ptr<qt::Rect>> candidates = arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
+    vector<shared_ptr<qt::Rect>> candidates;
+    arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - this->radius,
         .y = this->position.y - this->radius,
         .width = static_cast<float>(this->radius*2),
         .height = static_cast<float>(this->radius*2),
         .id = this->id,
         .radius = this->radius
-    }));
+    }), candidates);
 
     for (const auto& candidate : candidates) {
         if (candidate->id == this->id) {

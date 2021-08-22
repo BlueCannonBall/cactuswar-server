@@ -100,8 +100,8 @@ namespace qt {
                 );
             }
 
-            std::vector<float> getIndex(std::shared_ptr<Rect> pRect) {
-                std::vector<float> indexes;
+            void getIndex(std::shared_ptr<Rect> pRect, std::vector<float>& indexes) {
+                indexes.clear();
                 float verticalMidpoint = this->bounds->x + (this->bounds->width/2);
                 float horizontalMidpoint = this->bounds->y + (this->bounds->height/2);
 
@@ -129,8 +129,6 @@ namespace qt {
                 if (endIsEast && endIsSouth) {
                     indexes.push_back(3);
                 }
-            
-                return indexes;
             }
 
             void insert(std::shared_ptr<Rect> pRect) __attribute__((hot)) {
@@ -138,7 +136,7 @@ namespace qt {
                 std::vector<float> indexes;
 
                 if (this->nodes.size()) {
-                    indexes = this->getIndex(pRect);
+                    this->getIndex(pRect, indexes);
 
                     for (i=0; i<indexes.size(); i++) {
                         this->nodes[indexes[i]]->insert(pRect);
@@ -154,7 +152,7 @@ namespace qt {
 
                     // add all objects to their corresponding subnode
                     for (i=0; i<this->objects.size(); i++) {
-                        indexes = this->getIndex(this->objects[i]);
+                        this->getIndex(this->objects[i], indexes);
                         #pragma omp simd
                         for (long unsigned int k=0; k<indexes.size(); k++) {
                             this->nodes[indexes[k]]->insert(this->objects[i]);
@@ -166,22 +164,24 @@ namespace qt {
                 }
             }
 
-            std::vector<std::shared_ptr<Rect>> retrieve(std::shared_ptr<Rect> pRect) __attribute__((hot)) {
-                std::vector<float> indexes = this->getIndex(pRect);
-                std::vector<std::shared_ptr<Rect>> returnObjects = this->objects;
+            void retrieve(std::shared_ptr<Rect> pRect, std::vector<std::shared_ptr<Rect>>& returnObjects) __attribute__((hot)) {
+                returnObjects.clear();
+                std::vector<float> indexes;
+                this->getIndex(pRect, indexes);
+                returnObjects.resize(this->objects.size());
+                std::copy(this->objects.begin(), this->objects.end(), returnObjects.begin());
 
                 // if we have subnodes, retrieve their objects
                 if (this->nodes.size()) {
                     #pragma omp simd
                     for (long unsigned int i=0; i<indexes.size(); i++) {
-                        std::vector<std::shared_ptr<Rect>> concatCandidate = this->nodes[indexes[i]]->retrieve(pRect);
+                        std::vector<std::shared_ptr<Rect>> concatCandidate;
+                        this->nodes[indexes[i]]->retrieve(pRect, concatCandidate);
                         returnObjects.insert(returnObjects.end(), concatCandidate.begin(), concatCandidate.end());
                     }
                 }
 
                 returnObjects.erase(remove_duplicates(returnObjects.begin(), returnObjects.end()), returnObjects.end());
-
-                return returnObjects;
             }
 
             void clear() {
