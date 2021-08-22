@@ -1,6 +1,6 @@
 #include <iostream>
 #include <uv.h>
-#include "ws28/Server.h"
+#include "ws28/src/Server.h"
 #include <string>
 #include "streampeerbuffer.hpp"
 #include <cmath>
