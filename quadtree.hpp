@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <vector>
+#include <memory>
 
 #pragma clang diagnostic ignored "-Wgnu-designator"
 
@@ -37,12 +38,12 @@ namespace qt {
             int max_levels = 4;
 
             int level = 0;
-            Rect bounds;
+            std::shared_ptr<Rect> bounds;
 
-            std::vector<Quadtree> nodes;
-            std::vector<Rect> objects;
+            std::vector<std::shared_ptr<Quadtree>> nodes;
+            std::vector<std::shared_ptr<Rect>> objects;
 
-            Quadtree(Rect bounds, int max_objects=10, int max_levels=4, int level=0) {
+            Quadtree(std::shared_ptr<Rect> bounds, int max_objects=10, int max_levels=4, int level=0) {
                 this->bounds = bounds;
                 this->max_objects = max_objects;
                 this->max_levels = max_levels;
@@ -51,63 +52,63 @@ namespace qt {
 
             void split() __attribute__((hot)) {
                 float nextLevel = this->level + 1;
-                float subWidth = this->bounds.width/2;
-                float subHeight = this->bounds.height/2;
-                float x = this->bounds.x;
-                float y = this->bounds.y;
+                float subWidth = this->bounds->width/2;
+                float subHeight = this->bounds->height/2;
+                float x = this->bounds->x;
+                float y = this->bounds->y;
 
-                this->nodes.push_back(Quadtree(
-                    Rect {
+                this->nodes.push_back(std::make_shared<Quadtree>(
+                    std::make_shared<Rect>(Rect {
                         x: x + subWidth,
                         y: y,
                         width: subWidth,
                         height: subHeight,
                         id: 0,
                         radius: 0
-                    }, this->max_objects, this->max_levels, nextLevel)
+                    }), this->max_objects, this->max_levels, nextLevel)
                 );
                 
-                this->nodes.push_back(Quadtree(
-                    Rect {
+                this->nodes.push_back(std::make_shared<Quadtree>(
+                    std::make_shared<Rect>(Rect {
                         x: x,
                         y: y,
                         width: subWidth,
                         height: subHeight,
                         id: 0,
                         radius: 0
-                    }, this->max_objects, this->max_levels, nextLevel)
+                    }), this->max_objects, this->max_levels, nextLevel)
                 );
                 
-                this->nodes.push_back(Quadtree(
-                    Rect {
+                this->nodes.push_back(std::make_shared<Quadtree>(
+                    std::make_shared<Rect>(Rect {
                         x: x,
                         y: y + subHeight,
                         width: subWidth,
                         height: subHeight,
                         id: 0,
                         radius: 0
-                    }, this->max_objects, this->max_levels, nextLevel)
+                    }), this->max_objects, this->max_levels, nextLevel)
                 );
                 
-                this->nodes.push_back(Quadtree(
-                    Rect {
+                this->nodes.push_back(std::make_shared<Quadtree>(
+                    std::make_shared<Rect>(Rect {
                         x: x + subWidth,
                         y: y + subHeight,
                         width: subWidth,
                         height: subHeight
-                    }, this->max_objects, this->max_levels, nextLevel)
+                    }), this->max_objects, this->max_levels, nextLevel)
                 );
             }
 
-            std::vector<float> getIndex(Rect pRect) {
+            std::vector<float> getIndex(std::shared_ptr<Rect> pRect) {
                 std::vector<float> indexes;
-                float verticalMidpoint = this->bounds.x + (this->bounds.width/2);
-                float horizontalMidpoint = this->bounds.y + (this->bounds.height/2);
+                float verticalMidpoint = this->bounds->x + (this->bounds->width/2);
+                float horizontalMidpoint = this->bounds->y + (this->bounds->height/2);
 
-                bool startIsNorth = pRect.y < horizontalMidpoint,
-                    startIsWest  = pRect.x < verticalMidpoint,
-                    endIsEast    = pRect.x + pRect.width > verticalMidpoint,
-                    endIsSouth   = pRect.y + pRect.height > horizontalMidpoint;    
+                bool startIsNorth = pRect->y < horizontalMidpoint,
+                    startIsWest  = pRect->x < verticalMidpoint,
+                    endIsEast    = pRect->x + pRect->width > verticalMidpoint,
+                    endIsSouth   = pRect->y + pRect->height > horizontalMidpoint;    
                 
                 // top-right quad
                 if (startIsNorth && endIsEast) {
@@ -132,7 +133,7 @@ namespace qt {
                 return indexes;
             }
 
-            void insert(Rect pRect) __attribute__((hot)) {
+            void insert(std::shared_ptr<Rect> pRect) __attribute__((hot)) {
                 float i = 0;
                 std::vector<float> indexes;
 
@@ -140,23 +141,23 @@ namespace qt {
                     indexes = this->getIndex(pRect);
 
                     for (i=0; i<indexes.size(); i++) {
-                        this->nodes[indexes[i]].insert(pRect);
+                        this->nodes[indexes[i]]->insert(pRect);
                     }
                 }
 
                 this->objects.push_back(pRect);
 
-                if(this->objects.size() > static_cast<long unsigned int>(this->max_objects) && this->level < this->max_levels) {
-                    if(!this->nodes.size()) {
+                if (this->objects.size() > static_cast<long unsigned int>(this->max_objects) && this->level < this->max_levels) {
+                    if (!this->nodes.size()) {
                         this->split();
                     }
 
                     // add all objects to their corresponding subnode
-                    for(i=0; i<this->objects.size(); i++) {
+                    for (i=0; i<this->objects.size(); i++) {
                         indexes = this->getIndex(this->objects[i]);
                         #pragma omp simd
-                        for(long unsigned int k=0; k<indexes.size(); k++) {
-                            this->nodes[indexes[k]].insert(this->objects[i]);
+                        for (long unsigned int k=0; k<indexes.size(); k++) {
+                            this->nodes[indexes[k]]->insert(this->objects[i]);
                         }
                     }
 
@@ -165,15 +166,15 @@ namespace qt {
                 }
             }
 
-            std::vector<Rect> retrieve(Rect pRect) __attribute__((hot)) {
+            std::vector<std::shared_ptr<Rect>> retrieve(std::shared_ptr<Rect> pRect) __attribute__((hot)) {
                 std::vector<float> indexes = this->getIndex(pRect);
-                std::vector<Rect> returnObjects = this->objects;
+                std::vector<std::shared_ptr<Rect>> returnObjects = this->objects;
 
                 // if we have subnodes, retrieve their objects
-                if(this->nodes.size()) {
+                if (this->nodes.size()) {
                     #pragma omp simd
-                    for(long unsigned int i=0; i<indexes.size(); i++) {
-                        std::vector<Rect> concatCandidate = this->nodes[indexes[i]].retrieve(pRect);
+                    for (long unsigned int i=0; i<indexes.size(); i++) {
+                        std::vector<std::shared_ptr<Rect>> concatCandidate = this->nodes[indexes[i]]->retrieve(pRect);
                         returnObjects.insert(returnObjects.end(), concatCandidate.begin(), concatCandidate.end());
                     }
                 }
@@ -187,9 +188,9 @@ namespace qt {
                 this->objects.clear();
 
                 #pragma omp simd
-                for(long unsigned int i=0; i < this->nodes.size(); i++) {
-                    if(this->nodes.size()) {
-                        this->nodes[i].clear();
+                for (long unsigned int i=0; i < this->nodes.size(); i++) {
+                    if (this->nodes.size()) {
+                        this->nodes[i]->clear();
                     }
                 }
 

@@ -51,12 +51,12 @@ inline unsigned int get_uid() {
     return uid++;
 }
 
-inline bool aabb(qt::Rect rect1, qt::Rect rect2) {
+inline bool aabb(shared_ptr<qt::Rect> rect1, shared_ptr<qt::Rect> rect2) {
     return (
-        rect1.x < rect2.x + rect2.width &&
-        rect1.x + rect1.width > rect2.x &&
-        rect1.y < rect2.y + rect2.height &&
-        rect1.y + rect1.height > rect2.y
+        rect1->x < rect2->x + rect2->width &&
+        rect1->x + rect1->width > rect2->x &&
+        rect1->y < rect2->y + rect2->height &&
+        rect1->y + rect1->height > rect2->y
     );
 }
 
@@ -375,12 +375,12 @@ class Arena {
         unsigned long ticks = 0;
         Entities entities;
         unsigned short size = 5000;
-        qt::Quadtree tree = qt::Quadtree(qt::Rect {
+        qt::Quadtree tree = qt::Quadtree(make_shared<qt::Rect>(qt::Rect {
             .x = 0,
             .y = 0,
             .width = static_cast<float>(size),
             .height = static_cast<float>(size)
-        });
+        }));
         unsigned int target_shape_count = 50;
         unsigned short target_bot_count = 6;
 
@@ -445,12 +445,12 @@ class Arena {
             }
             this->size = _size;
             tree.clear();
-            tree = qt::Quadtree(qt::Rect {
+            tree = qt::Quadtree(make_shared<qt::Rect>(qt::Rect {
                 .x = 0,
                 .y = 0,
                 .width = static_cast<float>(_size),
                 .height = static_cast<float>(_size)
-            });
+            }));
         }
 
         inline void update_size() {
@@ -709,14 +709,14 @@ class Arena {
 #ifdef THREADING
                     this->qt_mtx.lock();
 #endif
-                    this->tree.insert(qt::Rect {
+                    this->tree.insert(make_shared<qt::Rect>(qt::Rect {
                         .x = entity->second->position.x - entity->second->radius, 
                         .y = entity->second->position.y - entity->second->radius, 
                         .width = static_cast<float>(entity->second->radius*2), 
                         .height = static_cast<float>(entity->second->radius*2), 
                         .id = entity->second->id, 
                         .radius = entity->second->radius
-                    });
+                    }));
 #ifdef THREADING
                     this->qt_mtx.unlock();
                     uv_rwlock_rdunlock(&entity_lock);
@@ -775,14 +775,14 @@ class Arena {
                     uv_rwlock_rdlock(&entity_lock);
                     this->qt_mtx.lock();
 #endif
-                    this->tree.insert(qt::Rect {
+                    this->tree.insert(make_shared<qt::Rect>(qt::Rect {
                         .x = entity->second->position.x - entity->second->radius, 
                         .y = entity->second->position.y - entity->second->radius, 
                         .width = static_cast<float>(entity->second->radius*2), 
                         .height = static_cast<float>(entity->second->radius*2), 
                         .id = entity->second->id, 
                         .radius = entity->second->radius
-                    });
+                    }));
 #ifdef THREADING
                     this->qt_mtx.unlock();
                     uv_rwlock_rdunlock(&entity_lock);
@@ -817,14 +817,14 @@ class Arena {
 #ifdef THREADING
                     this->qt_mtx.lock();
 #endif
-                    this->tree.insert(qt::Rect {
+                    this->tree.insert(make_shared<qt::Rect>(qt::Rect {
                         .x = entity->second->position.x - entity->second->radius, 
                         .y = entity->second->position.y - entity->second->radius, 
                         .width = static_cast<float>(entity->second->radius*2), 
                         .height = static_cast<float>(entity->second->radius*2), 
                         .id = entity->second->id, 
                         .radius = entity->second->radius
-                    });
+                    }));
 #ifdef THREADING
                     this->qt_mtx.unlock();
                     uv_rwlock_rdunlock(&entity_lock);
@@ -947,27 +947,27 @@ void Barrel::fire(Tank* tank, Arena* arena) {
 
 // Example collision response 👇
 void Entity::collision_response(Arena* arena) {
-    vector<qt::Rect> candidates = arena->tree.retrieve(qt::Rect {
+    vector<shared_ptr<qt::Rect>> candidates = arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - this->radius,
         .y = this->position.y - this->radius,
         .width = static_cast<float>(this->radius*2),
         .height = static_cast<float>(this->radius*2),
         .id = this->id,
         .radius = this->radius
-    });
+    }));
 
     for (const auto& candidate : candidates) {
-        if (candidate.id == this->id) {
+        if (candidate->id == this->id) {
             continue;
-        } else if (in_map(arena->entities.tanks, candidate.id)) {
-            if (arena->entities.tanks[candidate.id]->state == TankState::Dead) {
+        } else if (in_map(arena->entities.tanks, candidate->id)) {
+            if (arena->entities.tanks[candidate->id]->state == TankState::Dead) {
                 continue;
             }
         }
         
-        if (circle_collision(Vector2(candidate.x + candidate.radius, candidate.y + candidate.radius), candidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
+        if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
             // response
-            float angle = atan2((candidate.y + candidate.radius) - this->position.y, (candidate.x + candidate.radius) - this->position.x);
+            float angle = atan2((candidate->y + candidate->radius) - this->position.y, (candidate->x + candidate->radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
             this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
@@ -976,30 +976,30 @@ void Entity::collision_response(Arena* arena) {
 }
 
 void Shape::collision_response(Arena* arena) {
-    vector<qt::Rect> candidates = arena->tree.retrieve(qt::Rect {
+    vector<shared_ptr<qt::Rect>> candidates = arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - this->radius,
         .y = this->position.y - this->radius,
         .width = static_cast<float>(this->radius*2),
         .height = static_cast<float>(this->radius*2),
         .id = this->id,
         .radius = this->radius
-    });
+    }));
 
     for (const auto& candidate : candidates) {
-        if (candidate.id == this->id) {
+        if (candidate->id == this->id) {
             continue;
-        } else if (in_map(arena->entities.tanks, candidate.id)) {
-            if (arena->entities.tanks[candidate.id]->state == TankState::Dead) {
+        } else if (in_map(arena->entities.tanks, candidate->id)) {
+            if (arena->entities.tanks[candidate->id]->state == TankState::Dead) {
                 continue;
             }
         }
         
-        if (circle_collision(Vector2(candidate.x + candidate.radius, candidate.y + candidate.radius), candidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
-            if (in_map(arena->entities.bullets, candidate.id)) {
-                this->health -= arena->entities.bullets[candidate.id]->damage; // damage
+        if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
+            if (in_map(arena->entities.bullets, candidate->id)) {
+                this->health -= arena->entities.bullets[candidate->id]->damage; // damage
                 if (this->health <= 0) {
-                    if (in_map(arena->entities.tanks, arena->entities.bullets[candidate.id]->owner)) {
-                        arena->entities.tanks[arena->entities.bullets[candidate.id]->owner]->level += this->reward;
+                    if (in_map(arena->entities.tanks, arena->entities.bullets[candidate->id]->owner)) {
+                        arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level += this->reward;
                     } else {
                         BRUH("The bullet of a non-existent player hit and killed a shape");
                     }
@@ -1008,7 +1008,7 @@ void Shape::collision_response(Arena* arena) {
             }
             
             // response
-            float angle = atan2((candidate.y + candidate.radius) - this->position.y, (candidate.x + candidate.radius) - this->position.x);
+            float angle = atan2((candidate->y + candidate->radius) - this->position.y, (candidate->x + candidate->radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
             this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
@@ -1017,45 +1017,45 @@ void Shape::collision_response(Arena* arena) {
 }
 
 void Tank::collision_response(Arena *arena) {
-    vector<qt::Rect> candidates = arena->tree.retrieve(qt::Rect {
+    vector<shared_ptr<qt::Rect>> candidates = arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - this->radius, 
         .y = this->position.y - this->radius, 
         .width = static_cast<float>(this->radius*2), 
         .height = static_cast<float>(this->radius*2), 
         .id = this->id, 
         .radius = this->radius
-    });
+    }));
 
     for (const auto& candidate : candidates) {
-        if (candidate.id == this->id) {
+        if (candidate->id == this->id) {
             continue;
-        } else if (in_map(arena->entities.bullets, candidate.id)) {
-            if (arena->entities.bullets[candidate.id]->owner == this->id) {
+        } else if (in_map(arena->entities.bullets, candidate->id)) {
+            if (arena->entities.bullets[candidate->id]->owner == this->id) {
                 continue;
             }
-        } else if (in_map(arena->entities.tanks, candidate.id)) {
-            if (arena->entities.tanks[candidate.id]->state == TankState::Dead) {
+        } else if (in_map(arena->entities.tanks, candidate->id)) {
+            if (arena->entities.tanks[candidate->id]->state == TankState::Dead) {
                 continue;
             }
         }
         
-        if (circle_collision(Vector2(candidate.x + candidate.radius, candidate.y + candidate.radius), candidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
-            if (in_map(arena->entities.bullets, candidate.id)) {
-                this->health -= arena->entities.bullets[candidate.id]->damage; // damage
+        if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
+            if (in_map(arena->entities.bullets, candidate->id)) {
+                this->health -= arena->entities.bullets[candidate->id]->damage; // damage
                 if (this->health <= 0) {
-                    if (in_map(arena->entities.tanks, arena->entities.bullets[candidate.id]->owner)) {
-                        arena->entities.tanks[arena->entities.bullets[candidate.id]->owner]->level += this->level / 2;
+                    if (in_map(arena->entities.tanks, arena->entities.bullets[candidate->id]->owner)) {
+                        arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level += this->level / 2;
                     } else {
                         BRUH("The bullet of a non-existent player hit and killed another tank");
                     }
                     return; // death
                 }
-            } else if (in_map(arena->entities.shapes, candidate.id)) {
-                this->health -= arena->entities.shapes[candidate.id]->damage; // damage
+            } else if (in_map(arena->entities.shapes, candidate->id)) {
+                this->health -= arena->entities.shapes[candidate->id]->damage; // damage
             }
             
             // response
-            float angle = atan2((candidate.y + candidate.radius) - this->position.y, (candidate.x + candidate.radius) - this->position.x);
+            float angle = atan2((candidate->y + candidate->radius) - this->position.y, (candidate->x + candidate->radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
             this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
@@ -1064,14 +1064,14 @@ void Tank::collision_response(Arena *arena) {
 
     float dr = 112.5 * this->fov * 1.6;
 
-    qt::Rect viewport = {
+    auto viewport = make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - dr/2,
         .y = this->position.y - dr/2,
         .width = dr,
         .height = dr,
         .id = 0,
         .radius = static_cast<unsigned int>(dr/2)
-    };
+    });
 
     candidates = arena->tree.retrieve(viewport);
 
@@ -1081,16 +1081,16 @@ void Tank::collision_response(Arena *arena) {
 
         for (const auto& candidate : candidates) {
             if (aabb(viewport, candidate)) {
-                if (in_map(arena->entities.tanks, candidate.id)) {
-                    if (arena->entities.tanks[candidate.id]->state == TankState::Alive) {
-                        arena->entities.tanks[candidate.id]->take_census(buf, arena->ticks);
+                if (in_map(arena->entities.tanks, candidate->id)) {
+                    if (arena->entities.tanks[candidate->id]->state == TankState::Alive) {
+                        arena->entities.tanks[candidate->id]->take_census(buf, arena->ticks);
                         census_size++;
                     }
-                } else if (in_map(arena->entities.shapes, candidate.id)) {
-                    arena->entities.shapes[candidate.id]->take_census(buf);
+                } else if (in_map(arena->entities.shapes, candidate->id)) {
+                    arena->entities.shapes[candidate->id]->take_census(buf);
                     census_size++;
-                } else if (in_map(arena->entities.bullets, candidate.id)) {
-                    arena->entities.bullets[candidate.id]->take_census(buf);
+                } else if (in_map(arena->entities.bullets, candidate->id)) {
+                    arena->entities.bullets[candidate->id]->take_census(buf);
                     census_size++;
                 }
             }
@@ -1107,17 +1107,17 @@ void Tank::collision_response(Arena *arena) {
         map<unsigned int, unsigned int> nearby_shapes;
 
         for (const auto& candidate : candidates) {
-            if (candidate.id == this->id) {
+            if (candidate->id == this->id) {
                 continue;
             }
 
             if (aabb(viewport, candidate)) {
-                if (in_map(arena->entities.tanks, candidate.id)) {
-                    if (arena->entities.tanks[candidate.id]->state == TankState::Alive) {
-                        nearby_tanks[candidate.id] = arena->entities.tanks[candidate.id]->position.distance_to(this->position);
+                if (in_map(arena->entities.tanks, candidate->id)) {
+                    if (arena->entities.tanks[candidate->id]->state == TankState::Alive) {
+                        nearby_tanks[candidate->id] = arena->entities.tanks[candidate->id]->position.distance_to(this->position);
                     }
-                } else if (in_map(arena->entities.shapes, candidate.id)) {
-                    nearby_shapes[candidate.id] = arena->entities.shapes[candidate.id]->position.distance_to(this->position);
+                } else if (in_map(arena->entities.shapes, candidate->id)) {
+                    nearby_shapes[candidate->id] = arena->entities.shapes[candidate->id]->position.distance_to(this->position);
                 }
             }
         }
@@ -1155,39 +1155,39 @@ void Tank::collision_response(Arena *arena) {
 
 
 void Bullet::collision_response(Arena *arena) {
-    vector<qt::Rect> candidates = arena->tree.retrieve(qt::Rect {
+    vector<shared_ptr<qt::Rect>> candidates = arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - this->radius,
         .y = this->position.y - this->radius,
         .width = static_cast<float>(this->radius*2),
         .height = static_cast<float>(this->radius*2),
         .id = this->id,
         .radius = this->radius
-    });
+    }));
 
     for (const auto& candidate : candidates) {
-        if (candidate.id == this->id) {
+        if (candidate->id == this->id) {
             continue;
-        } else if (candidate.id == this->owner) {
+        } else if (candidate->id == this->owner) {
             continue;
-        } else if (in_map(arena->entities.bullets, candidate.id)) {
-            if (arena->entities.bullets[candidate.id]->owner == this->owner) {
+        } else if (in_map(arena->entities.bullets, candidate->id)) {
+            if (arena->entities.bullets[candidate->id]->owner == this->owner) {
                 continue;
             }
-        } else if (in_map(arena->entities.tanks, candidate.id)) {
-            if (arena->entities.tanks[candidate.id]->state == TankState::Dead) {
+        } else if (in_map(arena->entities.tanks, candidate->id)) {
+            if (arena->entities.tanks[candidate->id]->state == TankState::Dead) {
                 continue;
             }
         }
         
-        if (circle_collision(Vector2(candidate.x + candidate.radius, candidate.y + candidate.radius), candidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
-            if (in_map(arena->entities.bullets, candidate.id)) {
-                this->health -= arena->entities.bullets[candidate.id]->damage; // damage
-            } else if (in_map(arena->entities.shapes, candidate.id)) {
-                this->health -= arena->entities.shapes[candidate.id]->damage; // damage
+        if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
+            if (in_map(arena->entities.bullets, candidate->id)) {
+                this->health -= arena->entities.bullets[candidate->id]->damage; // damage
+            } else if (in_map(arena->entities.shapes, candidate->id)) {
+                this->health -= arena->entities.shapes[candidate->id]->damage; // damage
             }
 
             // response
-            float angle = atan2((candidate.y + candidate.radius) - this->position.y, (candidate.x + candidate.radius) - this->position.x);
+            float angle = atan2((candidate->y + candidate->radius) - this->position.y, (candidate->x + candidate->radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
             this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH;

@@ -1,6 +1,6 @@
 CC=g++
-LDFLAGS=-luv -lssl -lcrypto -pthread -ltcmalloc
-CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -g -Ofast -march=native \
+LDFLAGS=-luv -lssl -lcrypto -pthread -ltcmalloc-minimal
+CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -g -Ofast -march=native -fdiagnostics-color=always \
 	-mtune=native -fno-signed-zeros -fno-trapping-math -finline-functions -ftree-vectorize \
 	-frename-registers -funroll-loops -fno-builtin-malloc -fno-builtin-calloc  \
 	-fno-builtin-realloc -fno-builtin-free -fopenmp-simd -Bsymbolic -fno-semantic-interposition
@@ -42,3 +42,4 @@ run: $(TARGET)
 clean:
 	rm -rf build
 	rm -rf **.gch
+	rm -rf **.o
