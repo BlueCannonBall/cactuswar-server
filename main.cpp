@@ -10,9 +10,10 @@
 #include <map>
 #include <unordered_map>
 #include <fstream>
+#include <leveldb/db.h>
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
-#define MESSAGE_SIZE 4096
+#define MESSAGE_SIZE 1024
 
 using namespace std;
 using namespace spb;
@@ -39,33 +40,11 @@ void kick(ws28::Client* client, bool destroy=false) {
         BRUH("Forcefully kicked client");
 
         // ban player
-        if (!file_exists("ips.json")) {
-            ofstream ip_file("ips.json");
-            ip_file << "{}";
-            ip_file.close();
+        std::string value = bool_to_string(true);
+        leveldb::Status s = db->Put(leveldb::WriteOptions(), client->GetIP(), value);
+        if (!s.ok()) {
+            ERR("Failed to ban player: " << s.ToString());
         }
-    
-        fstream ip_file("ips.json");
-        string data;
-        ip_file.seekg(0, std::ios::end);   
-        data.reserve(ip_file.tellg());
-        ip_file.seekg(0, std::ios::beg);
-        data.assign((std::istreambuf_iterator<char>(ip_file)), 
-            std::istreambuf_iterator<char>());
-        json ips = json::parse(data);
-        if (!in_map(ips, client->GetIP())) {
-            ips[client->GetIP()] = {
-                {"names", json::array()},
-                {"banned", true}
-            };
-        } else {
-            ips[client->GetIP()]["banned"] = true;
-        }
-        data = ips.dump(4);
-        ip_file.seekp(0);
-        ip_file.write(data.c_str(), data.size());
-        ip_file.flush();
-        ip_file.close();
     }
 }
 
@@ -80,12 +59,17 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if (!file_exists("ips.json")) {
-        ofstream ip_file("ips.json");
-        ip_file << "{}";
-        ip_file.close();
+    options.create_if_missing = true;
+    leveldb::Status s = leveldb::DB::Open(options, "./bans", &db);
+    if (!s.ok()) {
+        ERR("Failed to open ban database: " << s.ToString());
     }
+    assert(s.ok());
     assert(load_tanks_from_json("entityconfig.json") == 0);
+
+    atexit([]() {
+        delete db;
+    });
 
     ws28::Server server{uv_default_loop(), nullptr};
     server.SetMaxMessageSize(MESSAGE_SIZE);
@@ -170,27 +154,15 @@ int main(int argc, char **argv) {
 
     // check if player banned
     server.SetCheckConnectionCallback([](ws28::Client *client, ws28::HTTPRequest&) {
-        if (!file_exists("ips.json")) {
-            ofstream ip_file("ips.json");
-            ip_file << "{}";
-            ip_file.close();
-            return true;
-        }
-
-        ifstream ip_file("ips.json");
-        string data;
-        ip_file.seekg(0, std::ios::end);   
-        data.reserve(ip_file.tellg());
-        ip_file.seekg(0, std::ios::beg);
-        data.assign((std::istreambuf_iterator<char>(ip_file)), 
-            std::istreambuf_iterator<char>());
-        json ips = json::parse(data);
-        ip_file.close();
-        if (in_map(ips, client->GetIP())) {
-            if (ips[client->GetIP()]["banned"]) {
-                BRUH("BANNED IP TRIED TO CONNECT, REJECTING CONNECTION");
+        std::string value;
+        leveldb::Status s = db->Get(leveldb::ReadOptions(), client->GetIP(), &value);
+        if (s.ok()) {
+            if (string_to_bool(value)) {
+                BRUH("BANNED PLAYER TRIED TO CONNECT, REJECTING CONNECTION");
                 return false;
             }
+        } else if (!s.IsNotFound()) {
+            ERR("Failed to check if player is banned: " << s.ToString());
         }
         return true;
     });

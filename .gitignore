@@ -3,7 +3,8 @@ build/
 .vscode/
 core
 compile_commands.json
-ips.json
+bans/
+.DS_Store
 
 *.slo
 *.lo

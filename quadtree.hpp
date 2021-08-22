@@ -38,13 +38,13 @@ namespace qt {
             int max_levels = 4;
 
             int level = 0;
-            std::shared_ptr<Rect> bounds;
+            std::unique_ptr<Rect> bounds;
 
             std::vector<std::shared_ptr<Quadtree>> nodes;
             std::vector<std::shared_ptr<Rect>> objects;
 
-            Quadtree(std::shared_ptr<Rect> bounds, int max_objects=10, int max_levels=4, int level=0) {
-                this->bounds = bounds;
+            Quadtree(std::unique_ptr<Rect> bounds, int max_objects=10, int max_levels=4, int level=0) {
+                this->bounds = std::move(bounds);
                 this->max_objects = max_objects;
                 this->max_levels = max_levels;
                 this->level = level;
@@ -58,7 +58,7 @@ namespace qt {
                 float y = this->bounds->y;
 
                 this->nodes.push_back(std::make_shared<Quadtree>(
-                    std::make_shared<Rect>(Rect {
+                    std::make_unique<Rect>(Rect {
                         x: x + subWidth,
                         y: y,
                         width: subWidth,
@@ -69,7 +69,7 @@ namespace qt {
                 );
                 
                 this->nodes.push_back(std::make_shared<Quadtree>(
-                    std::make_shared<Rect>(Rect {
+                    std::make_unique<Rect>(Rect {
                         x: x,
                         y: y,
                         width: subWidth,
@@ -80,7 +80,7 @@ namespace qt {
                 );
                 
                 this->nodes.push_back(std::make_shared<Quadtree>(
-                    std::make_shared<Rect>(Rect {
+                    std::make_unique<Rect>(Rect {
                         x: x,
                         y: y + subHeight,
                         width: subWidth,
@@ -91,7 +91,7 @@ namespace qt {
                 );
                 
                 this->nodes.push_back(std::make_shared<Quadtree>(
-                    std::make_shared<Rect>(Rect {
+                    std::make_unique<Rect>(Rect {
                         x: x + subWidth,
                         y: y + subHeight,
                         width: subWidth,

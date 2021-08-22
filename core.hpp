@@ -14,7 +14,7 @@
 #include <chrono>
 #include "entityconfig.hpp"
 #include <fstream>
-#include "json.hpp"
+#include <leveldb/db.h>
 #include <memory>
 #include <typeinfo>
 
@@ -30,6 +30,21 @@
 using namespace std;
 using namespace spb;
 using json = nlohmann::json;
+
+leveldb::DB* db;
+leveldb::Options options;
+
+bool string_to_bool(const std::string& str) {
+    union {const char* data; bool value;} converter;
+    converter.data = str.c_str();
+    return converter.value;
+}
+
+std::string bool_to_string(bool boolean) {
+    union {const char* data; bool value;} converter;
+    converter.value = boolean;
+    return converter.data;
+}
 
 enum class Packet {
     InboundInit = 0,
@@ -375,7 +390,7 @@ class Arena {
         unsigned long ticks = 0;
         Entities entities;
         unsigned short size = 5000;
-        qt::Quadtree tree = qt::Quadtree(make_shared<qt::Rect>(qt::Rect {
+        qt::Quadtree tree = qt::Quadtree(make_unique<qt::Rect>(qt::Rect {
             .x = 0,
             .y = 0,
             .width = static_cast<float>(size),
@@ -445,7 +460,7 @@ class Arena {
             }
             this->size = _size;
             tree.clear();
-            tree = qt::Quadtree(make_shared<qt::Rect>(qt::Rect {
+            tree = qt::Quadtree(make_unique<qt::Rect>(qt::Rect {
                 .x = 0,
                 .y = 0,
                 .width = static_cast<float>(_size),
@@ -524,34 +539,10 @@ class Arena {
             send_init_packet(buf, new_player);
 
             // tracking
-            if (!file_exists("ips.json")) {
-                ofstream ip_file("ips.json");
-                ip_file << "{}";
-                ip_file.close();
+            std::string value = bool_to_string(false);
+            if (db->Get(leveldb::ReadOptions(), client->GetIP(), &value).IsNotFound()) {
+                db->Put(leveldb::WriteOptions(), client->GetIP(), value);
             }
-            
-            fstream ip_file("ips.json");
-            string data;
-            ip_file.seekg(0, std::ios::end);   
-            data.reserve(ip_file.tellg());
-            ip_file.seekg(0, std::ios::beg);
-            data.assign((std::istreambuf_iterator<char>(ip_file)), 
-                std::istreambuf_iterator<char>());
-            json ips = json::parse(data);
-            if (!in_map(ips, client->GetIP())) {
-                ips[client->GetIP()] = {
-                    {"names", json::array()},
-                    {"banned", false}
-                };
-            }
-            if (!in_vec(ips[client->GetIP()]["names"], player_name)) {
-                ips[client->GetIP()]["names"].push_back(player_name);
-            }
-            data = ips.dump(4);
-            ip_file.seekp(0);
-            ip_file.write(data.c_str(), data.size());
-            ip_file.flush();
-            ip_file.close();
         }
         
         void handle_input_packet(StreamPeerBuffer& buf, ws28::Client *client) {
