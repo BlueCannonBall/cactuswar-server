@@ -1,5 +1,5 @@
 CC=g++
-LDFLAGS=-luv -lssl -lcrypto -pthread -ltcmalloc-minimal
+LDFLAGS=-luv -lssl -lcrypto -pthread -ltcmalloc_minimal
 CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -g -Ofast -march=native -fdiagnostics-color=always \
 	-mtune=native -fno-signed-zeros -fno-trapping-math -finline-functions -ftree-vectorize \
 	-frename-registers -funroll-loops -fno-builtin-malloc -fno-builtin-calloc  \
