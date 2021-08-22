@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
         std::string value;
         leveldb::Status s = db->Get(leveldb::ReadOptions(), client->GetIP(), &value);
         if (s.ok()) {
-            if (value == "1") {
+            if (value != "0") {
                 BRUH("BANNED PLAYER TRIED TO CONNECT, REJECTING CONNECTION");
                 return false;
             }
