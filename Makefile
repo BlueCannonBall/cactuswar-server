@@ -22,11 +22,11 @@ $(OBJDIR)/streampeerbuffer.o: streampeerbuffer.cpp streampeerbuffer.hpp
 	@mkdir -p $(OBJDIR)
 	$(CC) -c streampeerbuffer.cpp $(CFLAGS) -o $@
 
-$(OBJDIR)/ws28/*.o: $(wildcard ws28/**/*)
+$(OBJDIR)/ws28/*.o: ws28/src $(wildcard ws28/src/*)
 	@mkdir -p build
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(OBJDIR)/ws28
-	cd $(OBJDIR)/ws28 && $(CC) -c ../../../ws28/*.cpp $(CFLAGS)
+	cd $(OBJDIR)/ws28 && $(CC) -c ../../../ws28/src/*.cpp $(CFLAGS)
 
 json.hpp.gch: json.hpp
 	$(CC) json.hpp $(CFLAGS)
