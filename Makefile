@@ -22,7 +22,7 @@ $(OBJDIR)/streampeerbuffer.o: streampeerbuffer.cpp streampeerbuffer.hpp
 	@mkdir -p $(OBJDIR)
 	$(CC) -c streampeerbuffer.cpp $(CFLAGS) -o $@
 
-$(OBJDIR)/ws28/*.o: ws28/src $(wildcard ws28/src/*)
+$(OBJDIR)/ws28/*.o: ws28/src/*
 	@mkdir -p build
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(OBJDIR)/ws28
@@ -41,7 +41,7 @@ run: $(TARGET)
 
 clean:
 	rm -rf build
-	rm -rf *.gch ws28/*.gch
+	rm -rf **.gch
 
 cleanobj:
 	rm -rf $(OBJDIR)/*.o
