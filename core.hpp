@@ -34,19 +34,6 @@ using json = nlohmann::json;
 leveldb::DB* db;
 leveldb::Options options;
 
-bool string_to_bool(const std::string& str) {
-    union {const char* data; bool value;} converter;
-    converter.data = str.c_str();
-    return converter.value;
-}
-
-std::string bool_to_string(bool boolean) {
-    union {char data[2]; bool value;} converter;
-    converter.value = boolean;
-    converter.data[1] = '\0';
-    return string(converter.data);
-}
-
 enum class Packet {
     InboundInit = 0,
     Input = 1,
@@ -540,9 +527,9 @@ class Arena {
             send_init_packet(buf, new_player);
 
             // tracking
-            std::string value = bool_to_string(false);
+            std::string value;
             if (db->Get(leveldb::ReadOptions(), client->GetIP(), &value).IsNotFound()) {
-                db->Put(leveldb::WriteOptions(), client->GetIP(), value);
+                db->Put(leveldb::WriteOptions(), client->GetIP(), "0");
             }
         }
         

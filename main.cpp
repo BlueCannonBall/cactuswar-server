@@ -40,8 +40,7 @@ void kick(ws28::Client* client, bool destroy=false) {
         BRUH("Forcefully kicked client");
 
         // ban player
-        std::string value = bool_to_string(true);
-        leveldb::Status s = db->Put(leveldb::WriteOptions(), client->GetIP(), value);
+        leveldb::Status s = db->Put(leveldb::WriteOptions(), client->GetIP(), "1");
         if (!s.ok()) {
             ERR("Failed to ban player: " << s.ToString());
         }
@@ -157,7 +156,7 @@ int main(int argc, char **argv) {
         std::string value;
         leveldb::Status s = db->Get(leveldb::ReadOptions(), client->GetIP(), &value);
         if (s.ok()) {
-            if (string_to_bool(value)) {
+            if (value == "1") {
                 BRUH("BANNED PLAYER TRIED TO CONNECT, REJECTING CONNECTION");
                 return false;
             }
