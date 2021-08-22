@@ -41,9 +41,10 @@ bool string_to_bool(const std::string& str) {
 }
 
 std::string bool_to_string(bool boolean) {
-    union {const char* data; bool value;} converter;
+    union {char data[2]; bool value;} converter;
     converter.value = boolean;
-    return converter.data;
+    converter.data[1] = '\0';
+    return string(converter.data);
 }
 
 enum class Packet {
