@@ -6,7 +6,7 @@ CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -g -Ofast -march=native \
 	-fno-builtin-realloc -fno-builtin-free -fopenmp-simd -Bsymbolic -fno-semantic-interposition
 TARGET=./build/server
 OBJDIR=build/obj
-RUN_PORT=8000
+PORT=8000
 
 $(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json.hpp.gch quadtree.hpp.gch
 	mkdir -p build
@@ -34,15 +34,11 @@ json.hpp.gch: json.hpp
 quadtree.hpp.gch: quadtree.hpp
 	$(CC) quadtree.hpp $(CFLAGS)
 
-.PHONY: run clean cleanobj
+.PHONY: run clean
 
 run: $(TARGET)
-	$(TARGET) $(RUN_PORT)
+	$(TARGET) $(PORT)
 
 clean:
 	rm -rf build
 	rm -rf **.gch
-
-cleanobj:
-	rm -rf $(OBJDIR)/*.o
-	rm -rf $(OBJDIR)/ws28/*.o
