@@ -33,8 +33,7 @@ using json = nlohmann::json;
 leveldb::DB* db;          // NOLINT
 leveldb::Options options; // NOLINT
 
-enum class Packet
-{
+enum class Packet {
     InboundInit = 0,
     Input = 1,
     Census = 2,
@@ -231,8 +230,7 @@ public:
 class Tank;
 
 // Dictates current barrel timer state
-enum class BarrelTarget
-{
+enum class BarrelTarget {
     ReloadDelay,
     CoolingDown,
     None
@@ -258,14 +256,12 @@ struct ChatMessage {
     unsigned long time = 0;
 };
 
-enum class TankType
-{
+enum class TankType {
     Local,
     Remote
 };
 
-enum class TankState
-{
+enum class TankState {
     Alive,
     Dead
 };
