@@ -225,8 +225,8 @@ class Shape: public Entity {
             //buf.put_u8(7); // sides
         }
 
-        void next_tick(Arena *arena);
-        void collision_response(Arena *arena);
+        void next_tick(Arena* arena);
+        void collision_response(Arena* arena);
 };
 
 class Tank;
