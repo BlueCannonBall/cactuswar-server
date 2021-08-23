@@ -36,14 +36,16 @@ void kick(ws28::Client* client, bool destroy = false) {
     }
     paths.erase(client);
     if (destroy) {
-        client->Destroy();
-        BRUH("Forcefully kicked client");
-
         // ban player
         leveldb::Status s = db->Put(leveldb::WriteOptions(), client->GetIP(), "1");
         if (!s.ok()) {
             ERR("Failed to ban player: " << s.ToString());
+        } else {
+            INFO("Banned player with ip " << client->GetIP());
         }
+
+        // kick player
+        client->Destroy();
     }
 }
 
