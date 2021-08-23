@@ -30,9 +30,9 @@ struct TankConfig {
     std::vector<BarrelConfig> barrels;
 };
 
-std::vector<TankConfig> tanksconfig;
+std::vector<TankConfig> tanksconfig; // NOLINT
 
-int load_tanks_from_json(const std::string& filename) {
+int load_tanks_from_json(const std::string& filename) { // NOLINT
     std::ifstream tanks_file(filename);
     if (!tanks_file.is_open()) {
         perror(std::string("Failed to open " + filename).c_str());

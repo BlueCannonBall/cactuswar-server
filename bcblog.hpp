@@ -31,9 +31,9 @@
 #define BRUH(log) bcblog::mtx.lock(); std::cout << BOLDMAGENTA << "[" << bcblog::get_time() << "] " << "[BRUH] " << RESET << log << std::endl; bcblog::mtx.unlock()
 
 namespace bcblog {
-    std::mutex mtx;
+    std::mutex mtx; // NOLINT
 
-    std::string get_time() {
+    std::string get_time() { // NOLINT
         time_t t = time(0);
         struct tm *now = localtime(&t);
         char time_cstr[25];

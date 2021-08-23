@@ -5,6 +5,7 @@ core
 compile_commands.json
 bans/
 .DS_Store
+perf.data
 
 *.slo
 *.lo

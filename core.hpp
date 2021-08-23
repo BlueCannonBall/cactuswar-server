@@ -30,8 +30,8 @@ using namespace std;
 using namespace spb;
 using json = nlohmann::json;
 
-leveldb::DB* db;
-leveldb::Options options;
+leveldb::DB* db; // NOLINT
+leveldb::Options options; // NOLINT
 
 enum class Packet {
     InboundInit = 0,
@@ -44,7 +44,7 @@ enum class Packet {
     Respawn = 6
 };
 
-unsigned uid = 0;
+unsigned uid = 0; // NOLINT
 
 inline unsigned int get_uid() {
     if (uid > 4294947295) {
@@ -80,7 +80,7 @@ std::multimap<B, A> flip_map(const std::map<A,B>& src) {
     return dst;
 }
 
-std::string truncate(std::string& str, size_t width, bool ellipsis=true) {
+std::string truncate(std::string& str, size_t width, bool ellipsis=true) { // NOLINT
     if (str.length() > width) {
         if (ellipsis) {
             return str.substr(0, width) + "...";
@@ -164,7 +164,7 @@ class Vector2 {
         }
 };
 
-bool circle_collision(const Vector2& pos1, unsigned int radius1, const Vector2& pos2, unsigned int radius2) {
+bool circle_collision(const Vector2& pos1, unsigned int radius1, const Vector2& pos2, unsigned int radius2) { // NOLINT
     float dx = pos1.x - pos2.x;
     float dy = pos1.y - pos2.y;
     float distance = sqrt(dx * dx + dy * dy);
@@ -898,7 +898,7 @@ class Arena {
 
 /* OVERLOADS */
 
-void Barrel::fire(Tank* tank, Arena* arena) {
+void Barrel::fire(Tank* tank, Arena* arena) { // NOLINT
     Bullet *new_bullet = new Bullet;
     new_bullet->position = tank->position + (Vector2(cos(tank->rotation + angle), sin(tank->rotation + angle)).normalize() * Vector2(tank->radius + new_bullet->radius + 1, tank->radius + new_bullet->radius + 1));
     new_bullet->velocity = Vector2(cos(tank->rotation + this->angle) * bullet_speed, sin(tank->rotation + this->angle) * bullet_speed);
@@ -924,7 +924,7 @@ void Barrel::fire(Tank* tank, Arena* arena) {
 }
 
 // Example collision response 👇
-void Entity::collision_response(Arena* arena) {
+void Entity::collision_response(Arena* arena) { // NOLINT
     vector<shared_ptr<qt::Rect>> candidates;
     arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - this->radius,
@@ -954,7 +954,7 @@ void Entity::collision_response(Arena* arena) {
     }
 }
 
-void Shape::collision_response(Arena* arena) {
+void Shape::collision_response(Arena* arena) { // NOLINT
     vector<shared_ptr<qt::Rect>> candidates;
     arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - this->radius,
@@ -996,7 +996,7 @@ void Shape::collision_response(Arena* arena) {
     }
 }
 
-void Tank::collision_response(Arena *arena) {
+void Tank::collision_response(Arena *arena) { // NOLINT
     vector<shared_ptr<qt::Rect>> candidates;
     arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - this->radius, 
@@ -1135,7 +1135,7 @@ void Tank::collision_response(Arena *arena) {
 }
 
 
-void Bullet::collision_response(Arena *arena) {
+void Bullet::collision_response(Arena *arena) { // NOLINT
     vector<shared_ptr<qt::Rect>> candidates;
     arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
         .x = this->position.x - this->radius,
@@ -1178,7 +1178,7 @@ void Bullet::collision_response(Arena *arena) {
 }
 
 
-void Tank::next_tick(Arena *arena) {
+void Tank::next_tick(Arena *arena) { // NOLINT
 #ifdef THREADING
     uv_rwlock_rdlock(&arena->entity_lock);
 #endif
@@ -1254,7 +1254,7 @@ void Tank::next_tick(Arena *arena) {
 #endif
 }
 
-void Bullet::next_tick(Arena* arena) {
+void Bullet::next_tick(Arena* arena) { // NOLINT
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity / Vector2(this->mass, this->mass);
 
@@ -1274,7 +1274,7 @@ void Bullet::next_tick(Arena* arena) {
     }
 }
 
-void Shape::next_tick(Arena* arena) {
+void Shape::next_tick(Arena* arena) { // NOLINT
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity / Vector2(this->mass, this->mass);
 
