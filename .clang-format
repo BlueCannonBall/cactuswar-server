@@ -63,7 +63,7 @@ NamespaceIndentation: All
 SortIncludes: true
 SpaceAfterCStyleCast: true
 SpaceAfterLogicalNot: false
-SpaceAfterTemplateKeyword: false
+SpaceAfterTemplateKeyword: true
 #SpaceAroundPointerQualifiers: Default
 #SpaceBeforeCaseColon: false
 SpaceBeforeCpp11BracedList: true
@@ -84,3 +84,4 @@ SpacesInParentheses: false
 SpacesInSquareBrackets: false
 UseCRLF: false
 UseTab: Never
+AccessModifierOffset: -4

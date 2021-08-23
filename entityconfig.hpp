@@ -1,9 +1,9 @@
-#include <vector>
-#include <string>
+#include "bcblog.hpp"
+#include "json.hpp"
 #include <cmath>
 #include <fstream>
-#include "json.hpp"
-#include "bcblog.hpp"
+#include <string>
+#include <vector>
 
 #pragma once
 #define PI M_PI
@@ -39,10 +39,10 @@ int load_tanks_from_json(const std::string& filename) { // NOLINT
         return -1;
     }
     std::string data;
-    tanks_file.seekg(0, std::ios::end);   
+    tanks_file.seekg(0, std::ios::end);
     data.reserve(tanks_file.tellg());
     tanks_file.seekg(0, std::ios::beg);
-    data.assign((std::istreambuf_iterator<char>(tanks_file)), 
+    data.assign((std::istreambuf_iterator<char>(tanks_file)),
         std::istreambuf_iterator<char>());
 
     json tanks;
@@ -56,8 +56,7 @@ int load_tanks_from_json(const std::string& filename) { // NOLINT
     for (const auto& tank : tanks) {
         tanksconfig.push_back(TankConfig {
             .name = tank["name"],
-            .fov = tank["fov"]
-        });
+            .fov = tank["fov"]});
         int index = tanksconfig.size() - 1;
         for (const auto& barrel : tank["barrels"]) {
             tanksconfig[index].barrels.push_back(BarrelConfig {
@@ -69,8 +68,7 @@ int load_tanks_from_json(const std::string& filename) { // NOLINT
                 .recoil = barrel["recoil"],
                 .bullet_speed = barrel["bullet_speed"],
                 .bullet_damage = barrel["bullet_damage"],
-                .bullet_penetration = barrel["bullet_penetration"]
-            });
+                .bullet_penetration = barrel["bullet_penetration"]});
         }
     }
 

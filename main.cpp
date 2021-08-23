@@ -1,18 +1,19 @@
-#include "json.hpp"
-#include <iostream>
-#include <uv.h>
-#include "ws28/src/Server.h"
-#include <string>
-#include "streampeerbuffer.hpp"
-#include <cmath>
 #include "bcblog.hpp"
 #include "core.hpp"
-#include <map>
-#include <unordered_map>
+#include "json.hpp"
+#include "streampeerbuffer.hpp"
+#include "ws28/src/Server.h"
+#include <cmath>
 #include <fstream>
+#include <iostream>
 #include <leveldb/db.h>
+#include <map>
+#include <string>
+#include <unordered_map>
+#include <uv.h>
 
-#define UNUSED(expr) do { (void)(expr); } while (0)
+#define UNUSED(expr) \
+    do { (void) (expr); } while (0)
 #define MESSAGE_SIZE 1024
 
 using namespace std;
@@ -21,13 +22,12 @@ using json = nlohmann::json;
 
 map<string, Arena*> arenas = {
     {"/ffa-1", new Arena},
-    {"/ffa-2", new Arena}
-};
+    {"/ffa-2", new Arena}};
 json server_info;
 unordered_map<ws28::Client*, string> paths; // HACK: store paths per client pointer
 
-void kick(ws28::Client* client, bool destroy=false) {
-    Arena *arena = arenas[paths[client]];
+void kick(ws28::Client* client, bool destroy = false) {
+    Arena* arena = arenas[paths[client]];
     if (client->GetUserData() != nullptr) {
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
         if (in_map(arena->entities.tanks, player_id)) {
@@ -47,7 +47,7 @@ void kick(ws28::Client* client, bool destroy=false) {
     }
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     srand(time(NULL));
     unsigned short port;
     if (argc >= 2) {
@@ -70,11 +70,11 @@ int main(int argc, char **argv) {
         delete db;
     });
 
-    ws28::Server server{uv_default_loop(), nullptr};
+    ws28::Server server {uv_default_loop(), nullptr};
     server.SetMaxMessageSize(MESSAGE_SIZE);
-    
+
     // screw lambdas
-    server.SetClientConnectedCallback([](ws28::Client *client, ws28::HTTPRequest& req) {
+    server.SetClientConnectedCallback([](ws28::Client* client, ws28::HTTPRequest& req) {
         INFO("Client with ip " << client->GetIP() << " connected to room \"" << req.path << "\"");
         if (!in_map(arenas, req.path)) {
             client->Destroy();
@@ -82,16 +82,16 @@ int main(int argc, char **argv) {
         }
         paths[client] = req.path;
     });
-    
-    server.SetClientDataCallback([](ws28::Client *client, char *data, size_t len, int opcode) {
+
+    server.SetClientDataCallback([](ws28::Client* client, char* data, size_t len, int opcode) {
         if (opcode != 0x2) {
             kick(client);
             return;
         }
 
         StreamPeerBuffer buf(true);
-        buf.data_array = vector<uint8_t>(data, data+len);
-        
+        buf.data_array = vector<uint8_t>(data, data + len);
+
         Arena* arena = arenas[paths[client]];
         unsigned char packet_id = buf.get_u8();
         switch (packet_id) {
@@ -132,12 +132,12 @@ int main(int argc, char **argv) {
                 break;
         }
     });
-    
-    server.SetClientDisconnectedCallback([](ws28::Client *client) {
-		INFO("Client disconnected");
+
+    server.SetClientDisconnectedCallback([](ws28::Client* client) {
+        INFO("Client disconnected");
         kick(client, false);
         paths.erase(client);
-	});
+    });
 
     server.SetHTTPCallback([](ws28::HTTPRequest& req, ws28::HTTPResponse& res) {
         if (strcmp(req.path, "/serverinfo") == 0) {
@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
     });
 
     // check if player banned
-    server.SetCheckConnectionCallback([](ws28::Client *client, ws28::HTTPRequest&) {
+    server.SetCheckConnectionCallback([](ws28::Client* client, ws28::HTTPRequest&) {
         std::string value;
         leveldb::Status s = db->Get(leveldb::ReadOptions(), client->GetIP(), &value);
         if (s.ok()) {
@@ -165,12 +165,12 @@ int main(int argc, char **argv) {
         }
         return true;
     });
-    
+
     for (const auto& arena : arenas) {
         arena.second->run();
         server_info.push_back(arena.first);
     }
-    
+
     assert(server.Listen(port));
     SUCCESS("Server listening on port " << port);
 
