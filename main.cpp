@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
     });
 
     server.SetClientDataCallback([](ws28::Client* client, char* data, size_t len, int opcode) {
-        if (opcode != 0x2) {
+        if (opcode != 0x2 || len == 0) {
             kick(client);
             return;
         }
