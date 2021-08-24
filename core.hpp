@@ -493,12 +493,10 @@ public:
     void handle_init_packet(StreamPeerBuffer& buf, ws28::Client* client) {
         if (client->GetUserData() != nullptr) {
             unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-            if (in_map(entities.tanks, player_id)) {
-                WARN("Existing player tried to send init packet");
-                destroy_entity(player_id, entities.tanks);
-                client->Destroy();
-                return;
-            }
+            WARN("Existing player tried to send init packet");
+            destroy_entity(player_id, entities.tanks);
+            client->Destroy();
+            return;
         }
 
         string player_name = buf.get_string();
