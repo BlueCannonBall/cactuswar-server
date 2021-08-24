@@ -4,6 +4,7 @@
 #include "streampeerbuffer.hpp"
 #include "ws28/src/Server.h"
 #include <cmath>
+#include <csignal>
 #include <fstream>
 #include <iostream>
 #include <leveldb/db.h>
@@ -49,6 +50,15 @@ void kick(ws28::Client* client, bool destroy = false) {
     }
 }
 
+void atexit_handler() {
+    delete db;
+}
+
+void signal_handler(int signal_num) {
+    delete db;
+    exit(signal_num);
+}
+
 int main(int argc, char** argv) {
     srand(time(NULL));
     unsigned short port;
@@ -68,9 +78,9 @@ int main(int argc, char** argv) {
     assert(s.ok());
     assert(load_tanks_from_json("entityconfig.json") == 0);
 
-    atexit([]() {
-        delete db;
-    });
+    atexit(atexit_handler);
+    signal(SIGTERM, signal_handler);
+    signal(SIGINT, signal_handler);
 
     ws28::Server server {uv_default_loop(), nullptr};
     server.SetMaxMessageSize(MESSAGE_SIZE);
