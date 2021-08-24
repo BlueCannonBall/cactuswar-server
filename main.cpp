@@ -56,7 +56,7 @@ void atexit_handler() {
 
 void signal_handler(int signal_num) {
     delete db;
-    exit(signal_num);
+    _Exit(signal_num);
 }
 
 int main(int argc, char** argv) {
