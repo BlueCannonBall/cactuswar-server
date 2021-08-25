@@ -42,5 +42,6 @@ run: $(TARGET)
 
 clean:
 	rm -rf build
-	rm -rf **.gch
-	rm -rf **.o
+	rm -rf **.gch **.pch
+	rm -rf **.o **.obj
+	rm -rf $(TARGET)
