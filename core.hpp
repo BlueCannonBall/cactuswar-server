@@ -413,24 +413,22 @@ public:
         entityconfig_event_handle.data = this;
         uv_fs_event_start(
             &entityconfig_event_handle, [](uv_fs_event_t* handle, const char* filename, int events, int status) {
-                if (events & UV_CHANGE) {
-                    INFO("Hot reloading entityconfig.json");
-                    std::this_thread::sleep_for(chrono::milliseconds(HOT_RELOAD_TIMEOUT));
-                    tanksconfig.clear();
-                    assert(load_tanks_from_json(filename) == 0);
-                    Arena* arena = (Arena*) handle->data;
-                    StreamPeerBuffer buf(true);
-                    for (const auto& tank : arena->entities.tanks) {
-                        if (tank.second->type == TankType::Remote) {
-                            buf.reset();
-                            arena->send_init_packet(buf, tank.second);
-                            tank.second->define(tank.second->mockup);
-                        }
+                INFO("Hot reloading entityconfig.json");
+                std::this_thread::sleep_for(chrono::milliseconds(HOT_RELOAD_TIMEOUT));
+                tanksconfig.clear();
+                assert(load_tanks_from_json(filename) == 0);
+                Arena* arena = (Arena*) handle->data;
+                StreamPeerBuffer buf(true);
+                for (const auto& tank : arena->entities.tanks) {
+                    if (tank.second->type == TankType::Remote) {
+                        buf.reset();
+                        arena->send_init_packet(buf, tank.second);
+                        tank.second->define(tank.second->mockup);
                     }
                 }
             },
             "entityconfig.json",
-            0);
+            UV_FS_EVENT_STAT);
     }
 
     ~Arena() {
