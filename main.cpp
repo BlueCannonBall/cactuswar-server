@@ -27,7 +27,7 @@ map<string, Arena*> arenas = {
 json server_info;
 unordered_map<ws28::Client*, string> paths; // HACK: store paths per client pointer
 
-void kick(ws28::Client* client, bool destroy = false) {
+void kick(ws28::Client* client, bool destroy = true) {
     Arena* arena = arenas[paths[client]];
     if (client->GetUserData() != nullptr) {
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
