@@ -493,7 +493,13 @@ public:
     void handle_init_packet(StreamPeerBuffer& buf, ws28::Client* client) {
         if (client->GetUserData() != nullptr) {
             unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-            WARN("Existing player tried to send init packet");
+            if (in_map(this->entities.tanks, player_id)) {
+                WARN("Existing player tried to send init packet");
+                destroy_entity(player_id, this->entities.tanks);
+                client->Destroy();
+                return;
+            }
+            WARN("Non-existent player with non-null id tried to send init packet");
             destroy_entity(player_id, entities.tanks);
             client->Destroy();
             return;
@@ -530,15 +536,10 @@ public:
     }
 
     void handle_input_packet(StreamPeerBuffer& buf, ws28::Client* client) {
-        if (client->GetUserData() == nullptr) {
-            WARN("Player without id tried to send input packet");
-            client->Destroy();
-            return;
-        }
-
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
         if (!in_map(this->entities.tanks, player_id)) {
-            WARN("Player not in tank hashmap tried to send input packet");
+            WARN("Player without id tried to send input packet");
+            destroy_entity(player_id, this->entities.tanks);
             client->Destroy();
             return;
         } else if (entities.tanks[player_id]->state == TankState::Dead) {
@@ -578,15 +579,10 @@ public:
     }
 
     void handle_chat_packet(StreamPeerBuffer& buf, ws28::Client* client) {
-        if (client->GetUserData() == nullptr) {
-            WARN("Player without id tried to send chat packet");
-            client->Destroy();
-            return;
-        }
-
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
         if (!in_map(this->entities.tanks, player_id)) {
-            WARN("Player not in tank hashmap tried to send chat packet");
+            WARN("Player without id tried to send chat packet");
+            destroy_entity(player_id, this->entities.tanks);
             client->Destroy();
             return;
         } else if (entities.tanks[player_id]->state == TankState::Dead) {
@@ -607,14 +603,14 @@ public:
 
     void handle_respawn_packet(StreamPeerBuffer& buf, ws28::Client* client) {
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-
         if (!in_map(this->entities.tanks, player_id)) {
             WARN("Player without id tried to send respawn packet");
+            destroy_entity(player_id, this->entities.tanks);
             client->Destroy();
             return;
         } else if (entities.tanks[player_id]->state == TankState::Alive) {
             WARN("Living player tried to send respawn packet");
-            destroy_entity(player_id, entities.tanks);
+            destroy_entity(player_id, this->entities.tanks);
             client->Destroy();
             return;
         }
