@@ -41,7 +41,7 @@ run: $(TARGET)
 	$(TARGET) $(PORT)
 
 clean:
+	rm -rf $(TARGET)
 	rm -rf build
 	rm -rf **.gch **.pch
-	rm -rf **.o **.obj
-	rm -rf $(TARGET)
+	rm -rf **.o
