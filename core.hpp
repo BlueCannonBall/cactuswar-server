@@ -195,6 +195,7 @@ public:
     float health = max_health;
     float damage = 0;
     float mass = 1;
+    shared_ptr<qt::Rect> qt_rect = make_shared<qt::Rect>();
 
     void take_census(StreamPeerBuffer&);
     void collision_response(Arena*);
@@ -291,6 +292,7 @@ public:
     TankType type = TankType::Remote;
     TankState state = TankState::Alive;
     chrono::time_point<chrono::steady_clock> spawn_time = chrono::steady_clock::now();
+    shared_ptr<qt::Rect> viewport_rect = make_shared<qt::Rect>();
 
     void next_tick(Arena* arena);
     void collision_response(Arena* arena) __attribute__((hot));
@@ -690,13 +692,7 @@ public:
 #ifdef THREADING
                 this->qt_mtx.lock();
 #endif
-                this->tree.insert(make_shared<qt::Rect>(qt::Rect {
-                    .x = entity->second->position.x - entity->second->radius,
-                    .y = entity->second->position.y - entity->second->radius,
-                    .width = static_cast<float>(entity->second->radius * 2),
-                    .height = static_cast<float>(entity->second->radius * 2),
-                    .id = entity->second->id,
-                    .radius = entity->second->radius}));
+                this->tree.insert(entity->second->qt_rect);
 #ifdef THREADING
                 this->qt_mtx.unlock();
                 uv_rwlock_rdunlock(&entity_lock);
@@ -755,13 +751,7 @@ public:
                 uv_rwlock_rdlock(&entity_lock);
                 this->qt_mtx.lock();
 #endif
-                this->tree.insert(make_shared<qt::Rect>(qt::Rect {
-                    .x = entity->second->position.x - entity->second->radius,
-                    .y = entity->second->position.y - entity->second->radius,
-                    .width = static_cast<float>(entity->second->radius * 2),
-                    .height = static_cast<float>(entity->second->radius * 2),
-                    .id = entity->second->id,
-                    .radius = entity->second->radius}));
+                this->tree.insert(entity->second->qt_rect);
 #ifdef THREADING
                 this->qt_mtx.unlock();
                 uv_rwlock_rdunlock(&entity_lock);
@@ -796,13 +786,7 @@ public:
 #ifdef THREADING
                 this->qt_mtx.lock();
 #endif
-                this->tree.insert(make_shared<qt::Rect>(qt::Rect {
-                    .x = entity->second->position.x - entity->second->radius,
-                    .y = entity->second->position.y - entity->second->radius,
-                    .width = static_cast<float>(entity->second->radius * 2),
-                    .height = static_cast<float>(entity->second->radius * 2),
-                    .id = entity->second->id,
-                    .radius = entity->second->radius}));
+                this->tree.insert(entity->second->qt_rect);
 #ifdef THREADING
                 this->qt_mtx.unlock();
                 uv_rwlock_rdunlock(&entity_lock);
@@ -928,14 +912,7 @@ void Barrel::fire(Tank* tank, Arena* arena) { // NOLINT
 // Example collision response 👇
 void Entity::collision_response(Arena* arena) { // NOLINT
     vector<shared_ptr<qt::Rect>> candidates;
-    arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
-                             .x = this->position.x - this->radius,
-                             .y = this->position.y - this->radius,
-                             .width = static_cast<float>(this->radius * 2),
-                             .height = static_cast<float>(this->radius * 2),
-                             .id = this->id,
-                             .radius = this->radius}),
-        candidates);
+    arena->tree.retrieve(qt_rect, candidates);
 
     for (const auto& candidate : candidates) {
         if (candidate->id == this->id) {
@@ -958,14 +935,7 @@ void Entity::collision_response(Arena* arena) { // NOLINT
 
 void Shape::collision_response(Arena* arena) { // NOLINT
     vector<shared_ptr<qt::Rect>> candidates;
-    arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
-                             .x = this->position.x - this->radius,
-                             .y = this->position.y - this->radius,
-                             .width = static_cast<float>(this->radius * 2),
-                             .height = static_cast<float>(this->radius * 2),
-                             .id = this->id,
-                             .radius = this->radius}),
-        candidates);
+    arena->tree.retrieve(qt_rect, candidates);
 
     for (const auto& candidate : candidates) {
         if (candidate->id == this->id) {
@@ -1000,14 +970,7 @@ void Shape::collision_response(Arena* arena) { // NOLINT
 
 void Tank::collision_response(Arena* arena) { // NOLINT
     vector<shared_ptr<qt::Rect>> candidates;
-    arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
-                             .x = this->position.x - this->radius,
-                             .y = this->position.y - this->radius,
-                             .width = static_cast<float>(this->radius * 2),
-                             .height = static_cast<float>(this->radius * 2),
-                             .id = this->id,
-                             .radius = this->radius}),
-        candidates);
+    arena->tree.retrieve(qt_rect, candidates);
 
     for (const auto& candidate : candidates) {
         if (candidate->id == this->id) {
@@ -1047,22 +1010,28 @@ void Tank::collision_response(Arena* arena) { // NOLINT
 
     float dr = 112.5 * this->fov * 1.6;
 
-    auto viewport = make_shared<qt::Rect>(qt::Rect {
-        .x = this->position.x - dr / 2,
-        .y = this->position.y - dr / 2,
-        .width = dr,
-        .height = dr,
-        .id = 0,
-        .radius = static_cast<unsigned int>(dr / 2)});
+    this->viewport_rect->x = this->position.x - dr / 2;
+    this->viewport_rect->y = this->position.y - dr / 2;
+    this->viewport_rect->width = dr;
+    this->viewport_rect->height = dr;
+    this->viewport_rect->radius = dr / 2;
 
-    arena->tree.retrieve(viewport, candidates);
+    // auto viewport = make_shared<qt::Rect>(qt::Rect {
+    //     .x = this->position.x - dr / 2,
+    //     .y = this->position.y - dr / 2,
+    //     .width = dr,
+    //     .height = dr,
+    //     .id = 0,
+    //     .radius = static_cast<unsigned int>(dr / 2)});
+
+    arena->tree.retrieve(viewport_rect, candidates);
 
     if (this->type == TankType::Remote) {
         StreamPeerBuffer buf(true);
         unsigned short census_size = 0;
 
         for (const auto& candidate : candidates) {
-            if (aabb(viewport, candidate)) {
+            if (aabb(viewport_rect, candidate)) {
                 if (in_map(arena->entities.tanks, candidate->id)) {
                     if (arena->entities.tanks[candidate->id]->state == TankState::Alive) {
                         arena->entities.tanks[candidate->id]->take_census(buf, arena->ticks);
@@ -1093,7 +1062,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
                 continue;
             }
 
-            if (aabb(viewport, candidate)) {
+            if (aabb(viewport_rect, candidate)) {
                 if (in_map(arena->entities.tanks, candidate->id)) {
                     if (arena->entities.tanks[candidate->id]->state == TankState::Alive) {
                         nearby_tanks[candidate->id] = arena->entities.tanks[candidate->id]->position.distance_to(this->position);
@@ -1140,14 +1109,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
 
 void Bullet::collision_response(Arena* arena) { // NOLINT
     vector<shared_ptr<qt::Rect>> candidates;
-    arena->tree.retrieve(make_shared<qt::Rect>(qt::Rect {
-                             .x = this->position.x - this->radius,
-                             .y = this->position.y - this->radius,
-                             .width = static_cast<float>(this->radius * 2),
-                             .height = static_cast<float>(this->radius * 2),
-                             .id = this->id,
-                             .radius = this->radius}),
-        candidates);
+    arena->tree.retrieve(qt_rect, candidates);
 
     for (const auto& candidate : candidates) {
         if (candidate->id == this->id) {
@@ -1251,6 +1213,13 @@ void Tank::next_tick(Arena* arena) { // NOLINT
         this->position.y = 0;
         this->velocity.y = 0;
     }
+
+    this->qt_rect->x = this->position.x - this->radius;
+    this->qt_rect->y = this->position.y - this->radius;
+    this->qt_rect->width = this->radius * 2;
+    this->qt_rect->height = this->radius * 2;
+    this->qt_rect->radius = this->radius;
+    this->qt_rect->id = this->id;
 #ifdef THREADING
     uv_rwlock_rdunlock(&arena->entity_lock);
 #endif
@@ -1274,6 +1243,13 @@ void Bullet::next_tick(Arena* arena) { // NOLINT
         this->position.y = 0;
         this->velocity.y = 0;
     }
+
+    this->qt_rect->x = this->position.x - this->radius;
+    this->qt_rect->y = this->position.y - this->radius;
+    this->qt_rect->width = this->radius * 2;
+    this->qt_rect->height = this->radius * 2;
+    this->qt_rect->radius = this->radius;
+    this->qt_rect->id = this->id;
 }
 
 void Shape::next_tick(Arena* arena) { // NOLINT
@@ -1294,6 +1270,13 @@ void Shape::next_tick(Arena* arena) { // NOLINT
         this->position.y = 0;
         this->velocity.y = 0;
     }
+
+    this->qt_rect->x = this->position.x - this->radius;
+    this->qt_rect->y = this->position.y - this->radius;
+    this->qt_rect->width = this->radius * 2;
+    this->qt_rect->height = this->radius * 2;
+    this->qt_rect->radius = this->radius;
+    this->qt_rect->id = this->id;
 }
 
 ///////////
