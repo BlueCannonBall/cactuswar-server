@@ -415,8 +415,8 @@ public:
             &entityconfig_event_handle, [](uv_fs_event_t* handle, const char* filename, int events, int status) {
                 if (events & UV_CHANGE) {
                     INFO("Hot reloading entityconfig.json");
-                    tanksconfig.clear();
                     std::this_thread::sleep_for(chrono::milliseconds(HOT_RELOAD_TIMEOUT));
+                    tanksconfig.clear();
                     assert(load_tanks_from_json(filename) == 0);
                     Arena* arena = (Arena*) handle->data;
                     StreamPeerBuffer buf(true);
