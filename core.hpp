@@ -321,7 +321,7 @@ public:
         buf.put_float(this->health / this->max_health);            // health
         buf.put_u16(this->radius);                                 // radius
         buf.put_string(this->name);                                // tank name
-        if (message.time == 0 || time - (30 * 5) > message.time) { // show chat messages for 7 seconds
+        if (message.time == 0 || time - (30 * 5) > message.time) { // show chat messages for 30*5 ticks
             buf.put_string("");                                    // empty message
         } else {
             buf.put_string(message.content);

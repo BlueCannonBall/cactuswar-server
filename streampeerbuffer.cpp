@@ -241,6 +241,7 @@ namespace spb {
         std::vector<int8_t> bytes;
         for (uint16_t b = 0; b < length; b++)
             bytes.push_back(get_8());
+        str.resize(length);
         std::copy(bytes.begin(), bytes.end(), str.begin());
         return 0;
     }
