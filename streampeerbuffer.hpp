@@ -45,7 +45,7 @@ namespace spb {
         int64_t get_64();
 
         void put_string(const std::string&);
-        std::string get_string();
+        int get_string(std::string& str);
 
         void put_float(float);
         float get_float();

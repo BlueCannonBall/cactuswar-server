@@ -66,6 +66,18 @@ inline bool file_exists(const std::string& name) {
     return (stat(name.c_str(), &buffer) == 0);
 }
 
+void ban(ws28::Client* client, bool destroy = false) { // NOLINT
+    leveldb::Status s = db->Put(leveldb::WriteOptions(), client->GetIP(), "1");
+    if (!s.ok()) {
+        ERR("Failed to ban player: " << s.ToString());
+    } else {
+        INFO("Banned player with ip " << client->GetIP());
+    }
+
+    if (destroy)
+        client->Destroy();
+}
+
 template <typename A, typename B>
 std::pair<B, A> flip_pair(const std::pair<A, B>& p) {
     return std::pair<B, A>(p.second, p.first);
@@ -498,16 +510,21 @@ public:
             if (in_map(this->entities.tanks, player_id)) {
                 WARN("Existing player tried to send init packet");
                 destroy_entity(player_id, this->entities.tanks);
-                client->Destroy();
+                ban(client, true);
                 return;
             }
             WARN("Non-existent player with non-null id tried to send init packet");
             destroy_entity(player_id, entities.tanks);
-            client->Destroy();
+            ban(client, true);
             return;
         }
 
-        string player_name = buf.get_string();
+        string player_name;
+        if (buf.get_string(player_name) != 0) {
+            WARN("Client tried to send invalid init packet");
+            ban(client, true);
+            return;
+        }
         if (player_name.size() == 0) {
             player_name = "Unnamed";
         }
@@ -542,7 +559,7 @@ public:
         if (!in_map(this->entities.tanks, player_id)) {
             WARN("Player without id tried to send input packet");
             destroy_entity(player_id, this->entities.tanks);
-            client->Destroy();
+            ban(client, true);
             return;
         } else if (entities.tanks[player_id]->state == TankState::Dead) {
             WARN("Dead player tried to send input packet");
@@ -585,14 +602,20 @@ public:
         if (!in_map(this->entities.tanks, player_id)) {
             WARN("Player without id tried to send chat packet");
             destroy_entity(player_id, this->entities.tanks);
-            client->Destroy();
+            ban(client, true);
             return;
         } else if (entities.tanks[player_id]->state == TankState::Dead) {
             WARN("Dead player tried to send chat packet");
             return;
         }
 
-        string message = buf.get_string();
+        string message;
+        if (buf.get_string(message) != 0) {
+            WARN("Player tried to send invalid chat packet");
+            destroy_entity(player_id, this->entities.tanks);
+            ban(client, true);
+            return;
+        }
         if (message.size() == 0) {
             entities.tanks[player_id]->message.time = 0;
             return;
@@ -608,12 +631,12 @@ public:
         if (!in_map(this->entities.tanks, player_id)) {
             WARN("Player without id tried to send respawn packet");
             destroy_entity(player_id, this->entities.tanks);
-            client->Destroy();
+            ban(client, true);
             return;
         } else if (entities.tanks[player_id]->state == TankState::Alive) {
             WARN("Living player tried to send respawn packet");
             destroy_entity(player_id, this->entities.tanks);
-            client->Destroy();
+            ban(client, true);
             return;
         }
 

@@ -148,7 +148,6 @@ int main(int argc, char** argv) {
     server.SetClientDisconnectedCallback([](ws28::Client* client) {
         INFO("Client disconnected");
         kick(client, false);
-        paths.erase(client);
     });
 
     server.SetHTTPCallback([](ws28::HTTPRequest& req, ws28::HTTPResponse& res) {

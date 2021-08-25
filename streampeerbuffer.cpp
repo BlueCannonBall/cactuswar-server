@@ -1,11 +1,7 @@
 #include "streampeerbuffer.hpp"
 #include <array>
-#include <cmath>
-#include <iomanip>
-#include <memory>
 #include <string.h>
 #include <string>
-#include <type_traits>
 #include <vector>
 
 #ifdef __linux__
@@ -238,13 +234,15 @@ namespace spb {
             put_8(b);
     }
 
-    std::string StreamPeerBuffer::get_string() {
+    int StreamPeerBuffer::get_string(std::string& str) {
         uint16_t length = get_u16();
+        if (length > data_array.size() - offset)
+            return 1;
         std::vector<int8_t> bytes;
         for (uint16_t b = 0; b < length; b++)
             bytes.push_back(get_8());
-        std::string str(bytes.begin(), bytes.end());
-        return str;
+        std::copy(bytes.begin(), bytes.end(), str.begin());
+        return 0;
     }
 
     void StreamPeerBuffer::put_float(float number) {
