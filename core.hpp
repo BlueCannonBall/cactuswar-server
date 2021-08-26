@@ -45,7 +45,13 @@ enum class Packet {
     Respawn = 6
 };
 
+struct ClientInfo {
+    string path;
+    ws28::RequestHeaders headers;
+};
+
 unsigned uid = 0; // NOLINT
+unordered_map<ws28::Client*, ClientInfo> paths; // NOLINT
 
 inline unsigned int get_uid() {
     if (uid > 4294947295) {
@@ -68,11 +74,18 @@ inline bool file_exists(const std::string& name) {
 }
 
 void ban(ws28::Client* client, bool destroy = false) { // NOLINT
-    leveldb::Status s = db->Put(leveldb::WriteOptions(), client->GetIP(), "1");
+    leveldb::Status s;
+    string ip;
+    if (paths[client].headers.Get("x-forwarded-for")) {
+        ip = paths[client].headers.Get("x-forwarded-for");
+    } else {
+        ip = client->GetIP();
+    }
+    s = db->Put(leveldb::WriteOptions(), ip, "1");
     if (!s.ok()) {
         ERR("Failed to ban player: " << s.ToString());
     } else {
-        INFO("Banned player with ip " << client->GetIP());
+        INFO("Banned player with ip " << ip);
     }
 
     if (destroy)

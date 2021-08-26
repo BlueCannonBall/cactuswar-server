@@ -25,29 +25,18 @@ map<string, Arena*> arenas = {
     {"/ffa-1", new Arena},
     {"/ffa-2", new Arena}};
 json server_info;
-unordered_map<ws28::Client*, string> paths; // HACK: store paths per client pointer
 
 void kick(ws28::Client* client, bool destroy = true) {
-    Arena* arena = arenas[paths[client]];
+    Arena* arena = arenas[paths[client].path];
     if (client->GetUserData() != nullptr) {
         unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
         if (in_map(arena->entities.tanks, player_id)) {
             arena->destroy_entity(player_id, arena->entities.tanks);
         }
     }
-    paths.erase(client);
-    if (destroy) {
-        // ban player
-        leveldb::Status s = db->Put(leveldb::WriteOptions(), client->GetIP(), "1");
-        if (!s.ok()) {
-            ERR("Failed to ban player: " << s.ToString());
-        } else {
-            INFO("Banned player with ip " << client->GetIP());
-        }
 
-        // kick player
-        client->Destroy();
-    }
+    if (destroy)
+        ban(client);
 }
 
 void atexit_handler() {
@@ -89,10 +78,13 @@ int main(int argc, char** argv) {
     server.SetClientConnectedCallback([](ws28::Client* client, ws28::HTTPRequest& req) {
         INFO("Client with ip " << client->GetIP() << " connected to room \"" << req.path << "\"");
         if (!in_map(arenas, req.path)) {
-            client->Destroy();
+            kick(client);
             return;
         }
-        paths[client] = req.path;
+        paths[client] = ClientInfo {
+            .path = req.path,
+            .headers = req.headers
+        };
     });
 
     server.SetClientDataCallback([](ws28::Client* client, char* data, size_t len, int opcode) {
@@ -104,7 +96,7 @@ int main(int argc, char** argv) {
         StreamPeerBuffer buf(true);
         buf.data_array = vector<uint8_t>(data, data + len);
 
-        Arena* arena = arenas[paths[client]];
+        Arena* arena = arenas[paths[client].path];
         unsigned char packet_id = buf.get_u8();
         switch (packet_id) {
             default:
@@ -148,6 +140,7 @@ int main(int argc, char** argv) {
     server.SetClientDisconnectedCallback([](ws28::Client* client) {
         INFO("Client disconnected");
         kick(client, false);
+        paths.erase(client);
     });
 
     server.SetHTTPCallback([](ws28::HTTPRequest& req, ws28::HTTPResponse& res) {
