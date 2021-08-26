@@ -6,6 +6,9 @@
 
 namespace qt {
     template <typename ForwardIterator>
+    ForwardIterator remove_duplicates(ForwardIterator first, ForwardIterator last) __attribute__((hot));
+
+    template <typename ForwardIterator>
     ForwardIterator remove_duplicates(ForwardIterator first, ForwardIterator last) {
         auto new_last = first;
 
@@ -50,7 +53,7 @@ namespace qt {
             this->level = level;
         }
 
-        void split() __attribute__((hot)) {
+        void split() {
             float nextLevel = this->level + 1;
             float subWidth = this->bounds->width / 2;
             float subHeight = this->bounds->height / 2;
