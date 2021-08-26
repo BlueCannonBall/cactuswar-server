@@ -25,6 +25,7 @@
 #define HOT_RELOAD_TIMEOUT     30
 #define TARGET_TPS             30
 #define RAND(a, b)             rand() % (b - a + 1) + a
+#define ELLIPSIS               "…"
 
 using namespace std;
 using namespace spb;
@@ -91,9 +92,9 @@ std::multimap<B, A> flip_map(const std::map<A, B>& src) {
 }
 
 std::string truncate(std::string& str, size_t width, bool ellipsis = true) { // NOLINT
-    if (str.length() > width) {
+    if (str.length() + sizeof(ELLIPSIS) + 1 > width) {
         if (ellipsis) {
-            return str.substr(0, width) + "…";
+            return str.substr(0, width) + ELLIPSIS;
         } else {
             return str.substr(0, width);
         }
