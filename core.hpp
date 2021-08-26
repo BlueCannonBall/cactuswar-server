@@ -566,7 +566,7 @@ public:
         Tank* player = entities.tanks[player_id];
 
         unsigned char movement_byte = buf.get_u8();
-        player->input = {.W = false, .A = false, .S = false, .D = false, .mousedown = true};
+        player->input = {.W = false, .A = false, .S = false, .D = false, .mousedown = false};
 
         if (0b10000 & movement_byte) {
             player->input.W = true;
