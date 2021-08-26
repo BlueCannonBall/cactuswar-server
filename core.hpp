@@ -93,7 +93,7 @@ std::multimap<B, A> flip_map(const std::map<A, B>& src) {
 std::string truncate(std::string& str, size_t width, bool ellipsis = true) { // NOLINT
     if (str.length() > width) {
         if (ellipsis) {
-            return str.substr(0, width) + "...";
+            return str.substr(0, width) + "…";
         } else {
             return str.substr(0, width);
         }
@@ -626,7 +626,7 @@ public:
         }
 
         player->message.time = ticks;
-        player->message.content = message;
+        player->message.content = truncate(message, 100, true);
         INFO("\"" << player->name << "\" says: " << player->message.content);
     }
 
