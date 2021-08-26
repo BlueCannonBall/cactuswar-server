@@ -36,7 +36,7 @@ void kick(ws28::Client* client, bool destroy = true) {
     }
 
     if (destroy) {
-        ban(client);
+        ban(client, destroy);
     }
 }
 

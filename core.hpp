@@ -73,7 +73,7 @@ inline bool file_exists(const std::string& name) {
     return (stat(name.c_str(), &buffer) == 0);
 }
 
-void ban(ws28::Client* client) { // NOLINT
+void ban(ws28::Client* client, bool destroy = true) { // NOLINT
     leveldb::Status s;
     string ip;
     if (paths[client].headers.Get("x-forwarded-for") != nullptr) {
@@ -89,7 +89,7 @@ void ban(ws28::Client* client) { // NOLINT
         INFO("Banned player with ip " << ip);
     }
 
-    client->Destroy();
+    if (destroy) client->Destroy();
 }
 
 template <typename A, typename B>
