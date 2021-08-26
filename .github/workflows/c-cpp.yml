@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  MAKEFLAGS: -j $(grep -c ^processor /proc/cpuinfo)
+
 jobs:
   build:
 
@@ -21,4 +24,4 @@ jobs:
     - name: Remove build artifacts
       run: make clean
     - name: Build
-      run: make -j
+      run: make

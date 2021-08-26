@@ -35,8 +35,9 @@ void kick(ws28::Client* client, bool destroy = true) {
         }
     }
 
-    if (destroy)
+    if (destroy) {
         ban(client);
+    }
 }
 
 void atexit_handler() {
