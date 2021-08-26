@@ -54,7 +54,7 @@ unsigned uid = 0;                               // NOLINT
 unordered_map<ws28::Client*, ClientInfo> paths; // NOLINT
 
 inline unsigned int get_uid() {
-    if (uid > 4294947295) {
+    if (uid > UINT32_MAX - 10000) {
         WARN("IDs are close to the 32-bit unsigned integer limit");
     }
     return uid++;
