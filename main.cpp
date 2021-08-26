@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
             ip = client->GetIP();
         }
         db->Get(leveldb::ReadOptions(), ip, &value);
-        if (s.ok()) {
+        if (s.ok() && value.size() != 0) {
             if (value != "0") {
                 BRUH("BANNED PLAYER TRIED TO CONNECT, REJECTING CONNECTION");
                 return false;
