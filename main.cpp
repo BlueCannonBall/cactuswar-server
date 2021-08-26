@@ -84,9 +84,6 @@ int main(int argc, char** argv) {
         paths[client] = ClientInfo {
             .path = req.path,
             .headers = req.headers};
-        paths[client].headers.ForEach([](const char* key, const char* value) {
-            cout << key << ": " << value << endl;
-        });
     });
 
     server.SetClientDataCallback([](ws28::Client* client, char* data, size_t len, int opcode) {
@@ -158,9 +155,22 @@ int main(int argc, char** argv) {
     });
 
     // check if player banned
-    server.SetCheckConnectionCallback([](ws28::Client* client, ws28::HTTPRequest&) {
-        std::string value;
-        leveldb::Status s = db->Get(leveldb::ReadOptions(), client->GetIP(), &value);
+    server.SetCheckConnectionCallback([](ws28::Client* client, ws28::HTTPRequest& req) {
+        INFO("New client's HTTP headers:");
+        req.headers.ForEach([](const char* key, const char* value) {
+            INFO("    " << key << ": " << value);
+        });
+
+        string value;
+        leveldb::Status s;
+        string ip;
+        if (req.headers.Get("x-forwarded-for")) {
+            ip = req.headers.Get("x-forwarded-for");
+            ip = ip.substr(0, ip.find(","));
+        } else {
+            ip = client->GetIP();
+        }
+        db->Get(leveldb::ReadOptions(), ip, &value);
         if (s.ok()) {
             if (value != "0") {
                 BRUH("BANNED PLAYER TRIED TO CONNECT, REJECTING CONNECTION");
