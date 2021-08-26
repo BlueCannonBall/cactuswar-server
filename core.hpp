@@ -563,36 +563,36 @@ public:
             WARN("Dead player tried to send input packet");
             return;
         }
+        Tank* player = entities.tanks[player_id];
 
         unsigned char movement_byte = buf.get_u8();
-        entities.tanks[player_id]->input = {.W = false, .A = false, .S = false, .D = false, .mousedown = false, .mousepos = Vector2(0, 0)};
 
         if (0b10000 & movement_byte) {
-            entities.tanks[player_id]->input.W = true;
+            player->input.W = true;
             //puts("w");
         } else if (0b00100 & movement_byte) {
-            entities.tanks[player_id]->input.S = true;
+            player->input.S = true;
             //puts("s");
         }
 
         if (0b01000 & movement_byte) {
-            entities.tanks[player_id]->input.A = true;
+            player->input.A = true;
             //puts("a");
         } else if (0b00010 & movement_byte) {
-            entities.tanks[player_id]->input.D = true;
+            player->input.D = true;
             //puts("d");
         }
 
         if (0b00001 & movement_byte) {
-            entities.tanks[player_id]->input.mousedown = true;
+            player->input.mousedown = true;
         }
 
         short mousex = buf.get_16();
         short mousey = buf.get_16();
-        entities.tanks[player_id]->input.mousepos = Vector2(mousex, mousey);
-        entities.tanks[player_id]->rotation = atan2(
-            entities.tanks[player_id]->input.mousepos.y - entities.tanks[player_id]->position.y,
-            entities.tanks[player_id]->input.mousepos.x - entities.tanks[player_id]->position.x);
+        player->input.mousepos = Vector2(mousex, mousey);
+        player->rotation = atan2(
+            player->input.mousepos.y - player->position.y,
+            player->input.mousepos.x - player->position.x);
     }
 
     void handle_chat_packet(StreamPeerBuffer& buf, ws28::Client* client) {
@@ -606,6 +606,7 @@ public:
             WARN("Dead player tried to send chat packet");
             return;
         }
+        Tank* player = entities.tanks[player_id];
 
         string message;
         if (buf.get_string(message) != 0) {
@@ -615,13 +616,13 @@ public:
             return;
         }
         if (message.size() == 0) {
-            entities.tanks[player_id]->message.time = 0;
+            player->message.time = 0;
             return;
         }
 
-        entities.tanks[player_id]->message.time = ticks;
-        entities.tanks[player_id]->message.content = message;
-        INFO("\"" << entities.tanks[player_id]->name << "\" says: " << entities.tanks[player_id]->message.content);
+        player->message.time = ticks;
+        player->message.content = message;
+        INFO("\"" << player->name << "\" says: " << player->message.content);
     }
 
     void handle_respawn_packet(StreamPeerBuffer& buf, ws28::Client* client) {
@@ -637,16 +638,17 @@ public:
             ban(client, true);
             return;
         }
+        Tank* player = entities.tanks[player_id];
 
-        entities.tanks[player_id]->position = Vector2(RAND(0, size), RAND(0, size));
-        entities.tanks[player_id]->health = entities.tanks[player_id]->max_health;
-        if (entities.tanks[player_id]->level / 2 >= 1) {
-            entities.tanks[player_id]->level = entities.tanks[player_id]->level / 2;
+        player->position = Vector2(RAND(0, size), RAND(0, size));
+        player->health = player->max_health;
+        if (player->level / 2 >= 1) {
+            player->level = player->level / 2;
         } else {
-            entities.tanks[player_id]->level = 1;
+            player->level = 1;
         }
-        entities.tanks[player_id]->state = TankState::Alive;
-        entities.tanks[player_id]->spawn_time = chrono::steady_clock::now();
+        player->state = TankState::Alive;
+        player->spawn_time = chrono::steady_clock::now();
     }
 
     template <typename T>
