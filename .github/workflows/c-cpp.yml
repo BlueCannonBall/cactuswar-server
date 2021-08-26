@@ -20,7 +20,7 @@ jobs:
       with:
         submodules: recursive
     - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install libuv1 libuv1-dev google-perftools libgoogle-perftools-dev libleveldb-dev
+      run: sudo apt-get update && sudo apt-get install libuv1 libuv1-dev libleveldb-dev
     - name: Remove build artifacts
       run: make clean
     - name: Build
