@@ -566,8 +566,15 @@ public:
 
         // tracking
         std::string value;
-        if (db->Get(leveldb::ReadOptions(), client->GetIP(), &value).IsNotFound()) {
-            db->Put(leveldb::WriteOptions(), client->GetIP(), "0");
+        string ip;
+        if (paths[client].headers.Get("x-forwarded-for")) {
+            ip = paths[client].headers.Get("x-forwarded-for");
+            ip = ip.substr(0, ip.find(","));
+        } else {
+            ip = client->GetIP();
+        }
+        if (db->Get(leveldb::ReadOptions(), ip, &value).IsNotFound()) {
+            db->Put(leveldb::WriteOptions(), ip, "0");
         }
     }
 
