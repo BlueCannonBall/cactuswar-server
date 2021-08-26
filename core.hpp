@@ -76,9 +76,6 @@ inline bool file_exists(const std::string& name) {
 void ban(ws28::Client* client, bool destroy = false) { // NOLINT
     leveldb::Status s;
     string ip;
-    paths[client].headers.ForEach([](const char* key, const char* value) {
-        cout << key << ": " << value << endl;
-    });
     if (paths[client].headers.Get("x-forwarded-for")) {
         ip = paths[client].headers.Get("x-forwarded-for");
     } else {

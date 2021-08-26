@@ -84,6 +84,9 @@ int main(int argc, char** argv) {
         paths[client] = ClientInfo {
             .path = req.path,
             .headers = req.headers};
+        paths[client].headers.ForEach([](const char* key, const char* value) {
+            cout << key << ": " << value << endl;
+        });
     });
 
     server.SetClientDataCallback([](ws28::Client* client, char* data, size_t len, int opcode) {
