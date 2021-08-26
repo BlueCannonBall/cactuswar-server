@@ -31,6 +31,8 @@ using namespace std;
 using namespace spb;
 using json = nlohmann::json;
 
+typedef std::unordered_map<std::string, std::string> HTTPHeaders;
+
 leveldb::DB* db;          // NOLINT
 leveldb::Options options; // NOLINT
 
@@ -47,7 +49,7 @@ enum class Packet {
 
 struct ClientInfo {
     string path;
-    ws28::RequestHeaders headers;
+    HTTPHeaders headers;
 };
 
 unsigned uid = 0;                               // NOLINT
@@ -71,26 +73,6 @@ inline bool aabb(shared_ptr<qt::Rect> rect1, shared_ptr<qt::Rect> rect2) {
 inline bool file_exists(const std::string& name) {
     struct stat buffer;
     return (stat(name.c_str(), &buffer) == 0);
-}
-
-void ban(ws28::Client* client, bool destroy = true) { // NOLINT
-    leveldb::Status s;
-    string ip;
-    INFO("Bullshit function returns: " << paths[client].headers.Get("x-forwarded-for"));
-    if (paths[client].headers.Get("x-forwarded-for")) {
-        ip = paths[client].headers.Get("x-forwarded-for");
-        ip = ip.substr(0, ip.find(","));
-    } else {
-        ip = client->GetIP();
-    }
-    s = db->Put(leveldb::WriteOptions(), ip, "1");
-    if (!s.ok()) {
-        ERR("Failed to ban player: " << s.ToString());
-    } else {
-        INFO("Banned player with ip " << ip);
-    }
-
-    if (destroy) client->Destroy();
 }
 
 template <typename A, typename B>
@@ -204,6 +186,25 @@ inline bool in_map(T1& map, const T2& object) {
 template <class T1, class T2>
 inline bool in_vec(T1& vec, const T2& object) {
     return find(vec.begin(), vec.end(), object) != vec.end();
+}
+
+void ban(ws28::Client* client, bool destroy = true) { // NOLINT
+    leveldb::Status s;
+    string ip;
+    if (in_map(paths[client].headers, "x-forwarded-for")) {
+        ip = paths[client].headers["x-forwarded-for"];
+        ip = ip.substr(0, ip.find(","));
+    } else {
+        ip = client->GetIP();
+    }
+    s = db->Put(leveldb::WriteOptions(), ip, "1");
+    if (!s.ok()) {
+        ERR("Failed to ban player: " << s.ToString());
+    } else {
+        INFO("Banned player with ip " << ip);
+    }
+
+    if (destroy) client->Destroy();
 }
 
 class Arena;
@@ -567,8 +568,8 @@ public:
         // tracking
         std::string value;
         string ip;
-        if (paths[client].headers.Get("x-forwarded-for")) {
-            ip = paths[client].headers.Get("x-forwarded-for");
+        if (in_map(paths[client].headers, "x-forwarded-for")) {
+            ip = paths[client].headers["x-forwarded-for"];
             ip = ip.substr(0, ip.find(","));
         } else {
             ip = client->GetIP();

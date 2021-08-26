@@ -82,9 +82,11 @@ int main(int argc, char** argv) {
             kick(client);
             return;
         }
-        paths[client] = ClientInfo {
-            .path = req.path,
-            .headers = req.headers};
+        paths[client] = ClientInfo {};
+        paths[client].path = req.path;
+        req.headers.ForEach([client](const char* key, const char* value) {
+            paths[client].headers[key] = value;
+        });
     });
 
     server.SetClientDataCallback([](ws28::Client* client, char* data, size_t len, int opcode) {
