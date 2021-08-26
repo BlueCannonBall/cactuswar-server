@@ -50,7 +50,7 @@ struct ClientInfo {
     ws28::RequestHeaders headers;
 };
 
-unsigned uid = 0; // NOLINT
+unsigned uid = 0;                               // NOLINT
 unordered_map<ws28::Client*, ClientInfo> paths; // NOLINT
 
 inline unsigned int get_uid() {

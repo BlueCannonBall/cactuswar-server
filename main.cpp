@@ -83,8 +83,7 @@ int main(int argc, char** argv) {
         }
         paths[client] = ClientInfo {
             .path = req.path,
-            .headers = req.headers
-        };
+            .headers = req.headers};
     });
 
     server.SetClientDataCallback([](ws28::Client* client, char* data, size_t len, int opcode) {
