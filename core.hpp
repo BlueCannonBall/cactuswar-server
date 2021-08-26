@@ -78,6 +78,7 @@ void ban(ws28::Client* client, bool destroy = false) { // NOLINT
     string ip;
     if (paths[client].headers.Get("x-forwarded-for")) {
         ip = paths[client].headers.Get("x-forwarded-for");
+        INFO(ip);
     } else {
         ip = client->GetIP();
     }
