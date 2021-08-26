@@ -236,7 +236,7 @@ namespace spb {
 
     int StreamPeerBuffer::get_string(std::string& str) {
         uint16_t length = get_u16();
-        if (length > data_array.size() - offset)
+        if (length > size() - offset)
             return 1;
         std::vector<int8_t> bytes;
         for (uint16_t b = 0; b < length; b++)

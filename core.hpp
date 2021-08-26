@@ -486,7 +486,7 @@ public:
             }
         }
 
-        player->client->Send(reinterpret_cast<char*>(buf.data()), buf.data_array.size(), 0x2);
+        player->client->Send(reinterpret_cast<char*>(buf.data()), buf.size(), 0x2);
     }
 
     void send_death_packet(StreamPeerBuffer& buf, Tank* player) {
@@ -499,7 +499,7 @@ public:
             BRUH("Noob \"" << player->name << "\" lived for " << elapsed_seconds.count() << "s before dying");
         }
         buf.put_double(elapsed_seconds.count()); // seconds elapsed since spawn
-        player->client->Send(reinterpret_cast<char*>(buf.data()), buf.data_array.size(), 0x2);
+        player->client->Send(reinterpret_cast<char*>(buf.data()), buf.size(), 0x2);
     }
 
     void handle_init_packet(StreamPeerBuffer& buf, ws28::Client* client) {
@@ -519,6 +519,10 @@ public:
 
         string player_name;
         if (buf.get_string(player_name) != 0) {
+            WARN("Client tried to send invalid init packet");
+            ban(client, true);
+            return;
+        } else if (buf.size() - buf.offset != 0) {
             WARN("Client tried to send invalid init packet");
             ban(client, true);
             return;
@@ -1076,7 +1080,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
         buf.put_u16(census_size);
         buf.put_u16(arena->size);
         buf.put_float(this->level);
-        this->client->Send(reinterpret_cast<char*>(buf.data()), buf.data_array.size(), 0x2);
+        this->client->Send(reinterpret_cast<char*>(buf.data()), buf.size(), 0x2);
     } else if (arena->ticks % 2 == 0) {
         map<unsigned int, unsigned int> nearby_tanks;
         map<unsigned int, unsigned int> nearby_shapes;
