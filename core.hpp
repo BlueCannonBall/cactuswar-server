@@ -1046,6 +1046,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
                 this->health -= arena->entities.bullets[candidate->id]->damage; // damage
                 if (this->health <= 0) {
                     if (in_map(arena->entities.tanks, arena->entities.bullets[candidate->id]->owner)) {
+                        INFO("Kill (" << arena->entities.bullets[candidate->id]->owner << ") " << arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level << ", " << this->level / 2);
                         arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level += this->level / 2;
                     } else {
                         BRUH("The bullet of a non-existent player hit and killed another tank");
