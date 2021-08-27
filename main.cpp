@@ -79,14 +79,10 @@ int main(int argc, char** argv) {
     server.SetClientConnectedCallback([](ws28::Client* client, ws28::HTTPRequest& req) {
         INFO("Client with ip " << client->GetIP() << " connected to room \"" << req.path << "\"");
         if (!in_map(arenas, req.path)) {
+            WARN("Player tried to connect to non-existent room \"" << req.path << "\"");
             kick(client);
             return;
         }
-        paths[client] = ClientInfo {};
-        paths[client].path = req.path;
-        req.headers.ForEach([client](const char* key, const char* value) {
-            paths[client].headers[key] = value;
-        });
     });
 
     server.SetClientDataCallback([](ws28::Client* client, char* data, size_t len, int opcode) {
@@ -182,6 +178,12 @@ int main(int argc, char** argv) {
         } else if (!s.IsNotFound()) {
             ERR("Failed to check if player is banned: " << s.ToString());
         }
+
+        paths[client] = ClientInfo {};
+        paths[client].path = req.path;
+        req.headers.ForEach([client](const char* key, const char* value) {
+            paths[client].headers[key] = value;
+        });
         return true;
     });
 
