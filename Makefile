@@ -1,9 +1,9 @@
 CC=c++
 LDFLAGS=-luv -lssl -lcrypto -pthread -lleveldb
-CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -s -Ofast -march=native \
-	-fno-signed-zeros -fno-trapping-math -fdiagnostics-color=always  \
-	-frename-registers -funroll-loops -fmerge-all-constants -ftree-vectorize  \
-	-fopenmp-simd -Bsymbolic -fno-semantic-interposition -mtune=native
+CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -s -O2 -march=native \
+	-mtune=native -fdiagnostics-color=always -frename-registers  \
+	-funroll-loops -fmerge-all-constants -ftree-vectorize  \
+	-fopenmp-simd -Bsymbolic -fno-semantic-interposition
 TARGET=./build/server
 OBJDIR=build/obj
 PORT=8000

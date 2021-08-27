@@ -1003,8 +1003,9 @@ void Shape::collision_response(Arena* arena) { // NOLINT
 
         if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (in_map(arena->entities.bullets, candidate->id)) {
+                float old_health = this->health;
                 this->health -= arena->entities.bullets[candidate->id]->damage; // damage
-                if (this->health <= 0) {
+                if (this->health <= 0 && old_health > 0) {
                     if (in_map(arena->entities.tanks, arena->entities.bullets[candidate->id]->owner)) {
                         INFO("Shape destruction (" << arena->entities.bullets[candidate->id]->owner << ") " << arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level << ", " << this->reward);
                         arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level += this->reward;
@@ -1043,8 +1044,9 @@ void Tank::collision_response(Arena* arena) { // NOLINT
 
         if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (in_map(arena->entities.bullets, candidate->id)) {
+                float old_health = this->health;
                 this->health -= arena->entities.bullets[candidate->id]->damage; // damage
-                if (this->health <= 0) {
+                if (this->health <= 0 && old_health > 0) {
                     if (in_map(arena->entities.tanks, arena->entities.bullets[candidate->id]->owner)) {
                         INFO("Kill (" << arena->entities.bullets[candidate->id]->owner << ") " << arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level << ", " << this->level / 2);
                         arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level += this->level / 2;
