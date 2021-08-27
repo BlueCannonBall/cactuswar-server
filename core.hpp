@@ -721,6 +721,10 @@ public:
                 new_shape->position = Vector2(RAND(0, size), RAND(0, size));
                 entities.shapes[new_shape->id] = new_shape;
             }
+        } else if (entities.shapes.size() >= target_shape_count + 12) {
+            while (entities.shapes.size() != target_shape_count) {
+                destroy_entity(entities.shapes.begin()->first, entities.shapes);
+            }
         }
 
 #ifdef THREADING
