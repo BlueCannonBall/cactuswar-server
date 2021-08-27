@@ -456,6 +456,9 @@ public:
             destroy_entity(entity++->first, this->entities.shapes);
         }
         for (auto entity = this->entities.tanks.cbegin(); entity != this->entities.tanks.cend();) {
+            if (entity->second->type == TankType::Remote) {
+                entity->second->client->Close(4000, "Arena Closed", 12);
+            }
             destroy_entity(entity++->first, this->entities.tanks);
         }
         for (auto entity = this->entities.bullets.cbegin(); entity != this->entities.bullets.cend();) {
