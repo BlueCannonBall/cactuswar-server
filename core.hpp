@@ -1006,7 +1006,7 @@ void Shape::collision_response(Arena* arena) { // NOLINT
                 this->health -= arena->entities.bullets[candidate->id]->damage; // damage
                 if (this->health <= 0) {
                     if (in_map(arena->entities.tanks, arena->entities.bullets[candidate->id]->owner)) {
-                        INFO("(" << arena->entities.bullets[candidate->id]->owner << ") " << arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level << ", " << this->reward);
+                        INFO("Shape destruction (" << arena->entities.bullets[candidate->id]->owner << ") " << arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level << ", " << this->reward);
                         arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level += this->reward;
                     } else {
                         BRUH("The bullet of a non-existent player hit and killed a shape");
