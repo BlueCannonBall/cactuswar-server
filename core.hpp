@@ -865,8 +865,7 @@ public:
         thread shape_collide([this]() {
 #endif
             for (auto entity = this->entities.shapes.cbegin(); entity != this->entities.shapes.cend();) {
-                entity->second->collision_response(this);
-                ++entity;
+                entity++->second->collision_response(this);
             }
 #ifdef THREADING
         });
@@ -876,8 +875,7 @@ public:
         thread tank_collide([this]() {
 #endif
             for (auto entity = this->entities.tanks.cbegin(); entity != this->entities.tanks.cend();) {
-                entity->second->collision_response(this);
-                ++entity;
+                entity++->second->collision_response(this);
             }
 #ifdef THREADING
         });
@@ -887,8 +885,7 @@ public:
         thread bullet_collide([this]() {
 #endif
             for (auto entity = this->entities.bullets.cbegin(); entity != this->entities.bullets.cend();) {
-                entity->second->collision_response(this);
-                ++entity;
+                entity++->second->collision_response(this);
             }
 #ifdef THREADING
         });
@@ -1010,7 +1007,6 @@ void Shape::collision_response(Arena* arena) { // NOLINT
                 this->health -= arena->entities.bullets[candidate->id]->damage; // damage
                 if (this->health <= 0 && old_health > 0) {
                     if (in_map(arena->entities.tanks, arena->entities.bullets[candidate->id]->owner)) {
-                        INFO("Shape destruction (" << arena->entities.bullets[candidate->id]->owner << ") " << arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level << ", " << this->reward);
                         arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level += this->reward;
                     } else {
                         BRUH("The bullet of a non-existent player hit and killed a shape");
@@ -1051,7 +1047,6 @@ void Tank::collision_response(Arena* arena) { // NOLINT
                 this->health -= arena->entities.bullets[candidate->id]->damage; // damage
                 if (this->health <= 0 && old_health > 0) {
                     if (in_map(arena->entities.tanks, arena->entities.bullets[candidate->id]->owner)) {
-                        INFO("Kill (" << arena->entities.bullets[candidate->id]->owner << ") " << arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level << ", " << this->level / 2);
                         arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level += this->level / 2;
                     } else {
                         BRUH("The bullet of a non-existent player hit and killed another tank");
