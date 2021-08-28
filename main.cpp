@@ -40,12 +40,12 @@ void kick(ws28::Client* client, bool destroy = true) {
     }
 }
 
-void atexit_handler() {
+inline void atexit_handler() {
     delete db;
 }
 
-void signal_handler(int signal_num) {
-    delete db;
+inline void signal_handler(int signal_num) {
+    atexit_handler();
     _Exit(signal_num);
 }
 
@@ -71,6 +71,7 @@ int main(int argc, char** argv) {
     atexit(atexit_handler);
     signal(SIGTERM, signal_handler);
     signal(SIGINT, signal_handler);
+    signal(SIGHUP, signal_handler);
 
     ws28::Server server {uv_default_loop(), nullptr};
     server.SetMaxMessageSize(MESSAGE_SIZE);
