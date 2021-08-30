@@ -76,14 +76,8 @@ int main(int argc, char** argv) {
     ws28::Server server {uv_default_loop(), nullptr};
     server.SetMaxMessageSize(MESSAGE_SIZE);
 
-    // screw lambdas
     server.SetClientConnectedCallback([](ws28::Client* client, ws28::HTTPRequest& req) {
         INFO("Client with ip " << client->GetIP() << " connected to room \"" << req.path << "\"");
-        if (!in_map(arenas, req.path)) {
-            WARN("Player tried to connect to non-existent room \"" << req.path << "\"");
-            kick(client);
-            return;
-        }
     });
 
     server.SetClientDataCallback([](ws28::Client* client, char* data, size_t len, int opcode) {
@@ -154,12 +148,17 @@ int main(int argc, char** argv) {
         }
     });
 
-    // check if player banned
+    // check player
     server.SetCheckConnectionCallback([](ws28::Client* client, ws28::HTTPRequest& req) {
-        INFO("New client's HTTP headers:");
-        req.headers.ForEach([](const char* key, const char* value) {
-            INFO("    " << key << ": " << value);
-        });
+        // INFO("New client's HTTP headers:");
+        // req.headers.ForEach([](const char* key, const char* value) {
+        //     INFO("    " << key << ": " << value);
+        // });
+
+        if (!in_map(arenas, req.path)) {
+            WARN("Player tried to connect to non-existent room \"" << req.path << "\"");
+            return false;
+        }
 
         string value;
         leveldb::Status s;
