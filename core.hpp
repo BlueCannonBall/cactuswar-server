@@ -1134,7 +1134,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
                     arena->entities.bullets[cid]->take_census(buf);
                     census_size++;
                 } else {
-                    ERR("Non-existent entity in broadphase with id " << cid);
+                    WARN("Non-existent entity in broadphase with id " << cid);
                 }
             }
         }
