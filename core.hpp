@@ -991,7 +991,7 @@ void Entity::collision_response(Arena* arena) { // NOLINT
 
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity* candidate = &candidates[i];
-        
+
         unsigned int cid = candidate->id;
         if (cid == this->id) {
             continue;
@@ -1025,7 +1025,7 @@ void Shape::collision_response(Arena* arena) { // NOLINT
 
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity* candidate = &candidates[i];
-        
+
         unsigned int cid = candidate->id;
         if (cid == this->id) {
             continue;
@@ -1034,9 +1034,6 @@ void Shape::collision_response(Arena* arena) { // NOLINT
                 continue;
             }
         }
-
-        //INFO(candidate->radius << ", " << candidate->width << ", " << candidate->height);
-        //INFO(cid);
 
         if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (in_map(arena->entities.bullets, cid)) {
@@ -1048,6 +1045,8 @@ void Shape::collision_response(Arena* arena) { // NOLINT
                     } else {
                         BRUH("The bullet of a non-existent player hit and killed a shape");
                     }
+
+                    FazoFree(candidates);
                     return; // death
                 }
             }
@@ -1075,7 +1074,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
 
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity* candidate = &candidates[i];
-        
+
         unsigned int cid = candidate->id;
         if (cid == this->id) {
             continue;
@@ -1099,6 +1098,8 @@ void Tank::collision_response(Arena* arena) { // NOLINT
                     } else {
                         BRUH("The bullet of a non-existent player hit and killed another tank");
                     }
+
+                    FazoFree(candidates);
                     return; // death
                 }
             } else if (in_map(arena->entities.shapes, cid)) {
@@ -1130,8 +1131,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
 
         for (unsigned int i = 0; i < len; i++) {
             const FazoEntity* candidate = &candidates[i];
-            // INFO("x: " << candidate->x << ", y: " << candidate->y << ", width: " << candidate->width << ", height: " << candidate->height);
-            
+
             unsigned int cid = candidate->id;
             if (aabb(&query, candidate)) {
                 if (in_map(arena->entities.tanks, cid)) {
@@ -1145,6 +1145,8 @@ void Tank::collision_response(Arena* arena) { // NOLINT
                 } else if (in_map(arena->entities.bullets, cid)) {
                     arena->entities.bullets[cid]->take_census(buf);
                     census_size++;
+                } else {
+                    ERR("Non-existent entity in broadphase with id " << cid);
                 }
             }
         }
@@ -1190,6 +1192,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
             this->input.mousepos = arena->entities.shapes[sorted_nearby_shapes.begin()->second]->position;
             dist = sorted_nearby_shapes.begin()->first;
         } else {
+            FazoFree(candidates);
             return;
         }
 
@@ -1226,7 +1229,7 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
 
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity* candidate = &candidates[i];
-        
+
         unsigned int cid = candidate->id;
         if (cid == this->id) {
             continue;

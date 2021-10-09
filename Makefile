@@ -4,8 +4,7 @@ CFLAGS=-std=c++14 -Wall -s -Ofast -march=native -mtune=native \
 	-fno-signed-zeros -fno-trapping-math -finline-functions \
 	-frename-registers -funroll-loops -fmerge-all-constants \
 	-fopenmp-simd -Bsymbolic -fno-semantic-interposition \
-	-fdiagnostics-color=always -funsafe-math-optimizations \
-	-ftree-vectorize -Llib
+	-fdiagnostics-color=always -ftree-vectorize -Llib
 TARGET=./build/server
 OBJDIR=build/obj
 PORT=8000
