@@ -679,6 +679,7 @@ public:
             player->level = 1;
         }
         player->state = TankState::Alive;
+        FazoSolverInsert(solver, &player->fazo_entity);
         player->spawn_time = chrono::steady_clock::now();
     }
 
@@ -797,6 +798,7 @@ public:
                         }
                     } else {
                         entity->second->state = TankState::Dead;
+                        FazoSolverDelete(solver, entity->first);
                         StreamPeerBuffer buf(true);
                         send_death_packet(buf, entity++->second);
 #ifdef THREADING
@@ -995,10 +997,6 @@ void Entity::collision_response(Arena* arena) { // NOLINT
         unsigned int cid = candidate->id;
         if (cid == this->id) {
             continue;
-        } else if (in_map(arena->entities.tanks, cid)) {
-            if (arena->entities.tanks[cid]->state == TankState::Dead) {
-                continue;
-            }
         }
 
         if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
@@ -1029,10 +1027,6 @@ void Shape::collision_response(Arena* arena) { // NOLINT
         unsigned int cid = candidate->id;
         if (cid == this->id) {
             continue;
-        } else if (in_map(arena->entities.tanks, cid)) {
-            if (arena->entities.tanks[cid]->state == TankState::Dead) {
-                continue;
-            }
         }
 
         if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
@@ -1080,10 +1074,6 @@ void Tank::collision_response(Arena* arena) { // NOLINT
             continue;
         } else if (in_map(arena->entities.bullets, cid)) {
             if (arena->entities.bullets[cid]->owner == this->id) {
-                continue;
-            }
-        } else if (in_map(arena->entities.tanks, cid)) {
-            if (arena->entities.tanks[cid]->state == TankState::Dead) {
                 continue;
             }
         }
@@ -1135,10 +1125,8 @@ void Tank::collision_response(Arena* arena) { // NOLINT
             unsigned int cid = candidate->id;
             if (aabb(&query, candidate)) {
                 if (in_map(arena->entities.tanks, cid)) {
-                    if (arena->entities.tanks[cid]->state == TankState::Alive) {
-                        arena->entities.tanks[cid]->take_census(buf, arena->ticks);
-                        census_size++;
-                    }
+                    arena->entities.tanks[cid]->take_census(buf, arena->ticks);
+                    census_size++;
                 } else if (in_map(arena->entities.shapes, cid)) {
                     arena->entities.shapes[cid]->take_census(buf);
                     census_size++;
@@ -1171,9 +1159,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
 
             if (aabb(&query, candidate)) {
                 if (in_map(arena->entities.tanks, cid)) {
-                    if (arena->entities.tanks[cid]->state == TankState::Alive) {
-                        nearby_tanks[cid] = arena->entities.tanks[cid]->position.distance_to(this->position);
-                    }
+                    nearby_tanks[cid] = arena->entities.tanks[cid]->position.distance_to(this->position);
                 } else if (in_map(arena->entities.shapes, cid)) {
                     nearby_shapes[cid] = arena->entities.shapes[cid]->position.distance_to(this->position);
                 }
@@ -1237,10 +1223,6 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
             continue;
         } else if (in_map(arena->entities.bullets, cid)) {
             if (arena->entities.bullets[cid]->owner == this->owner) {
-                continue;
-            }
-        } else if (in_map(arena->entities.tanks, cid)) {
-            if (arena->entities.tanks[cid]->state == TankState::Dead) {
                 continue;
             }
         }
