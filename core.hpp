@@ -246,8 +246,8 @@ public:
     void take_census(StreamPeerBuffer& buf) {
         buf.put_u8(1);                // id
         buf.put_u32(this->id);        // game id
-        buf.put_16(this->position.x); // position
-        buf.put_16(this->position.y);
+        buf.put_i16(this->position.x); // position
+        buf.put_i16(this->position.y);
         buf.put_float(this->health / this->max_health); // health
         buf.put_u16(this->radius);                      // radius
         //buf.put_u8(7); // sides
@@ -328,11 +328,11 @@ public:
     void take_census(StreamPeerBuffer& buf, unsigned long time) {
         buf.put_u8(0);                // id
         buf.put_u32(this->id);        // game id
-        buf.put_16(this->position.x); // position
-        buf.put_16(this->position.y);
+        buf.put_i16(this->position.x); // position
+        buf.put_i16(this->position.y);
         buf.put_float(this->rotation); // rotation
-        buf.put_16(this->velocity.x);  // velocity
-        buf.put_16(this->velocity.y);
+        buf.put_i16(this->velocity.x);  // velocity
+        buf.put_i16(this->velocity.y);
         buf.put_u8(this->mockup);                                  // mockup id
         buf.put_float(this->health / this->max_health);            // health
         buf.put_u16(this->radius);                                 // radius
@@ -382,11 +382,11 @@ public:
     void take_census(StreamPeerBuffer& buf) {
         buf.put_u8(2);                // id
         buf.put_u32(this->id);        // game id
-        buf.put_16(this->position.x); // position
-        buf.put_16(this->position.y);
+        buf.put_i16(this->position.x); // position
+        buf.put_i16(this->position.y);
         buf.put_u16(this->radius);    // radius
-        buf.put_16(this->velocity.x); // velocity
-        buf.put_16(this->velocity.y);
+        buf.put_i16(this->velocity.x); // velocity
+        buf.put_i16(this->velocity.y);
         buf.put_u32(this->owner); // owner of bullet
     }
 
@@ -618,8 +618,8 @@ public:
             player->input.mousedown = true;
         }
 
-        short mousex = buf.get_16();
-        short mousey = buf.get_16();
+        short mousex = buf.get_i16();
+        short mousey = buf.get_i16();
         player->input.mousepos = Vector2(mousex, mousey);
         player->rotation = atan2(
             player->input.mousepos.y - player->position.y,
