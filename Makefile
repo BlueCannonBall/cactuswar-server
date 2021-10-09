@@ -1,4 +1,4 @@
-CC=c++
+CC=g++
 LDLIBS=-luv -lssl -lcrypto -pthread -lleveldb -lfazo
 CFLAGS=-std=c++14 -Wall -s -Ofast -march=native -mtune=native \
 	-fno-signed-zeros -fno-trapping-math -finline-functions \
