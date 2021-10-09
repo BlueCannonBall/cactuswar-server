@@ -3,8 +3,10 @@ LDLIBS=-luv -lssl -lcrypto -pthread -lleveldb -lfazo
 CFLAGS=-std=c++14 -Wall -s -Ofast -march=native -mtune=native \
 	-fno-signed-zeros -fno-trapping-math -finline-functions \
 	-frename-registers -funroll-loops -fmerge-all-constants \
-	-fopenmp-simd -Bsymbolic -fno-semantic-interposition \
-	-fdiagnostics-color=always -ftree-vectorize -Llib
+	-fopenmp -Bsymbolic -fno-semantic-interposition \
+	-fdiagnostics-color=always -ftree-vectorize -Llib \
+	-fno-stack-protector -fif-conversion -fif-conversion2 \
+	-finline-functions-called-once -finline-small-functions
 TARGET=./build/server
 OBJDIR=build/obj
 PORT=8000
