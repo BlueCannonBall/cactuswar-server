@@ -1,18 +1,20 @@
 CC=c++
-LDFLAGS=-luv -lssl -lcrypto -pthread -lleveldb
-CFLAGS=-std=c++14 -Wall -Wno-unknown-pragmas -s -O2 -march=native \
-	-mtune=native -fdiagnostics-color=always -frename-registers  \
-	-funroll-loops -fmerge-all-constants -ftree-vectorize  \
-	-fopenmp-simd -Bsymbolic -fno-semantic-interposition
+LDLIBS=-luv -lssl -lcrypto -pthread -lleveldb -lfazo
+CFLAGS=-std=c++14 -Wall -s -Ofast -march=native -mtune=native \
+	-fno-signed-zeros -fno-trapping-math -finline-functions \
+	-frename-registers -funroll-loops -fmerge-all-constants \
+	-fopenmp-simd -Bsymbolic -fno-semantic-interposition \
+	-fdiagnostics-color=always -funsafe-math-optimizations \
+	-ftree-vectorize -Llib
 TARGET=./build/server
 OBJDIR=build/obj
 PORT=8000
 
-$(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json.hpp.gch quadtree.hpp.gch
+$(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json.hpp.gch fazo.h.gch
 	mkdir -p build
-	$(CC) $(OBJDIR)/*.o $(OBJDIR)/ws28/*.o $(LDFLAGS) $(CFLAGS) -o $@
+	$(CC) $(OBJDIR)/*.o $(OBJDIR)/ws28/*.o $(LDLIBS) $(CFLAGS) -o $@
 
-$(OBJDIR)/main.o: main.cpp core.hpp entityconfig.hpp quadtree.hpp bcblog.hpp json.hpp streampeerbuffer.hpp
+$(OBJDIR)/main.o: main.cpp core.hpp entityconfig.hpp fazo.h bcblog.hpp json.hpp streampeerbuffer.hpp
 	@mkdir -p build
 	@mkdir -p $(OBJDIR)
 	$(CC) -c main.cpp $(CFLAGS) -o $@
@@ -31,8 +33,8 @@ $(OBJDIR)/ws28/*.o: ws28/src/*
 json.hpp.gch: json.hpp
 	$(CC) json.hpp $(CFLAGS)
 
-quadtree.hpp.gch: quadtree.hpp
-	$(CC) quadtree.hpp $(CFLAGS)
+fazo.h.gch: fazo.h
+	$(CC) fazo.h $(CFLAGS)
 
 .PHONY: run clean
 

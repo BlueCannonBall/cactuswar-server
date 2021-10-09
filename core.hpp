@@ -1,6 +1,6 @@
 #include "bcblog.hpp"
 #include "entityconfig.hpp"
-#include "quadtree.hpp"
+#include "fazo.h"
 #include "streampeerbuffer.hpp"
 #include "ws28/src/Server.h"
 #include <chrono>
@@ -18,8 +18,8 @@
 #include <vector>
 
 #pragma once
-//#define THREADING
-//#define DEBUG_MAINLOOP_SPEED
+// #define THREADING
+// #define DEBUG_MAINLOOP_SPEED
 #define COLLISION_STRENGTH     5
 #define BOT_ACCURACY_THRESHOLD 30
 #define HOT_RELOAD_TIMEOUT     30
@@ -62,7 +62,8 @@ inline unsigned int get_uid() {
     return uid++;
 }
 
-inline bool aabb(shared_ptr<qt::Rect> rect1, shared_ptr<qt::Rect> rect2) {
+template <class A, class B>
+inline bool aabb(const A* rect1, const B* rect2) {
     return (
         rect1->x < rect2->x + rect2->width &&
         rect1->x + rect1->width > rect2->x &&
@@ -223,7 +224,7 @@ public:
     float health = max_health;
     float damage = 0;
     float mass = 1;
-    shared_ptr<qt::Rect> qt_rect = make_shared<qt::Rect>();
+    FazoEntity fazo_entity;
 
     void take_census(StreamPeerBuffer&);
     void collision_response(Arena*);
@@ -320,7 +321,6 @@ public:
     TankType type = TankType::Remote;
     TankState state = TankState::Alive;
     chrono::time_point<chrono::steady_clock> spawn_time = chrono::steady_clock::now();
-    shared_ptr<qt::Rect> viewport_rect = make_shared<qt::Rect>();
 
     void next_tick(Arena* arena);
     void collision_response(Arena* arena) __attribute__((hot));
@@ -405,11 +405,7 @@ public:
     unsigned long ticks = 0;
     Entities entities;
     unsigned short size = 5000;
-    qt::Quadtree tree = qt::Quadtree(make_unique<qt::Rect>(qt::Rect {
-        .x = 0,
-        .y = 0,
-        .width = static_cast<float>(size),
-        .height = static_cast<float>(size)}));
+    BroadSolver* solver = FazoSolverNew(size, size, 100);
     unsigned int target_shape_count = 50;
     unsigned short target_bot_count = 6;
 
@@ -417,7 +413,6 @@ public:
     uv_timer_t timer;
 
 #ifdef THREADING
-    mutex qt_mtx;
     uv_rwlock_t entity_lock;
 #endif
 
@@ -464,6 +459,9 @@ public:
         for (auto entity = this->entities.bullets.cbegin(); entity != this->entities.bullets.cend();) {
             destroy_entity(entity++->first, this->entities.bullets);
         }
+
+        FazoSolverFree(solver);
+
 #ifdef THREADING
         uv_rwlock_wrunlock(&entity_lock);
         uv_rwlock_destroy(&entity_lock);
@@ -477,12 +475,6 @@ public:
             return;
         }
         this->size = _size;
-        tree.clear();
-        tree = qt::Quadtree(make_unique<qt::Rect>(qt::Rect {
-            .x = 0,
-            .y = 0,
-            .width = static_cast<float>(_size),
-            .height = static_cast<float>(_size)}));
     }
 
     inline void update_size() {
@@ -505,7 +497,7 @@ public:
             }
         }
 
-        player->client->Send(reinterpret_cast<char*>(buf.data()), buf.size(), 0x2);
+        player->client->Send((const char*) buf.data(), buf.size(), 0x2);
     }
 
     void send_death_packet(StreamPeerBuffer& buf, Tank* player) {
@@ -518,7 +510,7 @@ public:
             BRUH("Noob \"" << player->name << "\" lived for " << elapsed_seconds.count() << "s before dying");
         }
         buf.put_double(elapsed_seconds.count()); // seconds elapsed since spawn
-        player->client->Send(reinterpret_cast<char*>(buf.data()), buf.size(), 0x2);
+        player->client->Send((const char*) buf.data(), buf.size(), 0x2);
     }
 
     void handle_init_packet(StreamPeerBuffer& buf, ws28::Client* client) {
@@ -560,6 +552,14 @@ public:
         this->entities.tanks[player_id] = new_player;
         new_player->position = Vector2(RAND(0, size), RAND(0, size));
         new_player->define(RAND(0, tanksconfig.size() - 1));
+
+        new_player->fazo_entity.id = new_player->id;
+        new_player->fazo_entity.radius = new_player->radius;
+        new_player->fazo_entity.x = new_player->position.x - new_player->radius;
+        new_player->fazo_entity.y = new_player->position.y - new_player->radius;
+        new_player->fazo_entity.width = new_player->radius * 2;
+        new_player->fazo_entity.height = new_player->radius * 2;
+        FazoSolverInsert(solver, &new_player->fazo_entity);
 
         INFO("New player with name \"" << player_name << "\" and id " << player_id << " joined. There are currently " << entities.tanks.size() << " player(s) in game");
 
@@ -689,6 +689,7 @@ public:
         uv_rwlock_wrlock(&entity_lock);
 #endif
         entity_map.erase(entity_id);
+        FazoSolverDelete(solver, entity_id);
 #ifdef THREADING
         uv_rwlock_wrunlock(&entity_lock);
 #endif
@@ -714,14 +715,21 @@ public:
 
         ticks++;
 
-        this->tree.clear();
-
         if (entities.shapes.size() <= target_shape_count - 12) {
 #pragma omp simd
             for (unsigned int i = 0; i < (target_shape_count - entities.shapes.size()); i++) {
                 Shape* new_shape = new Shape;
                 new_shape->id = get_uid();
                 new_shape->position = Vector2(RAND(0, size), RAND(0, size));
+
+                new_shape->fazo_entity.id = new_shape->id;
+                new_shape->fazo_entity.radius = new_shape->radius;
+                new_shape->fazo_entity.x = new_shape->position.x - new_shape->radius;
+                new_shape->fazo_entity.y = new_shape->position.y - new_shape->radius;
+                new_shape->fazo_entity.width = new_shape->radius * 2;
+                new_shape->fazo_entity.height = new_shape->radius * 2;
+                FazoSolverInsert(solver, &new_shape->fazo_entity);
+
                 entities.shapes[new_shape->id] = new_shape;
             }
         } else if (entities.shapes.size() >= target_shape_count + 12) {
@@ -743,16 +751,12 @@ public:
                     this->destroy_entity(entity++->first, this->entities.shapes);
                     continue;
                 }
+
 #ifdef THREADING
                 uv_rwlock_rdlock(&entity_lock);
 #endif
                 entity->second->next_tick(this);
 #ifdef THREADING
-                this->qt_mtx.lock();
-#endif
-                this->tree.insert(entity->second->qt_rect);
-#ifdef THREADING
-                this->qt_mtx.unlock();
                 uv_rwlock_rdunlock(&entity_lock);
 #endif
                 ++entity;
@@ -801,19 +805,8 @@ public:
                         continue;
                     }
                 }
-#ifdef THREADING
-                uv_rwlock_rdunlock(&entity_lock);
-#endif
+
                 entity->second->next_tick(this);
-#ifdef THREADING
-                uv_rwlock_rdlock(&entity_lock);
-                this->qt_mtx.lock();
-#endif
-                this->tree.insert(entity->second->qt_rect);
-#ifdef THREADING
-                this->qt_mtx.unlock();
-                uv_rwlock_rdunlock(&entity_lock);
-#endif
                 ++entity;
             }
 #ifdef THREADING
@@ -842,11 +835,6 @@ public:
 #endif
                 entity->second->next_tick(this);
 #ifdef THREADING
-                this->qt_mtx.lock();
-#endif
-                this->tree.insert(entity->second->qt_rect);
-#ifdef THREADING
-                this->qt_mtx.unlock();
                 uv_rwlock_rdunlock(&entity_lock);
 #endif
                 ++entity;
@@ -904,6 +892,15 @@ public:
             Shape* new_shape = new Shape;
             new_shape->id = get_uid();
             new_shape->position = Vector2(RAND(0, size), RAND(0, size));
+
+            new_shape->fazo_entity.id = new_shape->id;
+            new_shape->fazo_entity.radius = new_shape->radius;
+            new_shape->fazo_entity.x = new_shape->position.x - new_shape->radius;
+            new_shape->fazo_entity.y = new_shape->position.y - new_shape->radius;
+            new_shape->fazo_entity.width = new_shape->radius * 2;
+            new_shape->fazo_entity.height = new_shape->radius * 2;
+            FazoSolverInsert(solver, &new_shape->fazo_entity);
+
             entities.shapes[new_shape->id] = new_shape;
         }
 
@@ -914,6 +911,15 @@ public:
             new_tank->id = get_uid();
             new_tank->position = Vector2(RAND(0, size), RAND(0, size));
             new_tank->define(RAND(0, tanksconfig.size() - 1));
+
+            new_tank->fazo_entity.id = new_tank->id;
+            new_tank->fazo_entity.radius = new_tank->radius;
+            new_tank->fazo_entity.x = new_tank->position.x - new_tank->radius;
+            new_tank->fazo_entity.y = new_tank->position.y - new_tank->radius;
+            new_tank->fazo_entity.width = new_tank->radius * 2;
+            new_tank->fazo_entity.height = new_tank->radius * 2;
+            FazoSolverInsert(solver, &new_tank->fazo_entity);
+
             entities.tanks[new_tank->id] = new_tank;
         }
         this->update_size();
@@ -948,6 +954,14 @@ void Barrel::fire(Tank* tank, Arena* arena) { // NOLINT
     new_bullet->owner = tank->id;
     new_bullet->radius = this->width * tank->radius;
 
+    new_bullet->fazo_entity.id = new_bullet->id;
+    new_bullet->fazo_entity.radius = new_bullet->radius;
+    new_bullet->fazo_entity.x = new_bullet->position.x - new_bullet->radius;
+    new_bullet->fazo_entity.y = new_bullet->position.y - new_bullet->radius;
+    new_bullet->fazo_entity.width = new_bullet->radius * 2;
+    new_bullet->fazo_entity.height = new_bullet->radius * 2;
+    FazoSolverInsert(arena->solver, &new_bullet->fazo_entity);
+
     // set stats
     new_bullet->damage = this->bullet_damage;
     new_bullet->max_health = this->bullet_penetration;
@@ -966,14 +980,23 @@ void Barrel::fire(Tank* tank, Arena* arena) { // NOLINT
 
 // Example collision response 👇
 void Entity::collision_response(Arena* arena) { // NOLINT
-    vector<shared_ptr<qt::Rect>> candidates;
-    arena->tree.retrieve(qt_rect, candidates);
+    const FazoEntity* candidates;
+    FazoQuery query {
+        .x = this->fazo_entity.x,
+        .y = this->fazo_entity.y,
+        .width = this->fazo_entity.width,
+        .height = this->fazo_entity.height,
+    };
+    size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
-    for (const auto& candidate : candidates) {
-        if (candidate->id == this->id) {
+    for (unsigned int i = 0; i < len; i++) {
+        const FazoEntity* candidate = &candidates[i];
+        
+        unsigned int cid = candidate->id;
+        if (cid == this->id) {
             continue;
-        } else if (in_map(arena->entities.tanks, candidate->id)) {
-            if (arena->entities.tanks[candidate->id]->state == TankState::Dead) {
+        } else if (in_map(arena->entities.tanks, cid)) {
+            if (arena->entities.tanks[cid]->state == TankState::Dead) {
                 continue;
             }
         }
@@ -986,28 +1009,42 @@ void Entity::collision_response(Arena* arena) { // NOLINT
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
         }
     }
+
+    FazoFree(candidates);
 }
 
 void Shape::collision_response(Arena* arena) { // NOLINT
-    vector<shared_ptr<qt::Rect>> candidates;
-    arena->tree.retrieve(qt_rect, candidates);
+    const FazoEntity* candidates;
+    FazoQuery query {
+        .x = this->fazo_entity.x,
+        .y = this->fazo_entity.y,
+        .width = this->fazo_entity.width,
+        .height = this->fazo_entity.height,
+    };
+    size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
-    for (const auto& candidate : candidates) {
-        if (candidate->id == this->id) {
+    for (unsigned int i = 0; i < len; i++) {
+        const FazoEntity* candidate = &candidates[i];
+        
+        unsigned int cid = candidate->id;
+        if (cid == this->id) {
             continue;
-        } else if (in_map(arena->entities.tanks, candidate->id)) {
-            if (arena->entities.tanks[candidate->id]->state == TankState::Dead) {
+        } else if (in_map(arena->entities.tanks, cid)) {
+            if (arena->entities.tanks[cid]->state == TankState::Dead) {
                 continue;
             }
         }
 
+        //INFO(candidate->radius << ", " << candidate->width << ", " << candidate->height);
+        //INFO(cid);
+
         if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
-            if (in_map(arena->entities.bullets, candidate->id)) {
+            if (in_map(arena->entities.bullets, cid)) {
                 float old_health = this->health;
-                this->health -= arena->entities.bullets[candidate->id]->damage; // damage
+                this->health -= arena->entities.bullets[cid]->damage; // damage
                 if (this->health <= 0 && old_health > 0) {
-                    if (in_map(arena->entities.tanks, arena->entities.bullets[candidate->id]->owner)) {
-                        arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level += this->reward;
+                    if (in_map(arena->entities.tanks, arena->entities.bullets[cid]->owner)) {
+                        arena->entities.tanks[arena->entities.bullets[cid]->owner]->level += this->reward;
                     } else {
                         BRUH("The bullet of a non-existent player hit and killed a shape");
                     }
@@ -1022,39 +1059,50 @@ void Shape::collision_response(Arena* arena) { // NOLINT
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
         }
     }
+
+    FazoFree(candidates);
 }
 
 void Tank::collision_response(Arena* arena) { // NOLINT
-    vector<shared_ptr<qt::Rect>> candidates;
-    arena->tree.retrieve(qt_rect, candidates);
+    const FazoEntity* candidates;
+    FazoQuery query {
+        .x = this->fazo_entity.x,
+        .y = this->fazo_entity.y,
+        .width = this->fazo_entity.width,
+        .height = this->fazo_entity.height,
+    };
+    size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
-    for (const auto& candidate : candidates) {
-        if (candidate->id == this->id) {
+    for (unsigned int i = 0; i < len; i++) {
+        const FazoEntity* candidate = &candidates[i];
+        
+        unsigned int cid = candidate->id;
+        if (cid == this->id) {
             continue;
-        } else if (in_map(arena->entities.bullets, candidate->id)) {
-            if (arena->entities.bullets[candidate->id]->owner == this->id) {
+        } else if (in_map(arena->entities.bullets, cid)) {
+            if (arena->entities.bullets[cid]->owner == this->id) {
                 continue;
             }
-        } else if (in_map(arena->entities.tanks, candidate->id)) {
-            if (arena->entities.tanks[candidate->id]->state == TankState::Dead) {
+        } else if (in_map(arena->entities.tanks, cid)) {
+            if (arena->entities.tanks[cid]->state == TankState::Dead) {
                 continue;
             }
         }
 
         if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
-            if (in_map(arena->entities.bullets, candidate->id)) {
+            if (in_map(arena->entities.bullets, cid)) {
                 float old_health = this->health;
-                this->health -= arena->entities.bullets[candidate->id]->damage; // damage
+                this->health -= arena->entities.bullets[cid]->damage; // damage
                 if (this->health <= 0 && old_health > 0) {
-                    if (in_map(arena->entities.tanks, arena->entities.bullets[candidate->id]->owner)) {
-                        arena->entities.tanks[arena->entities.bullets[candidate->id]->owner]->level += this->level / 2;
+                    if (in_map(arena->entities.tanks, arena->entities.bullets[cid]->owner)) {
+                        arena->entities.tanks[arena->entities.bullets[cid]->owner]->level += this->level / 2;
                     } else {
                         BRUH("The bullet of a non-existent player hit and killed another tank");
                     }
                     return; // death
                 }
-            } else if (in_map(arena->entities.shapes, candidate->id)) {
-                this->health -= arena->entities.shapes[candidate->id]->damage; // damage
+            } else if (in_map(arena->entities.shapes, cid)) {
+                this->health -= arena->entities.shapes[cid]->damage; // damage
             }
 
             // response
@@ -1067,38 +1115,35 @@ void Tank::collision_response(Arena* arena) { // NOLINT
 
     float dr = 112.5 * this->fov * 1.6;
 
-    this->viewport_rect->x = this->position.x - dr / 2;
-    this->viewport_rect->y = this->position.y - dr / 2;
-    this->viewport_rect->width = dr;
-    this->viewport_rect->height = dr;
-    this->viewport_rect->radius = dr / 2;
-
-    // auto viewport = make_shared<qt::Rect>(qt::Rect {
-    //     .x = this->position.x - dr / 2,
-    //     .y = this->position.y - dr / 2,
-    //     .width = dr,
-    //     .height = dr,
-    //     .id = 0,
-    //     .radius = static_cast<unsigned int>(dr / 2)});
-
-    arena->tree.retrieve(viewport_rect, candidates);
+    FazoFree(candidates);
+    query = {
+        .x = this->position.x - dr / 2,
+        .y = this->position.y - dr / 2,
+        .width = dr,
+        .height = dr,
+    };
+    len = FazoSolverSolve(arena->solver, &query, &candidates);
 
     if (this->type == TankType::Remote) {
         StreamPeerBuffer buf(true);
         unsigned short census_size = 0;
 
-        for (const auto& candidate : candidates) {
-            if (aabb(viewport_rect, candidate)) {
-                if (in_map(arena->entities.tanks, candidate->id)) {
-                    if (arena->entities.tanks[candidate->id]->state == TankState::Alive) {
-                        arena->entities.tanks[candidate->id]->take_census(buf, arena->ticks);
+        for (unsigned int i = 0; i < len; i++) {
+            const FazoEntity* candidate = &candidates[i];
+            // INFO("x: " << candidate->x << ", y: " << candidate->y << ", width: " << candidate->width << ", height: " << candidate->height);
+            
+            unsigned int cid = candidate->id;
+            if (aabb(&query, candidate)) {
+                if (in_map(arena->entities.tanks, cid)) {
+                    if (arena->entities.tanks[cid]->state == TankState::Alive) {
+                        arena->entities.tanks[cid]->take_census(buf, arena->ticks);
                         census_size++;
                     }
-                } else if (in_map(arena->entities.shapes, candidate->id)) {
-                    arena->entities.shapes[candidate->id]->take_census(buf);
+                } else if (in_map(arena->entities.shapes, cid)) {
+                    arena->entities.shapes[cid]->take_census(buf);
                     census_size++;
-                } else if (in_map(arena->entities.bullets, candidate->id)) {
-                    arena->entities.bullets[candidate->id]->take_census(buf);
+                } else if (in_map(arena->entities.bullets, cid)) {
+                    arena->entities.bullets[cid]->take_census(buf);
                     census_size++;
                 }
             }
@@ -1109,23 +1154,26 @@ void Tank::collision_response(Arena* arena) { // NOLINT
         buf.put_u16(census_size);
         buf.put_u16(arena->size);
         buf.put_float(this->level);
-        this->client->Send(reinterpret_cast<char*>(buf.data()), buf.size(), 0x2);
+        this->client->Send((const char*) buf.data(), buf.size(), 0x2);
     } else if (arena->ticks % 2 == 0) {
         map<unsigned int, unsigned int> nearby_tanks;
         map<unsigned int, unsigned int> nearby_shapes;
 
-        for (const auto& candidate : candidates) {
-            if (candidate->id == this->id) {
+        for (unsigned int i = 0; i < len; i++) {
+            const FazoEntity* candidate = &candidates[i];
+
+            unsigned int cid = candidate->id;
+            if (cid == this->id) {
                 continue;
             }
 
-            if (aabb(viewport_rect, candidate)) {
-                if (in_map(arena->entities.tanks, candidate->id)) {
-                    if (arena->entities.tanks[candidate->id]->state == TankState::Alive) {
-                        nearby_tanks[candidate->id] = arena->entities.tanks[candidate->id]->position.distance_to(this->position);
+            if (aabb(&query, candidate)) {
+                if (in_map(arena->entities.tanks, cid)) {
+                    if (arena->entities.tanks[cid]->state == TankState::Alive) {
+                        nearby_tanks[cid] = arena->entities.tanks[cid]->position.distance_to(this->position);
                     }
-                } else if (in_map(arena->entities.shapes, candidate->id)) {
-                    nearby_shapes[candidate->id] = arena->entities.shapes[candidate->id]->position.distance_to(this->position);
+                } else if (in_map(arena->entities.shapes, cid)) {
+                    nearby_shapes[cid] = arena->entities.shapes[cid]->position.distance_to(this->position);
                 }
             }
         }
@@ -1162,32 +1210,43 @@ void Tank::collision_response(Arena* arena) { // NOLINT
                 input.S = true;
         }
     }
+
+    FazoFree(candidates);
 }
 
 void Bullet::collision_response(Arena* arena) { // NOLINT
-    vector<shared_ptr<qt::Rect>> candidates;
-    arena->tree.retrieve(qt_rect, candidates);
+    const FazoEntity* candidates;
+    FazoQuery query {
+        .x = this->fazo_entity.x,
+        .y = this->fazo_entity.y,
+        .width = this->fazo_entity.width,
+        .height = this->fazo_entity.height,
+    };
+    size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
-    for (const auto& candidate : candidates) {
-        if (candidate->id == this->id) {
+    for (unsigned int i = 0; i < len; i++) {
+        const FazoEntity* candidate = &candidates[i];
+        
+        unsigned int cid = candidate->id;
+        if (cid == this->id) {
             continue;
-        } else if (candidate->id == this->owner) {
+        } else if (cid == this->owner) {
             continue;
-        } else if (in_map(arena->entities.bullets, candidate->id)) {
-            if (arena->entities.bullets[candidate->id]->owner == this->owner) {
+        } else if (in_map(arena->entities.bullets, cid)) {
+            if (arena->entities.bullets[cid]->owner == this->owner) {
                 continue;
             }
-        } else if (in_map(arena->entities.tanks, candidate->id)) {
-            if (arena->entities.tanks[candidate->id]->state == TankState::Dead) {
+        } else if (in_map(arena->entities.tanks, cid)) {
+            if (arena->entities.tanks[cid]->state == TankState::Dead) {
                 continue;
             }
         }
 
         if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
-            if (in_map(arena->entities.bullets, candidate->id)) {
-                this->health -= arena->entities.bullets[candidate->id]->damage; // damage
-            } else if (in_map(arena->entities.shapes, candidate->id)) {
-                this->health -= arena->entities.shapes[candidate->id]->damage; // damage
+            if (in_map(arena->entities.bullets, cid)) {
+                this->health -= arena->entities.bullets[cid]->damage; // damage
+            } else if (in_map(arena->entities.shapes, cid)) {
+                this->health -= arena->entities.shapes[cid]->damage; // damage
             }
 
             // response
@@ -1197,12 +1256,11 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
         }
     }
+
+    FazoFree(candidates);
 }
 
 void Tank::next_tick(Arena* arena) { // NOLINT
-#ifdef THREADING
-    uv_rwlock_rdlock(&arena->entity_lock);
-#endif
     if (this->input.W) {
         this->velocity.y -= this->movement_speed;
     } else if (this->input.S) {
@@ -1271,12 +1329,21 @@ void Tank::next_tick(Arena* arena) { // NOLINT
         this->velocity.y = 0;
     }
 
-    this->qt_rect->x = this->position.x - this->radius;
-    this->qt_rect->y = this->position.y - this->radius;
-    this->qt_rect->width = this->radius * 2;
-    this->qt_rect->height = this->radius * 2;
-    this->qt_rect->radius = this->radius;
-    this->qt_rect->id = this->id;
+    this->fazo_entity.id = this->id;
+    this->fazo_entity.radius = this->radius;
+
+    if (this->fazo_entity.x != this->position.x - this->radius || this->fazo_entity.y != this->position.y - this->radius) {
+        this->fazo_entity.x = this->position.x - this->radius;
+        this->fazo_entity.y = this->position.y - this->radius;
+
+        FazoSolverMutate(arena->solver, &this->fazo_entity);
+    }
+    if (this->fazo_entity.width != this->radius * 2 || this->fazo_entity.height != this->radius * 2) {
+        this->fazo_entity.width = this->radius * 2;
+        this->fazo_entity.height = this->radius * 2;
+
+        FazoSolverMutate(arena->solver, &this->fazo_entity);
+    }
 #ifdef THREADING
     uv_rwlock_rdunlock(&arena->entity_lock);
 #endif
@@ -1301,12 +1368,21 @@ void Bullet::next_tick(Arena* arena) { // NOLINT
         this->velocity.y = 0;
     }
 
-    this->qt_rect->x = this->position.x - this->radius;
-    this->qt_rect->y = this->position.y - this->radius;
-    this->qt_rect->width = this->radius * 2;
-    this->qt_rect->height = this->radius * 2;
-    this->qt_rect->radius = this->radius;
-    this->qt_rect->id = this->id;
+    this->fazo_entity.id = this->id;
+    this->fazo_entity.radius = this->radius;
+
+    if (this->fazo_entity.x != this->position.x - this->radius || this->fazo_entity.y != this->position.y - this->radius) {
+        this->fazo_entity.x = this->position.x - this->radius;
+        this->fazo_entity.y = this->position.y - this->radius;
+
+        FazoSolverMutate(arena->solver, &this->fazo_entity);
+    }
+    if (this->fazo_entity.width != this->radius * 2 || this->fazo_entity.height != this->radius * 2) {
+        this->fazo_entity.width = this->radius * 2;
+        this->fazo_entity.height = this->radius * 2;
+
+        FazoSolverMutate(arena->solver, &this->fazo_entity);
+    }
 }
 
 void Shape::next_tick(Arena* arena) { // NOLINT
@@ -1328,12 +1404,21 @@ void Shape::next_tick(Arena* arena) { // NOLINT
         this->velocity.y = 0;
     }
 
-    this->qt_rect->x = this->position.x - this->radius;
-    this->qt_rect->y = this->position.y - this->radius;
-    this->qt_rect->width = this->radius * 2;
-    this->qt_rect->height = this->radius * 2;
-    this->qt_rect->radius = this->radius;
-    this->qt_rect->id = this->id;
+    this->fazo_entity.id = this->id;
+    this->fazo_entity.radius = this->radius;
+
+    if (this->fazo_entity.x != this->position.x - this->radius || this->fazo_entity.y != this->position.y - this->radius) {
+        this->fazo_entity.x = this->position.x - this->radius;
+        this->fazo_entity.y = this->position.y - this->radius;
+
+        FazoSolverMutate(arena->solver, &this->fazo_entity);
+    }
+    if (this->fazo_entity.width != this->radius * 2 || this->fazo_entity.height != this->radius * 2) {
+        this->fazo_entity.width = this->radius * 2;
+        this->fazo_entity.height = this->radius * 2;
+
+        FazoSolverMutate(arena->solver, &this->fazo_entity);
+    }
 }
 
 ///////////
