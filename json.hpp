@@ -1,7 +1,7 @@
 /*
     __ _____ _____ _____
  __|  |   __|     |   | |  JSON for Modern C++
-|  |  |__   |  |  | | | |  version 3.10.0
+|  |  |__   |  |  | | | |  version 3.10.3
 |_____|_____|_____|_|___|  https://github.com/nlohmann/json
 
 Licensed under the MIT License <http://opensource.org/licenses/MIT>.
@@ -32,7 +32,7 @@ SOFTWARE.
 
 #define NLOHMANN_JSON_VERSION_MAJOR 3
 #define NLOHMANN_JSON_VERSION_MINOR 10
-#define NLOHMANN_JSON_VERSION_PATCH 0
+#define NLOHMANN_JSON_VERSION_PATCH 3
 
 #include <algorithm> // all_of, find, for_each
 #include <cstddef> // nullptr_t, ptrdiff_t, size_t
@@ -167,7 +167,7 @@ inline bool operator<(const value_t lhs, const value_t rhs) noexcept
 // #include <nlohmann/detail/macro_scope.hpp>
 
 
-#include <utility> // pair
+#include <utility> // declval, pair
 // #include <nlohmann/thirdparty/hedley/hedley.hpp>
 
 
@@ -2214,6 +2214,83 @@ JSON_HEDLEY_DIAGNOSTIC_POP
 
 #endif /* !defined(JSON_HEDLEY_VERSION) || (JSON_HEDLEY_VERSION < X) */
 
+// #include <nlohmann/detail/meta/detected.hpp>
+
+
+#include <type_traits>
+
+// #include <nlohmann/detail/meta/void_t.hpp>
+
+
+namespace nlohmann
+{
+namespace detail
+{
+template<typename ...Ts> struct make_void
+{
+    using type = void;
+};
+template<typename ...Ts> using void_t = typename make_void<Ts...>::type;
+} // namespace detail
+}  // namespace nlohmann
+
+
+// https://en.cppreference.com/w/cpp/experimental/is_detected
+namespace nlohmann
+{
+namespace detail
+{
+struct nonesuch
+{
+    nonesuch() = delete;
+    ~nonesuch() = delete;
+    nonesuch(nonesuch const&) = delete;
+    nonesuch(nonesuch const&&) = delete;
+    void operator=(nonesuch const&) = delete;
+    void operator=(nonesuch&&) = delete;
+};
+
+template<class Default,
+         class AlwaysVoid,
+         template<class...> class Op,
+         class... Args>
+struct detector
+{
+    using value_t = std::false_type;
+    using type = Default;
+};
+
+template<class Default, template<class...> class Op, class... Args>
+struct detector<Default, void_t<Op<Args...>>, Op, Args...>
+{
+    using value_t = std::true_type;
+    using type = Op<Args...>;
+};
+
+template<template<class...> class Op, class... Args>
+using is_detected = typename detector<nonesuch, void, Op, Args...>::value_t;
+
+template<template<class...> class Op, class... Args>
+struct is_detected_lazy : is_detected<Op, Args...> { };
+
+template<template<class...> class Op, class... Args>
+using detected_t = typename detector<nonesuch, void, Op, Args...>::type;
+
+template<class Default, template<class...> class Op, class... Args>
+using detected_or = detector<Default, void, Op, Args...>;
+
+template<class Default, template<class...> class Op, class... Args>
+using detected_or_t = typename detected_or<Default, Op, Args...>::type;
+
+template<class Expected, template<class...> class Op, class... Args>
+using is_detected_exact = std::is_same<Expected, detected_t<Op, Args...>>;
+
+template<class To, template<class...> class Op, class... Args>
+using is_detected_convertible =
+    std::is_convertible<detected_t<Op, Args...>, To>;
+}  // namespace detail
+}  // namespace nlohmann
+
 
 // This file contains all internal macro definitions
 // You MUST include macro_unscope.hpp at the end of json.hpp to undef all of them
@@ -2504,6 +2581,45 @@ JSON_HEDLEY_DIAGNOSTIC_POP
     inline void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
     inline void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM, __VA_ARGS__)) }
 
+
+// inspired from https://stackoverflow.com/a/26745591
+// allows to call any std function as if (e.g. with begin):
+// using std::begin; begin(x);
+//
+// it allows using the detected idiom to retrieve the return type
+// of such an expression
+#define NLOHMANN_CAN_CALL_STD_FUNC_IMPL(std_name)                                 \
+    namespace detail {                                                            \
+    using std::std_name;                                                          \
+    \
+    template<typename... T>                                                       \
+    using result_of_##std_name = decltype(std_name(std::declval<T>()...));        \
+    }                                                                             \
+    \
+    namespace detail2 {                                                           \
+    struct std_name##_tag                                                         \
+    {                                                                             \
+    };                                                                            \
+    \
+    template<typename... T>                                                       \
+    std_name##_tag std_name(T&&...);                                              \
+    \
+    template<typename... T>                                                       \
+    using result_of_##std_name = decltype(std_name(std::declval<T>()...));        \
+    \
+    template<typename... T>                                                       \
+    struct would_call_std_##std_name                                              \
+    {                                                                             \
+        static constexpr auto const value = ::nlohmann::detail::                  \
+                                            is_detected_exact<std_name##_tag, result_of_##std_name, T...>::value; \
+    };                                                                            \
+    } /* namespace detail2 */ \
+    \
+    template<typename... T>                                                       \
+    struct would_call_std_##std_name : detail2::would_call_std_##std_name<T...>   \
+    {                                                                             \
+    }
+
 #ifndef JSON_USE_IMPLICIT_CONVERSIONS
     #define JSON_USE_IMPLICIT_CONVERSIONS 1
 #endif
@@ -2512,6 +2628,10 @@ JSON_HEDLEY_DIAGNOSTIC_POP
     #define JSON_EXPLICIT
 #else
     #define JSON_EXPLICIT explicit
+#endif
+
+#ifndef JSON_DIAGNOSTICS
+    #define JSON_DIAGNOSTICS 0
 #endif
 
 
@@ -3203,25 +3323,15 @@ template <class T> struct identity_tag {};
 #include <utility> // declval
 #include <tuple> // tuple
 
+// #include <nlohmann/detail/macro_scope.hpp>
+
+
 // #include <nlohmann/detail/iterators/iterator_traits.hpp>
 
 
 #include <iterator> // random_access_iterator_tag
 
 // #include <nlohmann/detail/meta/void_t.hpp>
-
-
-namespace nlohmann
-{
-namespace detail
-{
-template<typename ...Ts> struct make_void
-{
-    using type = void;
-};
-template<typename ...Ts> using void_t = typename make_void<Ts...>::type;
-} // namespace detail
-}  // namespace nlohmann
 
 // #include <nlohmann/detail/meta/cpp_future.hpp>
 
@@ -3271,73 +3381,31 @@ struct iterator_traits<T*, enable_if_t<std::is_object<T>::value>>
 } // namespace detail
 } // namespace nlohmann
 
+// #include <nlohmann/detail/meta/call_std/begin.hpp>
+
+
 // #include <nlohmann/detail/macro_scope.hpp>
+
+
+namespace nlohmann
+{
+NLOHMANN_CAN_CALL_STD_FUNC_IMPL(begin);
+} // namespace nlohmann
+
+// #include <nlohmann/detail/meta/call_std/end.hpp>
+
+
+// #include <nlohmann/detail/macro_scope.hpp>
+
+
+namespace nlohmann
+{
+NLOHMANN_CAN_CALL_STD_FUNC_IMPL(end);
+}  // namespace nlohmann
 
 // #include <nlohmann/detail/meta/cpp_future.hpp>
 
 // #include <nlohmann/detail/meta/detected.hpp>
-
-
-#include <type_traits>
-
-// #include <nlohmann/detail/meta/void_t.hpp>
-
-
-// https://en.cppreference.com/w/cpp/experimental/is_detected
-namespace nlohmann
-{
-namespace detail
-{
-struct nonesuch
-{
-    nonesuch() = delete;
-    ~nonesuch() = delete;
-    nonesuch(nonesuch const&) = delete;
-    nonesuch(nonesuch const&&) = delete;
-    void operator=(nonesuch const&) = delete;
-    void operator=(nonesuch&&) = delete;
-};
-
-template<class Default,
-         class AlwaysVoid,
-         template<class...> class Op,
-         class... Args>
-struct detector
-{
-    using value_t = std::false_type;
-    using type = Default;
-};
-
-template<class Default, template<class...> class Op, class... Args>
-struct detector<Default, void_t<Op<Args...>>, Op, Args...>
-{
-    using value_t = std::true_type;
-    using type = Op<Args...>;
-};
-
-template<template<class...> class Op, class... Args>
-using is_detected = typename detector<nonesuch, void, Op, Args...>::value_t;
-
-template<template<class...> class Op, class... Args>
-struct is_detected_lazy : is_detected<Op, Args...> { };
-
-template<template<class...> class Op, class... Args>
-using detected_t = typename detector<nonesuch, void, Op, Args...>::type;
-
-template<class Default, template<class...> class Op, class... Args>
-using detected_or = detector<Default, void, Op, Args...>;
-
-template<class Default, template<class...> class Op, class... Args>
-using detected_or_t = typename detected_or<Default, Op, Args...>::type;
-
-template<class Expected, template<class...> class Op, class... Args>
-using is_detected_exact = std::is_same<Expected, detected_t<Op, Args...>>;
-
-template<class To, template<class...> class Op, class... Args>
-using is_detected_convertible =
-    std::is_convertible<detected_t<Op, Args...>, To>;
-}  // namespace detail
-}  // namespace nlohmann
 
 // #include <nlohmann/json_fwd.hpp>
 #ifndef INCLUDE_NLOHMANN_JSON_FWD_HPP_
@@ -3488,9 +3556,6 @@ using reference_t = typename T::reference;
 template<typename T>
 using iterator_category_t = typename T::iterator_category;
 
-template<typename T>
-using iterator_t = typename T::iterator;
-
 template<typename T, typename... Args>
 using to_json_function = decltype(T::to_json(std::declval<Args>()...));
 
@@ -3626,6 +3691,31 @@ struct is_iterator_traits<iterator_traits<T>>
         is_detected<reference_t, traits>::value;
 };
 
+template<typename T>
+struct is_range
+{
+  private:
+    using t_ref = typename std::add_lvalue_reference<T>::type;
+
+    using iterator = detected_t<result_of_begin, t_ref>;
+    using sentinel = detected_t<result_of_end, t_ref>;
+
+    // to be 100% correct, it should use https://en.cppreference.com/w/cpp/iterator/input_or_output_iterator
+    // and https://en.cppreference.com/w/cpp/iterator/sentinel_for
+    // but reimplementing these would be too much work, as a lot of other concepts are used underneath
+    static constexpr auto is_iterator_begin =
+        is_iterator_traits<iterator_traits<iterator>>::value;
+
+  public:
+    static constexpr bool value = !std::is_same<iterator, nonesuch>::value && !std::is_same<sentinel, nonesuch>::value && is_iterator_begin;
+};
+
+template<typename R>
+using iterator_t = enable_if_t<is_range<R>::value, result_of_begin<decltype(std::declval<R&>())>>;
+
+template<typename T>
+using range_value_t = value_type_t<iterator_traits<iterator_t<T>>>;
+
 // The following implementation of is_complete_type is taken from
 // https://blogs.msdn.microsoft.com/vcblog/2015/12/02/partial-support-for-expression-sfinae-in-vs-2015-update-1/
 // and is written by Xiang Fan who agreed to using it in this library.
@@ -3700,8 +3790,9 @@ struct is_compatible_string_type_impl : std::false_type {};
 template<typename BasicJsonType, typename CompatibleStringType>
 struct is_compatible_string_type_impl <
     BasicJsonType, CompatibleStringType,
-    enable_if_t<is_detected_exact<typename BasicJsonType::string_t::value_type,
-    value_type_t, CompatibleStringType>::value >>
+    enable_if_t<is_detected_convertible<typename BasicJsonType::string_t::value_type,
+    range_value_t,
+    CompatibleStringType>::value >>
 {
     static constexpr auto value =
         is_constructible<typename BasicJsonType::string_t, CompatibleStringType>::value;
@@ -3736,17 +3827,13 @@ struct is_compatible_array_type_impl : std::false_type {};
 template<typename BasicJsonType, typename CompatibleArrayType>
 struct is_compatible_array_type_impl <
     BasicJsonType, CompatibleArrayType,
-    enable_if_t < is_detected<value_type_t, CompatibleArrayType>::value&&
+    enable_if_t <
     is_detected<iterator_t, CompatibleArrayType>::value&&
-// This is needed because json_reverse_iterator has a ::iterator type...
-// Therefore it is detected as a CompatibleArrayType.
-// The real fix would be to have an Iterable concept.
-    !is_iterator_traits <
-    iterator_traits<CompatibleArrayType >>::value >>
+    is_iterator_traits<iterator_traits<detected_t<iterator_t, CompatibleArrayType>>>::value >>
 {
     static constexpr bool value =
         is_constructible<BasicJsonType,
-        typename CompatibleArrayType::value_type>::value;
+        range_value_t<CompatibleArrayType>>::value;
 };
 
 template<typename BasicJsonType, typename CompatibleArrayType>
@@ -3768,28 +3855,26 @@ struct is_constructible_array_type_impl <
     BasicJsonType, ConstructibleArrayType,
     enable_if_t < !std::is_same<ConstructibleArrayType,
     typename BasicJsonType::value_type>::value&&
+    !is_compatible_string_type<BasicJsonType, ConstructibleArrayType>::value&&
     is_default_constructible<ConstructibleArrayType>::value&&
 (std::is_move_assignable<ConstructibleArrayType>::value ||
  std::is_copy_assignable<ConstructibleArrayType>::value)&&
-is_detected<value_type_t, ConstructibleArrayType>::value&&
 is_detected<iterator_t, ConstructibleArrayType>::value&&
+is_iterator_traits<iterator_traits<detected_t<iterator_t, ConstructibleArrayType>>>::value&&
+is_detected<range_value_t, ConstructibleArrayType>::value&&
 is_complete_type <
-detected_t<value_type_t, ConstructibleArrayType >>::value >>
+detected_t<range_value_t, ConstructibleArrayType >>::value >>
 {
-    static constexpr bool value =
-        // This is needed because json_reverse_iterator has a ::iterator type,
-        // furthermore, std::back_insert_iterator (and other iterators) have a
-        // base class `iterator`... Therefore it is detected as a
-        // ConstructibleArrayType. The real fix would be to have an Iterable
-        // concept.
-        !is_iterator_traits<iterator_traits<ConstructibleArrayType>>::value &&
+    using value_type = range_value_t<ConstructibleArrayType>;
 
-        (std::is_same<typename ConstructibleArrayType::value_type,
-         typename BasicJsonType::array_t::value_type>::value ||
-         has_from_json<BasicJsonType,
-         typename ConstructibleArrayType::value_type>::value ||
-         has_non_default_from_json <
-         BasicJsonType, typename ConstructibleArrayType::value_type >::value);
+    static constexpr bool value =
+        std::is_same<value_type,
+        typename BasicJsonType::array_t::value_type>::value ||
+        has_from_json<BasicJsonType,
+        value_type>::value ||
+        has_non_default_from_json <
+        BasicJsonType,
+        value_type >::value;
 };
 
 template<typename BasicJsonType, typename ConstructibleArrayType>
@@ -3844,6 +3929,24 @@ struct is_constructible_tuple : std::false_type {};
 
 template<typename T1, typename... Args>
 struct is_constructible_tuple<T1, std::tuple<Args...>> : conjunction<is_constructible<T1, Args>...> {};
+
+// a naive helper to check if a type is an ordered_map (exploits the fact that
+// ordered_map inherits capacity() from std::vector)
+template <typename T>
+struct is_ordered_map
+{
+    using one = char;
+
+    struct two
+    {
+        char x[2]; // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
+    };
+
+    template <typename C> static one test( decltype(&C::capacity) ) ;
+    template <typename C> static two test(...);
+
+    enum { value = sizeof(test<T>(nullptr)) == sizeof(char) }; // NOLINT(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
+};
 
 // to avoid useless casts (see https://github.com/nlohmann/json/issues/2893#issuecomment-889152324)
 template < typename T, typename U, enable_if_t < !std::is_same<T, U>::value, int > = 0 >
@@ -4602,7 +4705,7 @@ struct external_constructor<value_t::binary>
     {
         j.m_value.destroy(j.m_type);
         j.m_type = value_t::binary;
-        j.m_value = typename BasicJsonType::binary_t(std::move(b));;
+        j.m_value = typename BasicJsonType::binary_t(std::move(b));
         j.assert_invariant();
     }
 };
@@ -5168,6 +5271,8 @@ class byte_container_with_subtype : public BinaryType
 #include <functional> // hash
 
 // #include <nlohmann/detail/macro_scope.hpp>
+
+// #include <nlohmann/detail/value_t.hpp>
 
 
 namespace nlohmann
@@ -13461,11 +13566,11 @@ template<typename CharType>
 using output_adapter_t = std::shared_ptr<output_adapter_protocol<CharType>>;
 
 /// output adapter for byte vectors
-template<typename CharType>
+template<typename CharType, typename AllocatorType = std::allocator<CharType>>
 class output_vector_adapter : public output_adapter_protocol<CharType>
 {
   public:
-    explicit output_vector_adapter(std::vector<CharType>& vec) noexcept
+    explicit output_vector_adapter(std::vector<CharType, AllocatorType>& vec) noexcept
         : v(vec)
     {}
 
@@ -13481,7 +13586,7 @@ class output_vector_adapter : public output_adapter_protocol<CharType>
     }
 
   private:
-    std::vector<CharType>& v;
+    std::vector<CharType, AllocatorType>& v;
 };
 
 #ifndef JSON_NO_IO
@@ -13538,8 +13643,9 @@ template<typename CharType, typename StringType = std::basic_string<CharType>>
 class output_adapter
 {
   public:
-    output_adapter(std::vector<CharType>& vec)
-        : oa(std::make_shared<output_vector_adapter<CharType>>(vec)) {}
+    template<typename AllocatorType = std::allocator<CharType>>
+    output_adapter(std::vector<CharType, AllocatorType>& vec)
+        : oa(std::make_shared<output_vector_adapter<CharType, AllocatorType>>(vec)) {}
 
 #ifndef JSON_NO_IO
     output_adapter(std::basic_ostream<CharType>& s)
@@ -13615,7 +13721,7 @@ class binary_writer
             case value_t::discarded:
             default:
             {
-                JSON_THROW(type_error::create(317, "to serialize to BSON, top-level type must be object, but is " + std::string(j.type_name()), j));;
+                JSON_THROW(type_error::create(317, "to serialize to BSON, top-level type must be object, but is " + std::string(j.type_name()), j));
             }
         }
     }
@@ -18446,7 +18552,7 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
                     object = nullptr;  // silence warning, see #821
                     if (JSON_HEDLEY_UNLIKELY(t == value_t::null))
                     {
-                        JSON_THROW(other_error::create(500, "961c151d2e87f2686a955a9be24d316f1362bf21 3.10.0", basic_json())); // LCOV_EXCL_LINE
+                        JSON_THROW(other_error::create(500, "961c151d2e87f2686a955a9be24d316f1362bf21 3.10.3", basic_json())); // LCOV_EXCL_LINE
                     }
                     break;
                 }
@@ -18716,6 +18822,21 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
                 return j;
             }
         }
+
+        // ordered_json uses a vector internally, so pointers could have
+        // been invalidated; see https://github.com/nlohmann/json/issues/2962
+#ifdef JSON_HEDLEY_MSVC_VERSION
+#pragma warning(push )
+#pragma warning(disable : 4127) // ignore warning to replace if with if constexpr
+#endif
+        if (detail::is_ordered_map<object_t>::value)
+        {
+            set_parents();
+            return j;
+        }
+#ifdef JSON_HEDLEY_MSVC_VERSION
+#pragma warning( pop )
+#endif
 
         j.m_parent = this;
 #else
@@ -21061,15 +21182,25 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
             if (idx >= m_value.array->size())
             {
 #if JSON_DIAGNOSTICS
-                // remember array size before resizing
-                const auto previous_size = m_value.array->size();
+                // remember array size & capacity before resizing
+                const auto old_size = m_value.array->size();
+                const auto old_capacity = m_value.array->capacity();
 #endif
                 m_value.array->resize(idx + 1);
 
 #if JSON_DIAGNOSTICS
-                // set parent for values added above
-                set_parents(begin() + static_cast<typename iterator::difference_type>(previous_size), static_cast<typename iterator::difference_type>(idx + 1 - previous_size));
+                if (JSON_HEDLEY_UNLIKELY(m_value.array->capacity() != old_capacity))
+                {
+                    // capacity has changed: update all parents
+                    set_parents();
+                }
+                else
+                {
+                    // set parent for values added above
+                    set_parents(begin() + static_cast<typename iterator::difference_type>(old_size), static_cast<typename iterator::difference_type>(idx + 1 - old_size));
+                }
 #endif
+                assert_invariant();
             }
 
             return m_value.array->operator[](idx);
@@ -23375,6 +23506,9 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
         for (auto it = j.cbegin(); it != j.cend(); ++it)
         {
             m_value.object->operator[](it.key()) = it.value();
+#if JSON_DIAGNOSTICS
+            m_value.object->operator[](it.key()).m_parent = this;
+#endif
         }
     }
 
@@ -23435,6 +23569,9 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
         for (auto it = first; it != last; ++it)
         {
             m_value.object->operator[](it.key()) = it.value();
+#if JSON_DIAGNOSTICS
+            m_value.object->operator[](it.key()).m_parent = this;
+#endif
         }
     }
 
@@ -26443,6 +26580,7 @@ inline nlohmann::json::json_pointer operator "" _json_pointer(const char* s, std
 #undef NLOHMANN_BASIC_JSON_TPL_DECLARATION
 #undef NLOHMANN_BASIC_JSON_TPL
 #undef JSON_EXPLICIT
+#undef NLOHMANN_CAN_CALL_STD_FUNC_IMPL
 
 // #include <nlohmann/thirdparty/hedley/hedley_undef.hpp>
 
