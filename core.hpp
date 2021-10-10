@@ -244,8 +244,8 @@ public:
     }
 
     void take_census(StreamPeerBuffer& buf) {
-        buf.put_u8(1);                // id
-        buf.put_u32(this->id);        // game id
+        buf.put_u8(1);                 // id
+        buf.put_u32(this->id);         // game id
         buf.put_i16(this->position.x); // position
         buf.put_i16(this->position.y);
         buf.put_float(this->health / this->max_health); // health
@@ -326,12 +326,12 @@ public:
     void collision_response(Arena* arena) __attribute__((hot));
 
     void take_census(StreamPeerBuffer& buf, unsigned long time) {
-        buf.put_u8(0);                // id
-        buf.put_u32(this->id);        // game id
+        buf.put_u8(0);                 // id
+        buf.put_u32(this->id);         // game id
         buf.put_i16(this->position.x); // position
         buf.put_i16(this->position.y);
         buf.put_float(this->rotation); // rotation
-        buf.put_i16(this->velocity.x);  // velocity
+        buf.put_i16(this->velocity.x); // velocity
         buf.put_i16(this->velocity.y);
         buf.put_u8(this->mockup);                                  // mockup id
         buf.put_float(this->health / this->max_health);            // health
@@ -380,11 +380,11 @@ public:
     unsigned int owner;
 
     void take_census(StreamPeerBuffer& buf) {
-        buf.put_u8(2);                // id
-        buf.put_u32(this->id);        // game id
+        buf.put_u8(2);                 // id
+        buf.put_u32(this->id);         // game id
         buf.put_i16(this->position.x); // position
         buf.put_i16(this->position.y);
-        buf.put_u16(this->radius);    // radius
+        buf.put_u16(this->radius);     // radius
         buf.put_i16(this->velocity.x); // velocity
         buf.put_i16(this->velocity.y);
         buf.put_u32(this->owner); // owner of bullet
@@ -405,7 +405,7 @@ public:
     unsigned long ticks = 0;
     Entities entities;
     unsigned short size = 5000;
-    BroadSolver* solver = FazoSolverNew(size, size, 100);
+    BroadSolver* solver = FazoSolverNew(size, size, 7);
     unsigned int target_shape_count = 50;
     unsigned short target_bot_count = 6;
 
@@ -690,10 +690,12 @@ public:
         uv_rwlock_wrlock(&entity_lock);
 #endif
         entity_map.erase(entity_id);
-        FazoSolverDelete(solver, entity_id);
 #ifdef THREADING
         uv_rwlock_wrunlock(&entity_lock);
 #endif
+
+        FazoSolverDelete(solver, entity_id);
+
         if (entity_ptr != nullptr) {
             delete entity_ptr;
         }
@@ -1317,13 +1319,12 @@ void Tank::next_tick(Arena* arena) { // NOLINT
     this->fazo_entity.id = this->id;
     this->fazo_entity.radius = this->radius;
 
-    if (this->fazo_entity.x != this->position.x - this->radius || this->fazo_entity.y != this->position.y - this->radius) {
+    if (this->fazo_entity.x != this->position.x - this->radius ||
+        this->fazo_entity.y != this->position.y - this->radius ||
+        this->fazo_entity.width != this->radius * 2 ||
+        this->fazo_entity.height != this->radius * 2) {
         this->fazo_entity.x = this->position.x - this->radius;
         this->fazo_entity.y = this->position.y - this->radius;
-
-        FazoSolverMutate(arena->solver, &this->fazo_entity);
-    }
-    if (this->fazo_entity.width != this->radius * 2 || this->fazo_entity.height != this->radius * 2) {
         this->fazo_entity.width = this->radius * 2;
         this->fazo_entity.height = this->radius * 2;
 
@@ -1356,13 +1357,12 @@ void Bullet::next_tick(Arena* arena) { // NOLINT
     this->fazo_entity.id = this->id;
     this->fazo_entity.radius = this->radius;
 
-    if (this->fazo_entity.x != this->position.x - this->radius || this->fazo_entity.y != this->position.y - this->radius) {
+    if (this->fazo_entity.x != this->position.x - this->radius ||
+        this->fazo_entity.y != this->position.y - this->radius ||
+        this->fazo_entity.width != this->radius * 2 ||
+        this->fazo_entity.height != this->radius * 2) {
         this->fazo_entity.x = this->position.x - this->radius;
         this->fazo_entity.y = this->position.y - this->radius;
-
-        FazoSolverMutate(arena->solver, &this->fazo_entity);
-    }
-    if (this->fazo_entity.width != this->radius * 2 || this->fazo_entity.height != this->radius * 2) {
         this->fazo_entity.width = this->radius * 2;
         this->fazo_entity.height = this->radius * 2;
 
@@ -1392,13 +1392,12 @@ void Shape::next_tick(Arena* arena) { // NOLINT
     this->fazo_entity.id = this->id;
     this->fazo_entity.radius = this->radius;
 
-    if (this->fazo_entity.x != this->position.x - this->radius || this->fazo_entity.y != this->position.y - this->radius) {
+    if (this->fazo_entity.x != this->position.x - this->radius ||
+        this->fazo_entity.y != this->position.y - this->radius ||
+        this->fazo_entity.width != this->radius * 2 ||
+        this->fazo_entity.height != this->radius * 2) {
         this->fazo_entity.x = this->position.x - this->radius;
         this->fazo_entity.y = this->position.y - this->radius;
-
-        FazoSolverMutate(arena->solver, &this->fazo_entity);
-    }
-    if (this->fazo_entity.width != this->radius * 2 || this->fazo_entity.height != this->radius * 2) {
         this->fazo_entity.width = this->radius * 2;
         this->fazo_entity.height = this->radius * 2;
 

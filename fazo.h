@@ -37,7 +37,9 @@ extern "C" {
 
     void FazoFree(const struct FazoEntity* v);
 
-    void FazoSolverDelete(struct BroadSolver* this_, uint64_t id);
+    void FazoSolverClear(struct BroadSolver* this_);
+
+    bool FazoSolverDelete(struct BroadSolver* this_, uint64_t id);
 
     void FazoSolverFree(struct BroadSolver* this_);
 
