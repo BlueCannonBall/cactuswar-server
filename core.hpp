@@ -1010,7 +1010,7 @@ void Entity::collision_response(Arena* arena) { // NOLINT
         }
     }
 
-    FazoFree(candidates, len);
+    free(candidates);
 }
 
 void Shape::collision_response(Arena* arena) { // NOLINT
@@ -1042,7 +1042,7 @@ void Shape::collision_response(Arena* arena) { // NOLINT
                         BRUH("The bullet of a non-existent player hit and killed a shape");
                     }
 
-                    FazoFree(candidates, len);
+                    free(candidates);
                     return; // death
                 }
             }
@@ -1055,7 +1055,7 @@ void Shape::collision_response(Arena* arena) { // NOLINT
         }
     }
 
-    FazoFree(candidates, len);
+    free(candidates);
 }
 
 void Tank::collision_response(Arena* arena) { // NOLINT
@@ -1091,7 +1091,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
                         BRUH("The bullet of a non-existent player hit and killed another tank");
                     }
 
-                    FazoFree(candidates, len);
+                    free(candidates);
                     return; // death
                 }
             } else if (in_map(arena->entities.shapes, cid)) {
@@ -1108,7 +1108,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
 
     float dr = 112.5 * this->fov * 1.6;
 
-    FazoFree(candidates, len);
+    free(candidates);
     query = {
         .x = this->position.x - dr / 2,
         .y = this->position.y - dr / 2,
@@ -1180,7 +1180,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
             this->input.mousepos = arena->entities.shapes[sorted_nearby_shapes.begin()->second]->position;
             dist = sorted_nearby_shapes.begin()->first;
         } else {
-            FazoFree(candidates, len);
+            free(candidates);
             return;
         }
 
@@ -1202,7 +1202,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
         }
     }
 
-    FazoFree(candidates, len);
+    free(candidates);
 }
 
 void Bullet::collision_response(Arena* arena) { // NOLINT
@@ -1244,7 +1244,7 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
         }
     }
 
-    FazoFree(candidates, len);
+    free(candidates);
 }
 
 void Tank::next_tick(Arena* arena) { // NOLINT
