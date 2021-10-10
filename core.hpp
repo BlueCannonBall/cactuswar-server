@@ -407,7 +407,7 @@ public:
     unsigned short size = 5000;
     BroadSolver* solver = FazoSolverNew(size, size, 7);
     unsigned int target_shape_count = 50;
-    unsigned short target_bot_count = 6;
+    unsigned short target_bot_count = 23;
 
     uv_fs_event_t entityconfig_event_handle;
     uv_timer_t timer;
@@ -984,7 +984,7 @@ void Barrel::fire(Tank* tank, Arena* arena) { // NOLINT
 
 // Example collision response 👇
 void Entity::collision_response(Arena* arena) { // NOLINT
-    const FazoEntity* candidates;
+    FazoEntity* candidates;
     FazoQuery query {
         .x = this->fazo_entity.x,
         .y = this->fazo_entity.y,
@@ -1010,11 +1010,11 @@ void Entity::collision_response(Arena* arena) { // NOLINT
         }
     }
 
-    FazoFree(candidates);
+    FazoFree(candidates, len);
 }
 
 void Shape::collision_response(Arena* arena) { // NOLINT
-    const FazoEntity* candidates;
+    FazoEntity* candidates;
     FazoQuery query {
         .x = this->fazo_entity.x,
         .y = this->fazo_entity.y,
@@ -1042,7 +1042,7 @@ void Shape::collision_response(Arena* arena) { // NOLINT
                         BRUH("The bullet of a non-existent player hit and killed a shape");
                     }
 
-                    FazoFree(candidates);
+                    FazoFree(candidates, len);
                     return; // death
                 }
             }
@@ -1055,11 +1055,11 @@ void Shape::collision_response(Arena* arena) { // NOLINT
         }
     }
 
-    FazoFree(candidates);
+    FazoFree(candidates, len);
 }
 
 void Tank::collision_response(Arena* arena) { // NOLINT
-    const FazoEntity* candidates;
+    FazoEntity* candidates;
     FazoQuery query {
         .x = this->fazo_entity.x,
         .y = this->fazo_entity.y,
@@ -1091,7 +1091,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
                         BRUH("The bullet of a non-existent player hit and killed another tank");
                     }
 
-                    FazoFree(candidates);
+                    FazoFree(candidates, len);
                     return; // death
                 }
             } else if (in_map(arena->entities.shapes, cid)) {
@@ -1108,7 +1108,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
 
     float dr = 112.5 * this->fov * 1.6;
 
-    FazoFree(candidates);
+    FazoFree(candidates, len);
     query = {
         .x = this->position.x - dr / 2,
         .y = this->position.y - dr / 2,
@@ -1180,7 +1180,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
             this->input.mousepos = arena->entities.shapes[sorted_nearby_shapes.begin()->second]->position;
             dist = sorted_nearby_shapes.begin()->first;
         } else {
-            FazoFree(candidates);
+            FazoFree(candidates, len);
             return;
         }
 
@@ -1202,11 +1202,11 @@ void Tank::collision_response(Arena* arena) { // NOLINT
         }
     }
 
-    FazoFree(candidates);
+    FazoFree(candidates, len);
 }
 
 void Bullet::collision_response(Arena* arena) { // NOLINT
-    const FazoEntity* candidates;
+    FazoEntity* candidates;
     FazoQuery query {
         .x = this->fazo_entity.x,
         .y = this->fazo_entity.y,
@@ -1244,7 +1244,7 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
         }
     }
 
-    FazoFree(candidates);
+    FazoFree(candidates, len);
 }
 
 void Tank::next_tick(Arena* arena) { // NOLINT
