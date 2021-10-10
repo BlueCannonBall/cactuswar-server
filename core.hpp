@@ -411,6 +411,8 @@ public:
 
     uv_fs_event_t entityconfig_event_handle;
     uv_timer_t timer;
+    float delta;
+    chrono::high_resolution_clock::time_point last_tick;
 
 #ifdef THREADING
     uv_rwlock_t entity_lock;
@@ -705,6 +707,10 @@ public:
     }
 
     void update() __attribute__((hot)) {
+        auto this_tick = chrono::high_resolution_clock::now();
+        delta = (chrono::duration_cast<chrono::microseconds>(this_tick - last_tick).count() / 1000.f) / (1000.f / TARGET_TPS);
+        last_tick = this_tick;
+
         bool found_player = false;
         for (const auto& tank : entities.tanks) {
             if (tank.second->type == TankType::Remote) {
@@ -1034,7 +1040,7 @@ void Shape::collision_response(Arena* arena) { // NOLINT
         if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (in_map(arena->entities.bullets, cid)) {
                 float old_health = this->health;
-                this->health -= arena->entities.bullets[cid]->damage; // damage
+                this->health -= arena->entities.bullets[cid]->damage * arena->delta; // damage
                 if (this->health <= 0 && old_health > 0) {
                     if (in_map(arena->entities.tanks, arena->entities.bullets[cid]->owner)) {
                         arena->entities.tanks[arena->entities.bullets[cid]->owner]->level += this->reward;
@@ -1083,7 +1089,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
         if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (in_map(arena->entities.bullets, cid)) {
                 float old_health = this->health;
-                this->health -= arena->entities.bullets[cid]->damage; // damage
+                this->health -= arena->entities.bullets[cid]->damage * arena->delta; // damage
                 if (this->health <= 0 && old_health > 0) {
                     if (in_map(arena->entities.tanks, arena->entities.bullets[cid]->owner)) {
                         arena->entities.tanks[arena->entities.bullets[cid]->owner]->level += this->level / 2;
@@ -1095,7 +1101,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
                     return; // death
                 }
             } else if (in_map(arena->entities.shapes, cid)) {
-                this->health -= arena->entities.shapes[cid]->damage; // damage
+                this->health -= arena->entities.shapes[cid]->damage * arena->delta; // damage
             }
 
             // response
@@ -1231,9 +1237,9 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
 
         if (circle_collision(Vector2(candidate->x + candidate->radius, candidate->y + candidate->radius), candidate->radius, Vector2(this->position.x, this->position.y), this->radius)) {
             if (in_map(arena->entities.bullets, cid)) {
-                this->health -= arena->entities.bullets[cid]->damage; // damage
+                this->health -= arena->entities.bullets[cid]->damage * arena->delta; // damage
             } else if (in_map(arena->entities.shapes, cid)) {
-                this->health -= arena->entities.shapes[cid]->damage; // damage
+                this->health -= arena->entities.shapes[cid]->damage * arena->delta; // damage
             }
 
             // response
@@ -1299,7 +1305,7 @@ void Tank::next_tick(Arena* arena) { // NOLINT
     this->radius = 50 + (level * 0.25);
 
     this->velocity *= Vector2(this->friction, this->friction);
-    this->position += this->velocity / Vector2(this->mass, this->mass);
+    this->position += this->velocity * Vector2(arena->delta, arena->delta) / Vector2(this->mass, this->mass);
 
     if (this->position.x > arena->size) {
         this->position.x = arena->size;
@@ -1337,7 +1343,7 @@ void Tank::next_tick(Arena* arena) { // NOLINT
 
 void Bullet::next_tick(Arena* arena) { // NOLINT
     this->velocity *= Vector2(this->friction, this->friction);
-    this->position += this->velocity / Vector2(this->mass, this->mass);
+    this->position += this->velocity * Vector2(arena->delta, arena->delta) / Vector2(this->mass, this->mass);
 
     if (this->position.x > arena->size) {
         this->position.x = arena->size;
@@ -1372,7 +1378,7 @@ void Bullet::next_tick(Arena* arena) { // NOLINT
 
 void Shape::next_tick(Arena* arena) { // NOLINT
     this->velocity *= Vector2(this->friction, this->friction);
-    this->position += this->velocity / Vector2(this->mass, this->mass);
+    this->position += this->velocity * Vector2(arena->delta, arena->delta) / Vector2(this->mass, this->mass);
 
     if (this->position.x > arena->size) {
         this->position.x = arena->size;
