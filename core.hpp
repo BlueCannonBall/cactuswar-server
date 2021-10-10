@@ -993,6 +993,7 @@ void Entity::collision_response(Arena* arena) { // NOLINT
     };
     size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
+#pragma omp simd
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity* candidate = &candidates[i];
 
@@ -1010,7 +1011,7 @@ void Entity::collision_response(Arena* arena) { // NOLINT
         }
     }
 
-    free(candidates);
+    if (len) free(candidates);
 }
 
 void Shape::collision_response(Arena* arena) { // NOLINT
@@ -1023,6 +1024,7 @@ void Shape::collision_response(Arena* arena) { // NOLINT
     };
     size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
+#pragma omp simd
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity* candidate = &candidates[i];
 
@@ -1042,7 +1044,7 @@ void Shape::collision_response(Arena* arena) { // NOLINT
                         BRUH("The bullet of a non-existent player hit and killed a shape");
                     }
 
-                    free(candidates);
+                    if (len) free(candidates);
                     return; // death
                 }
             }
@@ -1055,7 +1057,7 @@ void Shape::collision_response(Arena* arena) { // NOLINT
         }
     }
 
-    free(candidates);
+    if (len) free(candidates);
 }
 
 void Tank::collision_response(Arena* arena) { // NOLINT
@@ -1068,6 +1070,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
     };
     size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
+#pragma omp simd
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity* candidate = &candidates[i];
 
@@ -1091,7 +1094,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
                         BRUH("The bullet of a non-existent player hit and killed another tank");
                     }
 
-                    free(candidates);
+                    if (len) free(candidates);
                     return; // death
                 }
             } else if (in_map(arena->entities.shapes, cid)) {
@@ -1108,7 +1111,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
 
     float dr = 112.5 * this->fov * 1.6;
 
-    free(candidates);
+    if (len) free(candidates);
     query = {
         .x = this->position.x - dr / 2,
         .y = this->position.y - dr / 2,
@@ -1121,6 +1124,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
         StreamPeerBuffer buf(true);
         unsigned short census_size = 0;
 
+#pragma omp simd
         for (unsigned int i = 0; i < len; i++) {
             const FazoEntity* candidate = &candidates[i];
 
@@ -1151,6 +1155,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
         map<unsigned int, unsigned int> nearby_tanks;
         map<unsigned int, unsigned int> nearby_shapes;
 
+#pragma omp simd
         for (unsigned int i = 0; i < len; i++) {
             const FazoEntity* candidate = &candidates[i];
 
@@ -1180,7 +1185,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
             this->input.mousepos = arena->entities.shapes[sorted_nearby_shapes.begin()->second]->position;
             dist = sorted_nearby_shapes.begin()->first;
         } else {
-            free(candidates);
+            if (len) free(candidates);
             return;
         }
 
@@ -1202,7 +1207,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
         }
     }
 
-    free(candidates);
+    if (len) free(candidates);
 }
 
 void Bullet::collision_response(Arena* arena) { // NOLINT
@@ -1215,6 +1220,7 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
     };
     size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
+#pragma omp simd
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity* candidate = &candidates[i];
 
@@ -1244,7 +1250,7 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
         }
     }
 
-    free(candidates);
+    if (len) free(candidates);
 }
 
 void Tank::next_tick(Arena* arena) { // NOLINT
