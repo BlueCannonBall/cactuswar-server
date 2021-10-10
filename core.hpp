@@ -993,7 +993,6 @@ void Entity::collision_response(Arena* arena) { // NOLINT
     };
     size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
-#pragma omp simd
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity* candidate = &candidates[i];
 
@@ -1024,7 +1023,6 @@ void Shape::collision_response(Arena* arena) { // NOLINT
     };
     size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
-#pragma omp simd
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity* candidate = &candidates[i];
 
@@ -1070,7 +1068,6 @@ void Tank::collision_response(Arena* arena) { // NOLINT
     };
     size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
-#pragma omp simd
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity* candidate = &candidates[i];
 
@@ -1124,7 +1121,6 @@ void Tank::collision_response(Arena* arena) { // NOLINT
         StreamPeerBuffer buf(true);
         unsigned short census_size = 0;
 
-#pragma omp simd
         for (unsigned int i = 0; i < len; i++) {
             const FazoEntity* candidate = &candidates[i];
 
@@ -1155,7 +1151,6 @@ void Tank::collision_response(Arena* arena) { // NOLINT
         map<unsigned int, unsigned int> nearby_tanks;
         map<unsigned int, unsigned int> nearby_shapes;
 
-#pragma omp simd
         for (unsigned int i = 0; i < len; i++) {
             const FazoEntity* candidate = &candidates[i];
 
@@ -1220,7 +1215,6 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
     };
     size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
-#pragma omp simd
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity* candidate = &candidates[i];
 
