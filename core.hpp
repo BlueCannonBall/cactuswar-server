@@ -470,7 +470,7 @@ public:
         uv_timer_stop(&timer);
     }
 
-    void set_size(unsigned short _size) {
+    inline void set_size(unsigned short _size) {
         if (_size == this->size) {
             return;
         }
