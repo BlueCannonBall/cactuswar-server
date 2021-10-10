@@ -172,7 +172,7 @@ public:
     }
 };
 
-bool circle_collision(const Vector2& pos1, unsigned int radius1, const Vector2& pos2, unsigned int radius2) { // NOLINT
+inline bool circle_collision(const Vector2& pos1, unsigned int radius1, const Vector2& pos2, unsigned int radius2) { // NOLINT
     float dx = pos1.x - pos2.x;
     float dy = pos1.y - pos2.y;
     float distance = sqrt(dx * dx + dy * dy);
