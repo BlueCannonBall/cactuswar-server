@@ -1271,7 +1271,7 @@ void Tank::next_tick(Arena* arena) { // NOLINT
             if (!barrel->cooling_down) {
                 barrel->cooling_down = true;
 
-                barrel->target_time.time = arena->ticks + barrel->reload_delay;
+                barrel->target_time.time = arena->ticks + barrel->reload_delay / arena->delta;
                 barrel->target_time.target = BarrelTarget::ReloadDelay;
             }
         }
@@ -1281,7 +1281,7 @@ void Tank::next_tick(Arena* arena) { // NOLINT
                     case BarrelTarget::ReloadDelay: {
                         barrel->fire(this, arena); // SAFETY: `this` and `arena` are supposedly always valid.
                         barrel->cooling_down = true;
-                        barrel->target_time.time = arena->ticks + barrel->full_reload;
+                        barrel->target_time.time = arena->ticks + barrel->full_reload / arena->delta;
                         barrel->target_time.target = BarrelTarget::CoolingDown;
                         break;
                     }
