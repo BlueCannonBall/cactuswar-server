@@ -16,14 +16,15 @@
 #include <unordered_map>
 #include <uv.h>
 #include <vector>
+#include <unistd.h>
 
 #pragma once
 // #define THREADING
 // #define DEBUG_MAINLOOP_SPEED
 #define COLLISION_STRENGTH     5
 #define BOT_ACCURACY_THRESHOLD 30
-#define HOT_RELOAD_TIMEOUT     30
 #define TARGET_TPS             30
+#define DELTA_TPS              30
 #define RAND(a, b)             rand() % (b - a + 1) + a
 #define ELLIPSIS               "…"
 
@@ -269,7 +270,7 @@ enum class BarrelTarget {
 // Represents a timer
 struct Timer {
     BarrelTarget target = BarrelTarget::None;
-    unsigned long time = 0;
+    float time = 0;
 };
 
 // A tank barrel.
@@ -373,7 +374,7 @@ class Bullet: public Entity {
 public:
     unsigned short radius = 25;
     static constexpr float friction = 1;
-    short lifetime = 50;
+    float lifetime = 50;
     float damage = 20;
     float max_health = 10;
     float health = max_health;
@@ -427,7 +428,7 @@ public:
         uv_fs_event_start(
             &entityconfig_event_handle, [](uv_fs_event_t* handle, const char* filename, int events, int status) {
                 INFO("Hot reloading entityconfig.json");
-                std::this_thread::sleep_for(chrono::milliseconds(HOT_RELOAD_TIMEOUT));
+                sync();
                 tanksconfig.clear();
                 assert(load_tanks_from_json(filename) == 0);
                 Arena* arena = (Arena*) handle->data;
@@ -708,7 +709,7 @@ public:
 
     void update() __attribute__((hot)) {
         auto this_tick = chrono::high_resolution_clock::now();
-        delta = (chrono::duration_cast<chrono::microseconds>(this_tick - last_tick).count() / 1000.f) / (1000.f / TARGET_TPS);
+        delta = (chrono::duration_cast<chrono::microseconds>(this_tick - last_tick).count() / 1000.f) / (1000.f / DELTA_TPS);
         last_tick = this_tick;
 
         bool found_player = false;
@@ -832,7 +833,7 @@ public:
                     continue;
                 }
 
-                entity->second->lifetime--;
+                entity->second->lifetime -= delta;
                 if (entity->second->lifetime <= 0) {
                     this->destroy_entity(entity++->first, this->entities.bullets);
                     continue;
@@ -959,7 +960,7 @@ void Barrel::fire(Tank* tank, Arena* arena) { // NOLINT
     Bullet* new_bullet = new Bullet;
     new_bullet->position = tank->position + (Vector2(cos(tank->rotation + angle), sin(tank->rotation + angle)).normalize() * Vector2(tank->radius + new_bullet->radius + 1, tank->radius + new_bullet->radius + 1));
     new_bullet->velocity = Vector2(cos(tank->rotation + this->angle) * bullet_speed, sin(tank->rotation + this->angle) * bullet_speed);
-    tank->velocity -= Vector2(cos(tank->rotation + angle) * this->recoil, sin(tank->rotation + angle) * this->recoil);
+    tank->velocity -= Vector2(cos(tank->rotation + angle) * (this->recoil / arena->delta), sin(tank->rotation + angle) * (this->recoil / arena->delta));
     new_bullet->id = get_uid();
     new_bullet->owner = tank->id;
     new_bullet->radius = this->width * tank->radius;
@@ -1011,8 +1012,8 @@ void Entity::collision_response(Arena* arena) { // NOLINT
             // response
             float angle = atan2((candidate->y + candidate->radius) - this->position.y, (candidate->x + candidate->radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
-            this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
-            this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
+            this->velocity.x += -push_vec.x * COLLISION_STRENGTH * arena->delta;
+            this->velocity.y += -push_vec.y * COLLISION_STRENGTH * arena->delta;
         }
     }
 
@@ -1056,8 +1057,8 @@ void Shape::collision_response(Arena* arena) { // NOLINT
             // response
             float angle = atan2((candidate->y + candidate->radius) - this->position.y, (candidate->x + candidate->radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
-            this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
-            this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
+            this->velocity.x += -push_vec.x * COLLISION_STRENGTH * arena->delta;
+            this->velocity.y += -push_vec.y * COLLISION_STRENGTH * arena->delta;
         }
     }
 
@@ -1107,8 +1108,8 @@ void Tank::collision_response(Arena* arena) { // NOLINT
             // response
             float angle = atan2((candidate->y + candidate->radius) - this->position.y, (candidate->x + candidate->radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
-            this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
-            this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
+            this->velocity.x += -push_vec.x * COLLISION_STRENGTH * arena->delta;
+            this->velocity.y += -push_vec.y * COLLISION_STRENGTH * arena->delta;
         }
     }
 
@@ -1245,8 +1246,8 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
             // response
             float angle = atan2((candidate->y + candidate->radius) - this->position.y, (candidate->x + candidate->radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
-            this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
-            this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
+            this->velocity.x += -push_vec.x * COLLISION_STRENGTH * arena->delta;
+            this->velocity.y += -push_vec.y * COLLISION_STRENGTH * arena->delta;
         }
     }
 
