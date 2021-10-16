@@ -1,15 +1,23 @@
-CC=g++
-LDLIBS=-luv -lssl -lcrypto -pthread -lleveldb -lfazo
-CFLAGS=-std=c++14 -Wall -s -Ofast -march=native -mtune=native \
+CC = g++
+LDLIBS = -luv -lssl -lcrypto -pthread -lleveldb -lfazo
+CFLAGS = -std=c++14 -Wall -s -Ofast -march=native -mtune=native \
 	-fno-signed-zeros -fno-trapping-math -finline-functions \
 	-frename-registers -funroll-loops -fmerge-all-constants \
 	-fopenmp -Bsymbolic -fno-semantic-interposition \
 	-fdiagnostics-color=always -ftree-vectorize -Llib \
 	-fno-stack-protector -fif-conversion -fif-conversion2 \
 	-finline-functions-called-once -finline-small-functions
-TARGET=./build/server
-OBJDIR=build/obj
-PORT=8000
+TARGET = ./build/server
+OBJDIR = build/obj
+PORT = 8000
+
+ifdef THREADING
+CFLAGS += -DTHREADING
+LDLIBS += -ltbb
+endif
+ifdef DEBUG_MAINLOOP_SPEED
+CFLAGS += -DDEBUG_MAINLOOP_SPEED
+endif
 
 $(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json.hpp.gch fazo.h.gch
 	mkdir -p build
