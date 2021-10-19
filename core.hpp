@@ -1,15 +1,12 @@
 #pragma once
+#define THREADING
+// #define DEBUG_MAINLOOP_SPEED
 #define COLLISION_STRENGTH     5
 #define BOT_ACCURACY_THRESHOLD 30
 #define TARGET_TPS             30
 #define DELTA_TPS              30
 #define RAND(a, b)             rand() % (b - a + 1) + a
 #define ELLIPSIS               "…"
-#ifdef THREADING
-#define CW_CONT return
-#else
-#define CW_CONT continue
-#endif
 
 #include "bcblog.hpp"
 #include "entityconfig.hpp"
@@ -24,10 +21,7 @@
 #include <memory>
 #include <string>
 #ifdef THREADING
-#include <mutex>
-#define THRUST_DEVICE_SYSTEM THRUST_DEVICE_SYSTEM_CPP
-#include <thrust/for_each.h>
-#include <thrust/system/tbb/execution_policy.h>
+#include "threadpool.hpp"
 #endif
 #include <typeinfo>
 #include <unistd.h>
@@ -424,6 +418,7 @@ public:
 
 #ifdef THREADING
     uv_rwlock_t entity_lock;
+    tp::ThreadPool pool;
 #endif
 
     Arena() {
@@ -846,17 +841,45 @@ public:
             ++entity;
         }
 
-        for (auto entity = this->entities.shapes.cbegin(); entity != this->entities.shapes.cend();) {
-            entity++->second->collision_response(this);
+#ifdef THREADING
+        vector<shared_ptr<tp::Task>> tasks;
+#endif
+
+        for (const auto& entity : this->entities.shapes) {
+#ifdef THREADING
+            tasks.push_back(this->pool.schedule([entity, this](void*) {
+#endif
+                entity.second->collision_response(this);
+#ifdef THREADING
+            }));
+#endif
         }
 
-        for (auto entity = this->entities.tanks.cbegin(); entity != this->entities.tanks.cend();) {
-            entity++->second->collision_response(this);
+        for (const auto& entity : this->entities.tanks) {
+#ifdef THREADING
+            tasks.push_back(this->pool.schedule([entity, this](void*) {
+#endif
+                entity.second->collision_response(this);
+#ifdef THREADING
+            }));
+#endif
         }
 
-        for (auto entity = this->entities.bullets.cbegin(); entity != this->entities.bullets.cend();) {
-            entity++->second->collision_response(this);
+        for (const auto& entity : this->entities.bullets) {
+#ifdef THREADING
+            tasks.push_back(this->pool.schedule([entity, this](void*) {
+#endif
+                entity.second->collision_response(this);
+#ifdef THREADING
+            }));
+#endif
         }
+
+#ifdef THREADING
+        for (auto& task : tasks) {
+            task->await();
+        }
+#endif
     }
 
     void run() {
@@ -960,15 +983,11 @@ void Entity::collision_response(Arena* arena) { // NOLINT
     };
     size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
-#ifdef THREADING
-    thrust::for_each(thrust::tbb::par, candidates, candidates + len, [this, arena](const FazoEntity& candidate) {
-#else
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity& candidate = candidates[i];
-#endif
         unsigned int cid = candidate.id;
         if (cid == this->id) {
-            CW_CONT;
+            continue;
         }
 
         if (circle_collision(Vector2(candidate.x + candidate.radius, candidate.y + candidate.radius), candidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
@@ -978,11 +997,7 @@ void Entity::collision_response(Arena* arena) { // NOLINT
             this->velocity.x += -push_vec.x * COLLISION_STRENGTH * arena->delta;
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH * arena->delta;
         }
-#ifdef THREADING
-    });
-#else
     }
-#endif
 
     if (len) free(candidates);
 }
@@ -997,15 +1012,11 @@ void Shape::collision_response(Arena* arena) { // NOLINT
     };
     size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
-#ifdef THREADING
-    thrust::for_each(thrust::tbb::par, candidates, candidates + len, [this, arena](const FazoEntity& candidate) {
-#else
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity& candidate = candidates[i];
-#endif
         unsigned int cid = candidate.id;
         if (cid == this->id) {
-            CW_CONT;
+            continue;
         }
 
         if (circle_collision(Vector2(candidate.x + candidate.radius, candidate.y + candidate.radius), candidate.radius, Vector2(this->position.x, this->position.y), this->radius)) {
@@ -1027,11 +1038,7 @@ void Shape::collision_response(Arena* arena) { // NOLINT
             this->velocity.x += -push_vec.x * COLLISION_STRENGTH * arena->delta;
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH * arena->delta;
         }
-#ifdef THREADING
-    });
-#else
     }
-#endif
 
     if (len) free(candidates);
 }
@@ -1046,18 +1053,14 @@ void Tank::collision_response(Arena* arena) { // NOLINT
     };
     size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
-#ifdef THREADING
-    thrust::for_each(thrust::tbb::par, candidates, candidates + len, [this, arena](const FazoEntity& candidate) {
-#else
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity& candidate = candidates[i];
-#endif
         unsigned int cid = candidate.id;
         if (cid == this->id) {
-            CW_CONT;
+            continue;
         } else if (in_map(arena->entities.bullets, cid)) {
             if (arena->entities.bullets[cid]->owner == this->id) {
-                CW_CONT;
+                continue;
             }
         }
 
@@ -1082,11 +1085,7 @@ void Tank::collision_response(Arena* arena) { // NOLINT
             this->velocity.x += -push_vec.x * COLLISION_STRENGTH * arena->delta;
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH * arena->delta;
         }
-#ifdef THREADING
-    });
-#else
     }
-#endif
 
     float dr = 112.5 * this->fov * 1.6;
 
@@ -1197,20 +1196,16 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
     };
     size_t len = FazoSolverSolve(arena->solver, &query, &candidates);
 
-#ifdef THREADING
-    thrust::for_each(thrust::tbb::par, candidates, candidates + len, [this, arena](const FazoEntity& candidate) {
-#else
     for (unsigned int i = 0; i < len; i++) {
         const FazoEntity& candidate = candidates[i];
-#endif
         unsigned int cid = candidate.id;
         if (cid == this->id) {
-            CW_CONT;
+            continue;
         } else if (cid == this->owner) {
-            CW_CONT;
+            continue;
         } else if (in_map(arena->entities.bullets, cid)) {
             if (arena->entities.bullets[cid]->owner == this->owner) {
-                CW_CONT;
+                continue;
             }
         }
 
@@ -1227,11 +1222,7 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
             this->velocity.x += -push_vec.x * COLLISION_STRENGTH * arena->delta;
             this->velocity.y += -push_vec.y * COLLISION_STRENGTH * arena->delta;
         }
-#ifdef THREADING
-    });
-#else
     }
-#endif
 
     if (len) free(candidates);
 }

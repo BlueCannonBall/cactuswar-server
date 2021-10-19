@@ -1,5 +1,5 @@
 CC = g++
-LDLIBS = -luv -lssl -lcrypto -pthread -lleveldb -lfazo
+LDLIBS = -luv -lssl -lcrypto -lleveldb -lfazo
 CFLAGS = -std=c++14 -Wall -s -Ofast -march=native -mtune=native \
 	-fno-signed-zeros -fno-trapping-math -finline-functions \
 	-frename-registers -funroll-loops -fmerge-all-constants \
@@ -12,8 +12,7 @@ OBJDIR = build/obj
 PORT = 8000
 
 ifdef THREADING
-CFLAGS += -DTHREADING
-LDLIBS += -ltbb
+CFLAGS += -DTHREADING -pthread
 endif
 ifdef DEBUG_MAINLOOP_SPEED
 CFLAGS += -DDEBUG_MAINLOOP_SPEED
