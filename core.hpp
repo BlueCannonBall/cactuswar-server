@@ -1,5 +1,5 @@
 #pragma once
-#define THREADING
+// #define THREADING
 // #define DEBUG_MAINLOOP_SPEED
 #define COLLISION_STRENGTH     5
 #define BOT_ACCURACY_THRESHOLD 30
@@ -37,6 +37,9 @@ typedef std::unordered_map<std::string, std::string> HTTPHeaders;
 
 leveldb::DB* db;          // NOLINT
 leveldb::Options options; // NOLINT
+#ifdef THREADING
+tp::ThreadPool pool;      // NOLINT
+#endif
 
 enum class Packet {
     InboundInit = 0,
@@ -418,7 +421,7 @@ public:
 
 #ifdef THREADING
     uv_rwlock_t entity_lock;
-    tp::ThreadPool pool;
+    vector<shared_ptr<tp::Task>> tasks;
 #endif
 
     Arena() {
@@ -840,38 +843,41 @@ public:
 #endif
             ++entity;
         }
-
 #ifdef THREADING
-        vector<shared_ptr<tp::Task>> tasks;
+        tasks.resize(entities.shapes.size() + entities.tanks.size() + entities.bullets.size());
+        unsigned int i = 0;
 #endif
 
         for (const auto& entity : this->entities.shapes) {
 #ifdef THREADING
-            tasks.push_back(this->pool.schedule([entity, this](void*) {
+            tasks[i] = pool.schedule([entity, this](void*) {
 #endif
                 entity.second->collision_response(this);
 #ifdef THREADING
-            }));
+            });
+            i++;
 #endif
         }
 
         for (const auto& entity : this->entities.tanks) {
 #ifdef THREADING
-            tasks.push_back(this->pool.schedule([entity, this](void*) {
+            tasks[i] = pool.schedule([entity, this](void*) {
 #endif
                 entity.second->collision_response(this);
 #ifdef THREADING
-            }));
+            });
+            i++;
 #endif
         }
 
         for (const auto& entity : this->entities.bullets) {
 #ifdef THREADING
-            tasks.push_back(this->pool.schedule([entity, this](void*) {
+            tasks[i] = pool.schedule([entity, this](void*) {
 #endif
                 entity.second->collision_response(this);
 #ifdef THREADING
-            }));
+            });
+            i++;
 #endif
         }
 
