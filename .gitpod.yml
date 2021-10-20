@@ -1,0 +1,13 @@
+# Commands to start on workspace startup
+tasks:
+  - init: apt install
+    command: sudo apt install libuv1-dev libleveldb-dev
+  
+# Ports to expose on workspace startup
+ports:
+  - port: 8000
+    onOpen: notify
+    visibility: public
+  - port: 9000
+    onOpen: open-browser
+    visibility: public
