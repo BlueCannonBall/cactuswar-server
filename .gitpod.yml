@@ -1,0 +1,12 @@
+# Commands to start on workspace startup
+tasks:
+  - init: sudo apt install libuv1-dev libleveldb-dev && sudo cp /workspace/cactuswar-server/lib/* /usr/lib/
+
+# Ports to expose on workspace startup
+ports:
+  - port: 8000
+    onOpen: ignore
+    visibility: public
+  - port: 9000
+    onOpen: open-browser
+    visibility: public
