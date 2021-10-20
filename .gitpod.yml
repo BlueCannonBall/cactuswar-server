@@ -5,7 +5,7 @@ tasks:
 # Ports to expose on workspace startup
 ports:
   - port: 8000
-    onOpen: notify
+    onOpen: ignore
     visibility: public
   - port: 9000
     onOpen: open-browser
