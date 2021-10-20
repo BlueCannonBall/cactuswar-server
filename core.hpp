@@ -446,8 +446,7 @@ public:
                     }
                 }
             },
-            "entityconfig.json",
-            UV_FS_EVENT_STAT);
+            "entityconfig.json", 0);
     }
 
     ~Arena() {
