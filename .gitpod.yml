@@ -2,6 +2,9 @@
 tasks:
   - init: apt install
     command: sudo apt install libuv1-dev libleveldb-dev
+  - init: cargo install
+    command: cargo install wasm-pack
+
   
 # Ports to expose on workspace startup
 ports:
