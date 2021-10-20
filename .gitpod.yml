@@ -1,11 +1,6 @@
 # Commands to start on workspace startup
 tasks:
-  - init: apt install
-    command: sudo apt install libuv1-dev libleveldb-dev
-  - init: cargo install
-    command: cargo install wasm-pack
-  - init: install bundled libraries
-    command: sudo cp /workspace/cactuswar-server/lib/* /usr/lib/
+  - init: sudo apt install libuv1-dev libleveldb-dev && sudo cp /workspace/cactuswar-server/lib/* /usr/lib/
 
 # Ports to expose on workspace startup
 ports:
