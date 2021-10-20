@@ -58,6 +58,6 @@ namespace bcblog {
         struct tm* now = localtime(&t);
         char time_cstr[25];
         strftime(time_cstr, 25, "%a %b %d %H:%M:%S %Y", now);
-        return std::move(std::string(time_cstr));
+        return time_cstr;
     }
 } // namespace bcblog

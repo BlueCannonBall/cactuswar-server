@@ -809,33 +809,33 @@ public:
 
         for (const auto& entity : this->entities.shapes) {
 #ifdef THREADING
-            tasks[i] = pool.schedule([entity, this](void*) {
+            tasks[i] = std::move(pool.schedule([entity, this](void*) {
 #endif
                 entity.second->collision_response(this);
 #ifdef THREADING
-            });
+            }));
             i++;
 #endif
         }
 
         for (const auto& entity : this->entities.tanks) {
 #ifdef THREADING
-            tasks[i] = pool.schedule([entity, this](void*) {
+            tasks[i] = std::move(pool.schedule([entity, this](void*) {
 #endif
                 entity.second->collision_response(this);
 #ifdef THREADING
-            });
+            }));
             i++;
 #endif
         }
 
         for (const auto& entity : this->entities.bullets) {
 #ifdef THREADING
-            tasks[i] = pool.schedule([entity, this](void*) {
+            tasks[i] = std::move(pool.schedule([entity, this](void*) {
 #endif
                 entity.second->collision_response(this);
 #ifdef THREADING
-            });
+            }));
             i++;
 #endif
         }
