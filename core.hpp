@@ -951,8 +951,8 @@ void Entity::collision_response(Arena* arena) { // NOLINT
             // response
             float angle = atan2((candidate.y + candidate.radius) - this->position.y, (candidate.x + candidate.radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
-            this->velocity.x += -push_vec.x * COLLISION_STRENGTH * arena->delta;
-            this->velocity.y += -push_vec.y * COLLISION_STRENGTH * arena->delta;
+            this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
+            this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
         }
     }
 
@@ -992,8 +992,8 @@ void Shape::collision_response(Arena* arena) { // NOLINT
             // response
             float angle = atan2((candidate.y + candidate.radius) - this->position.y, (candidate.x + candidate.radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
-            this->velocity.x += -push_vec.x * COLLISION_STRENGTH * arena->delta;
-            this->velocity.y += -push_vec.y * COLLISION_STRENGTH * arena->delta;
+            this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
+            this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
         }
     }
 
@@ -1039,8 +1039,8 @@ void Tank::collision_response(Arena* arena) { // NOLINT
             // response
             float angle = atan2((candidate.y + candidate.radius) - this->position.y, (candidate.x + candidate.radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
-            this->velocity.x += -push_vec.x * COLLISION_STRENGTH * arena->delta;
-            this->velocity.y += -push_vec.y * COLLISION_STRENGTH * arena->delta;
+            this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
+            this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
         }
     }
 
@@ -1176,8 +1176,8 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
             // response
             float angle = atan2((candidate.y + candidate.radius) - this->position.y, (candidate.x + candidate.radius) - this->position.x);
             Vector2 push_vec(cos(angle), sin(angle)); // heading vector
-            this->velocity.x += -push_vec.x * COLLISION_STRENGTH * arena->delta;
-            this->velocity.y += -push_vec.y * COLLISION_STRENGTH * arena->delta;
+            this->velocity.x += -push_vec.x * COLLISION_STRENGTH;
+            this->velocity.y += -push_vec.y * COLLISION_STRENGTH;
         }
     }
 
