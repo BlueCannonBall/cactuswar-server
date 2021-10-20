@@ -420,14 +420,10 @@ public:
     chrono::high_resolution_clock::time_point last_tick;
 
 #ifdef THREADING
-    uv_rwlock_t entity_lock;
     vector<shared_ptr<tp::Task>> tasks;
 #endif
 
     Arena() {
-#ifdef THREADING
-        uv_rwlock_init(&entity_lock);
-#endif
         uv_fs_event_init(uv_default_loop(), &entityconfig_event_handle);
         entityconfig_event_handle.data = this;
         uv_fs_event_start(
@@ -451,10 +447,6 @@ public:
     }
 
     ~Arena() {
-#ifdef THREADING
-        uv_rwlock_wrlock(&entity_lock);
-#endif
-
         for (auto entity = this->entities.shapes.cbegin(); entity != this->entities.shapes.cend();) {
             destroy_entity(entity++->first, this->entities.shapes);
         }
@@ -470,10 +462,6 @@ public:
 
         FazoSolverFree(solver);
 
-#ifdef THREADING
-        uv_rwlock_wrunlock(&entity_lock);
-        uv_rwlock_destroy(&entity_lock);
-#endif
         uv_fs_event_stop(&entityconfig_event_handle);
         uv_timer_stop(&timer);
     }
@@ -694,13 +682,7 @@ public:
     template <typename T>
     void destroy_entity(unsigned int entity_id, unordered_map<unsigned int, T*>& entity_map) {
         T* entity_ptr = entity_map[entity_id];
-#ifdef THREADING
-        uv_rwlock_wrlock(&entity_lock);
-#endif
         entity_map.erase(entity_id);
-#ifdef THREADING
-        uv_rwlock_wrunlock(&entity_lock);
-#endif
 
         FazoSolverDelete(solver, entity_id);
 
@@ -763,13 +745,7 @@ public:
                 continue;
             }
 
-#ifdef THREADING
-            uv_rwlock_rdlock(&entity_lock);
-#endif
             entity->second->next_tick(this);
-#ifdef THREADING
-            uv_rwlock_rdunlock(&entity_lock);
-#endif
             ++entity;
         }
 
@@ -778,13 +754,8 @@ public:
                 this->destroy_entity(entity++->first, this->entities.tanks);
                 continue;
             }
-#ifdef THREADING
-            uv_rwlock_rdlock(&entity_lock);
-#endif
+
             if (entity->second->state == TankState::Dead) {
-#ifdef THREADING
-                uv_rwlock_rdunlock(&entity_lock);
-#endif
                 ++entity;
                 continue;
             }
@@ -805,17 +776,11 @@ public:
                     FazoSolverDelete(solver, entity->first);
                     StreamPeerBuffer buf(true);
                     send_death_packet(buf, entity++->second);
-#ifdef THREADING
-                    uv_rwlock_rdunlock(&entity_lock);
-#endif
                     continue;
                 }
             }
 
             entity->second->next_tick(this);
-#ifdef THREADING
-            uv_rwlock_rdunlock(&this->entity_lock);
-#endif
 
             ++entity;
         }
@@ -834,13 +799,8 @@ public:
                 this->destroy_entity(entity++->first, this->entities.bullets);
                 continue;
             }
-#ifdef THREADING
-            uv_rwlock_rdlock(&entity_lock);
-#endif
+
             entity->second->next_tick(this);
-#ifdef THREADING
-            uv_rwlock_rdunlock(&entity_lock);
-#endif
             ++entity;
         }
 #ifdef THREADING
@@ -967,15 +927,7 @@ void Barrel::fire(Tank* tank, Arena* arena) { // NOLINT
     new_bullet->max_health = this->bullet_penetration;
     new_bullet->health = new_bullet->max_health;
 
-#ifdef THREADING
-    uv_rwlock_rdunlock(&arena->entity_lock);
-    uv_rwlock_wrlock(&arena->entity_lock);
-#endif
     arena->entities.bullets[new_bullet->id] = new_bullet;
-#ifdef THREADING
-    uv_rwlock_wrunlock(&arena->entity_lock);
-    uv_rwlock_rdlock(&arena->entity_lock);
-#endif
 }
 
 // Example collision response 👇
