@@ -682,8 +682,8 @@ public:
     template <typename T>
     void destroy_entity(unsigned int entity_id, unordered_map<unsigned int, T*>& entity_map) {
         T* entity_ptr = entity_map[entity_id];
-        entity_map.erase(entity_id);
 
+        entity_map.erase(entity_id);
         FazoSolverDelete(solver, entity_id);
 
         if (entity_ptr != nullptr) {
