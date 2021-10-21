@@ -1,6 +1,8 @@
 # Commands to start on workspace startup
 tasks:
-  - before: sudo apt-get install -y libuv1-dev libleveldb-dev && sudo cp /workspace/cactuswar-server/lib/* /usr/lib/
+  - before: |
+      sudo apt-get install -y libuv1-dev libleveldb-dev
+      sudo cp /workspace/cactuswar-server/lib/* /usr/lib/
 
 # Ports to expose on workspace startup
 ports:
