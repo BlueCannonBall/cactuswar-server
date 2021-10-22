@@ -409,10 +409,10 @@ public:
 
     unsigned long ticks = 0;
     Entities entities;
-    unsigned short size = 5000;
-    BroadSolver* solver = FazoSolverNew(size, size, 7);
-    unsigned int target_shape_count = 50;
     unsigned short target_bot_count = 23;
+    unsigned short size = target_bot_count * 1000 + 5000;
+    BroadSolver* solver = FazoSolverNew(size, size, 7);
+    unsigned int target_shape_count = size * size / 700000;
 
     uv_fs_event_t entityconfig_event_handle;
     uv_timer_t timer;
