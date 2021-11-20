@@ -442,7 +442,7 @@ public:
                     }
                 }
             },
-            "entityconfig.json", 0);
+            "entityconfig.json", UV_FS_EVENT_STAT);
     }
 
     ~Arena() {
