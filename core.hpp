@@ -414,7 +414,6 @@ public:
     BroadSolver* solver = FazoSolverNew(size, size, 7);
     unsigned int target_shape_count = size * size / 700000;
 
-    uv_fs_event_t entityconfig_event_handle;
     uv_timer_t timer;
     float delta;
     chrono::high_resolution_clock::time_point last_tick;
@@ -422,28 +421,6 @@ public:
 #ifdef THREADING
     vector<shared_ptr<tp::Task>> tasks;
 #endif
-
-    Arena() {
-        uv_fs_event_init(uv_default_loop(), &entityconfig_event_handle);
-        entityconfig_event_handle.data = this;
-        uv_fs_event_start(
-            &entityconfig_event_handle, [](uv_fs_event_t* handle, const char* filename, int events, int status) {
-                INFO("Hot reloading entityconfig.json");
-                sync();
-                tanksconfig.clear();
-                assert(load_tanks_from_json(filename) == 0);
-                Arena* arena = (Arena*) handle->data;
-                StreamPeerBuffer buf(true);
-                for (const auto& tank : arena->entities.tanks) {
-                    if (tank.second->type == TankType::Remote) {
-                        buf.reset();
-                        arena->send_init_packet(buf, tank.second);
-                        tank.second->define(tank.second->mockup);
-                    }
-                }
-            },
-            "entityconfig.json", UV_FS_EVENT_STAT);
-    }
 
     ~Arena() {
         for (auto entity = this->entities.shapes.cbegin(); entity != this->entities.shapes.cend();) {
@@ -461,7 +438,6 @@ public:
 
         FazoSolverFree(solver);
 
-        uv_fs_event_stop(&entityconfig_event_handle);
         uv_timer_stop(&timer);
     }
 
