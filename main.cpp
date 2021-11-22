@@ -27,9 +27,11 @@ map<string, Arena*> arenas = {
 json server_info;
 
 void kick(ws28::Client* client, bool destroy = true) {
-    Arena* arena = arenas[paths[client].path];
-    if (client->GetUserData() != nullptr) {
-        unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
+    auto client_info = (ClientInfo*) client->GetUserData();
+    Arena* arena = arenas[client_info->path];
+
+    if (client_info->authenticated) {
+        const unsigned int player_id = client_info->id;
         if (in_map(arena->entities.tanks, player_id)) {
             arena->destroy_entity(player_id, arena->entities.tanks);
         }
