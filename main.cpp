@@ -47,8 +47,7 @@ inline void atexit_handler() {
 }
 
 inline void signal_handler(int signal_num) {
-    atexit_handler();
-    _Exit(signal_num);
+    exit(signal_num);
 }
 
 int main(int argc, char** argv) {
@@ -69,6 +68,29 @@ int main(int argc, char** argv) {
     }
     assert(s.ok());
     assert(load_tanks_from_json("entityconfig.json") == 0);
+
+    uv_fs_event_t entityconfig_event_handle;
+    uv_fs_event_init(uv_default_loop(), &entityconfig_event_handle);
+    entityconfig_event_handle.data = &arenas;
+    uv_fs_event_start(
+        &entityconfig_event_handle, [](uv_fs_event_t* handle, const char* filename, int events, int status) {
+            INFO("Hot reloading entityconfig.json");
+            sync();
+            tanksconfig.clear();
+            assert(load_tanks_from_json(filename) == 0);
+            auto arenas = (map<std::string, Arena*>*) handle->data;
+            StreamPeerBuffer buf(true);
+            for (const auto& arena : *arenas) {
+                for (const auto& tank : arena.second->entities.tanks) {
+                    if (tank.second->type == TankType::Remote) {
+                        buf.reset();
+                        arena.second->send_init_packet(buf, tank.second);
+                        tank.second->define(tank.second->mockup);
+                    }
+                }
+            }
+        },
+        "entityconfig.json", 0);
 
     atexit(atexit_handler);
     signal(SIGTERM, signal_handler);
