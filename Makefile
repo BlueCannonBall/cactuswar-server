@@ -1,12 +1,13 @@
 CC = g++
 LDLIBS = -luv -lssl -lcrypto -lleveldb -lfazo
-CFLAGS = -std=c++14 -Wall -s -Ofast -march=native -mtune=native \
+CFLAGS = -std=c++14 -Wall -Llib -s -Ofast -march=native \
 	-fno-signed-zeros -fno-trapping-math -finline-functions \
 	-frename-registers -funroll-loops -fmerge-all-constants \
-	-Bsymbolic -fno-semantic-interposition -Llib \
-	-fdiagnostics-color=always -ftree-vectorize \
-	-fno-stack-protector -fif-conversion -fif-conversion2 \
-	-finline-functions-called-once -finline-small-functions
+	-fno-semantic-interposition -fdiagnostics-color=always \
+	-ftree-vectorize -fno-stack-protector -fif-conversion  \
+	-finline-functions-called-once -finline-small-functions \
+	-Bsymbolic -fif-conversion2 -mtune=native -ffinite-loops \
+	-fvect-cost-model=cheap
 TARGET = ./build/server
 OBJDIR = build/obj
 PORT = 8000

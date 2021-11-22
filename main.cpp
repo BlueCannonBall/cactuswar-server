@@ -211,6 +211,8 @@ int main(int argc, char** argv) {
         req.headers.ForEach([client_info](const char* key, const char* value) {
             client_info->headers[key] = value;
         });
+        client->SetUserData(client_info);
+
         return true;
     });
 
