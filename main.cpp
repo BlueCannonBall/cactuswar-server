@@ -31,9 +31,8 @@ void kick(ws28::Client* client, bool destroy = true) {
     Arena* arena = arenas[client_info->path];
 
     if (client_info->authenticated) {
-        const unsigned int player_id = client_info->id;
-        if (in_map(arena->entities.tanks, player_id)) {
-            arena->destroy_entity(player_id, arena->entities.tanks);
+        if (in_map(arena->entities.tanks, client_info->id)) {
+            arena->destroy_entity(client_info->id, arena->entities.tanks);
         }
     }
 
@@ -96,6 +95,7 @@ int main(int argc, char** argv) {
     signal(SIGTERM, signal_handler);
     signal(SIGINT, signal_handler);
     signal(SIGHUP, signal_handler);
+    signal(SIGQUIT, signal_handler);
 
     ws28::Server server {uv_default_loop(), nullptr};
     server.SetMaxMessageSize(MESSAGE_SIZE);
@@ -113,7 +113,8 @@ int main(int argc, char** argv) {
         StreamPeerBuffer buf(true);
         buf.data_array = vector<uint8_t>(data, data + len);
 
-        Arena* arena = arenas[paths[client].path];
+        auto client_info = (ClientInfo*) client->GetUserData();
+        Arena* arena = arenas[client_info->path];
         unsigned char packet_id = buf.get_u8();
         switch (packet_id) {
             default:
@@ -157,7 +158,7 @@ int main(int argc, char** argv) {
     server.SetClientDisconnectedCallback([](ws28::Client* client) {
         INFO("Client disconnected");
         kick(client, false);
-        paths.erase(client);
+        delete (ClientInfo*) client->GetUserData();
     });
 
     server.SetHTTPCallback([](ws28::HTTPRequest& req, ws28::HTTPResponse& res) {
@@ -203,10 +204,12 @@ int main(int argc, char** argv) {
             ERR("Failed to check if player is banned: " << s.ToString());
         }
 
-        paths[client] = ClientInfo {};
-        paths[client].path = req.path;
-        req.headers.ForEach([client](const char* key, const char* value) {
-            paths[client].headers[key] = value;
+        auto client_info = new ClientInfo {
+            .path = req.path,
+            .authenticated = false
+        };
+        req.headers.ForEach([client_info](const char* key, const char* value) {
+            client_info->headers[key] = value;
         });
         return true;
     });

@@ -198,8 +198,10 @@ inline bool in_vec(T1& vec, const T2& object) {
 void ban(ws28::Client* client, bool destroy = true) { // NOLINT
     leveldb::Status s;
     string ip;
-    if (in_map(paths[client].headers, "x-forwarded-for")) {
-        ip = paths[client].headers["x-forwarded-for"];
+    auto client_info = (ClientInfo*) client->GetUserData();
+
+    if (in_map(client_info->headers, "x-forwarded-for")) {
+        ip = client_info->headers["x-forwarded-for"];
         ip = ip.substr(0, ip.find(","));
     } else {
         ip = client->GetIP();
@@ -486,16 +488,17 @@ public:
     }
 
     void handle_init_packet(StreamPeerBuffer& buf, ws28::Client* client) {
-        if (client->GetUserData() != nullptr) {
-            unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-            if (in_map(this->entities.tanks, player_id)) {
+        auto client_info = (ClientInfo*) client->GetUserData();
+
+        if (client_info->authenticated) {
+            if (in_map(this->entities.tanks, client_info->id)) {
                 WARN("Existing player tried to send init packet");
-                destroy_entity(player_id, this->entities.tanks);
+                destroy_entity(client_info->id, this->entities.tanks);
                 ban(client);
                 return;
             }
             WARN("Non-existent player with non-null id tried to send init packet");
-            destroy_entity(player_id, entities.tanks);
+            destroy_entity(client_info->id, entities.tanks);
             ban(client);
             return;
         }
@@ -518,10 +521,11 @@ public:
         new_player->name = player_name;
         new_player->client = client;
 
-        unsigned int player_id = get_uid();
-        client->SetUserData(reinterpret_cast<void*>(player_id));
+        const unsigned int player_id = get_uid();
+        client_info->id = player_id;
         new_player->id = player_id;
         this->entities.tanks[player_id] = new_player;
+        client_info->authenticated = true;
         new_player->position = Vector2(RAND(0, size), RAND(0, size));
         new_player->define(RAND(0, tanksconfig.size() - 1));
 
@@ -543,8 +547,8 @@ public:
         // tracking
         std::string value;
         string ip;
-        if (in_map(paths[client].headers, "x-forwarded-for")) {
-            ip = paths[client].headers["x-forwarded-for"];
+        if (in_map(client_info->headers, "x-forwarded-for")) {
+            ip = client_info->headers["x-forwarded-for"];
             ip = ip.substr(0, ip.find(","));
         } else {
             ip = client->GetIP();
@@ -555,17 +559,18 @@ public:
     }
 
     void handle_input_packet(StreamPeerBuffer& buf, ws28::Client* client) {
-        unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-        if (!in_map(this->entities.tanks, player_id)) {
+        auto client_info = (ClientInfo*) client->GetUserData();
+
+        if (!in_map(this->entities.tanks, client_info->id)) {
             WARN("Player without id tried to send input packet");
-            destroy_entity(player_id, this->entities.tanks);
+            destroy_entity(client_info->id, this->entities.tanks);
             ban(client);
             return;
-        } else if (entities.tanks[player_id]->state == TankState::Dead) {
+        } else if (entities.tanks[client_info->id]->state == TankState::Dead) {
             WARN("Dead player tried to send input packet");
             return;
         }
-        Tank* player = entities.tanks[player_id];
+        Tank* player = entities.tanks[client_info->id];
 
         unsigned char movement_byte = buf.get_u8();
         player->input = {.W = false, .A = false, .S = false, .D = false, .mousedown = false};
@@ -599,22 +604,23 @@ public:
     }
 
     void handle_chat_packet(StreamPeerBuffer& buf, ws28::Client* client) {
-        unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-        if (!in_map(this->entities.tanks, player_id)) {
+        auto client_info = (ClientInfo*) client->GetUserData();
+
+        if (!in_map(this->entities.tanks, client_info->id)) {
             WARN("Player without id tried to send chat packet");
-            destroy_entity(player_id, this->entities.tanks);
+            destroy_entity(client_info->id, this->entities.tanks);
             ban(client);
             return;
-        } else if (entities.tanks[player_id]->state == TankState::Dead) {
+        } else if (entities.tanks[client_info->id]->state == TankState::Dead) {
             WARN("Dead player tried to send chat packet");
             return;
         }
-        Tank* player = entities.tanks[player_id];
+        Tank* player = entities.tanks[client_info->id];
 
         string message;
         if (buf.get_string(message) != 0) {
             WARN("Player tried to send invalid chat packet");
-            destroy_entity(player_id, this->entities.tanks);
+            destroy_entity(client_info->id, this->entities.tanks);
             ban(client);
             return;
         }
@@ -629,19 +635,20 @@ public:
     }
 
     void handle_respawn_packet(StreamPeerBuffer& buf, ws28::Client* client) {
-        unsigned int player_id = (unsigned int) (uintptr_t) client->GetUserData();
-        if (!in_map(this->entities.tanks, player_id)) {
+        auto client_info = (ClientInfo*) client->GetUserData();
+
+        if (!in_map(this->entities.tanks, client_info->id)) {
             WARN("Player without id tried to send respawn packet");
-            destroy_entity(player_id, this->entities.tanks);
+            destroy_entity(client_info->id, this->entities.tanks);
             ban(client);
             return;
-        } else if (entities.tanks[player_id]->state == TankState::Alive) {
+        } else if (entities.tanks[client_info->id]->state == TankState::Alive) {
             WARN("Living player tried to send respawn packet");
-            destroy_entity(player_id, this->entities.tanks);
+            destroy_entity(client_info->id, this->entities.tanks);
             ban(client);
             return;
         }
-        Tank* player = entities.tanks[player_id];
+        Tank* player = entities.tanks[client_info->id];
 
         player->position = Vector2(RAND(0, size), RAND(0, size));
         player->health = player->max_health;
