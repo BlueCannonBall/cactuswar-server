@@ -6,8 +6,8 @@ CFLAGS = -std=c++14 -Wall -Llib -s -Ofast -march=native \
 	-fno-semantic-interposition -fdiagnostics-color=always \
 	-ftree-vectorize -fno-stack-protector -fif-conversion  \
 	-finline-functions-called-once -finline-small-functions \
-	-Bsymbolic -fif-conversion2 -mtune=native -ffinite-loops \
-	-fvect-cost-model=cheap
+	-Bsymbolic -fif-conversion2 -mtune=native -fsplit-loops \
+	-fvect-cost-model=cheap -fpeel-loops
 TARGET = ./build/server
 OBJDIR = build/obj
 PORT = 8000
