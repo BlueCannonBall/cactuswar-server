@@ -713,11 +713,6 @@ public:
         }
 
         for (auto entity = this->entities.shapes.cbegin(); entity != this->entities.shapes.cend();) {
-            if (entity->second == nullptr) {
-                this->destroy_entity(entity++->first, this->entities.shapes);
-                continue;
-            }
-
             if (entity->second->health <= 0) {
                 this->destroy_entity(entity++->first, this->entities.shapes);
                 continue;
@@ -728,11 +723,6 @@ public:
         }
 
         for (auto entity = this->entities.tanks.cbegin(); entity != this->entities.tanks.cend();) {
-            if (entity->second == nullptr) {
-                this->destroy_entity(entity++->first, this->entities.tanks);
-                continue;
-            }
-
             if (entity->second->state == TankState::Dead) {
                 ++entity;
                 continue;
@@ -764,11 +754,6 @@ public:
         }
 
         for (auto entity = this->entities.bullets.cbegin(); entity != this->entities.bullets.cend();) {
-            if (entity->second == nullptr) {
-                this->destroy_entity(entity++->first, this->entities.bullets);
-                continue;
-            }
-
             entity->second->lifetime -= delta;
             if (entity->second->lifetime <= 0) {
                 this->destroy_entity(entity++->first, this->entities.bullets);
