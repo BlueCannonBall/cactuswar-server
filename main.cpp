@@ -204,10 +204,8 @@ int main(int argc, char** argv) {
             ERR("Failed to check if player is banned: " << s.ToString());
         }
 
-        auto client_info = new ClientInfo {
-            .path = req.path,
-            .authenticated = false
-        };
+        auto client_info = new ClientInfo;
+        client_info->path = req.path;
         req.headers.ForEach([client_info](const char* key, const char* value) {
             client_info->headers[key] = value;
         });
