@@ -38,7 +38,7 @@ typedef std::unordered_map<std::string, std::string> HTTPHeaders;
 leveldb::DB* db;          // NOLINT
 leveldb::Options options; // NOLINT
 #ifdef THREADING
-tp::ThreadPool pool;      // NOLINT
+tp::ThreadPool pool; // NOLINT
 #endif
 
 enum class Packet {
@@ -59,7 +59,7 @@ struct ClientInfo {
     bool authenticated = false;
 };
 
-unsigned uid = 0;                               // NOLINT
+unsigned uid = 0; // NOLINT
 
 inline unsigned int get_uid() {
     if (uid > UINT32_MAX - 10000) {
@@ -1042,6 +1042,45 @@ void Tank::collision_response(Arena* arena) { // NOLINT
                 }
             }
         }
+
+        // Leaderboard
+        // {
+        //     buf.put_u8(0);                       // id
+        //     buf.put_u32(3999999999);             // game id
+        //     buf.put_i16(this->position.x + 900); // position
+        //     buf.put_i16(this->position.y - 500);
+        //     buf.put_float(0); // rotation
+        //     buf.put_i16(0);   // velocity
+        //     buf.put_i16(0);
+        //     buf.put_u8(0);                 // mockup id
+        //     buf.put_float(0);              // health
+        //     buf.put_u16(1);                // radius
+        //     buf.put_string("Leaderboard"); // tank name
+        //     buf.put_string("");            // empty message
+        //     census_size++;
+
+        //     int leaderboard_pos = 1;
+        //     for (const auto& tank : arena->entities.tanks) {
+        //         if (leaderboard_pos > 10) {
+        //             break;
+        //         }
+
+        //         buf.put_u8(0);                             // id
+        //         buf.put_u32(3999999999 + leaderboard_pos); // game id
+        //         buf.put_i16(this->position.x + 900);       // position
+        //         buf.put_i16((this->position.y - 500) + (80 * leaderboard_pos));
+        //         buf.put_float(0); // rotation
+        //         buf.put_i16(0);   // velocity
+        //         buf.put_i16(0);
+        //         buf.put_u8(0);                                                                        // mockup id
+        //         buf.put_float(0);                                                                     // health
+        //         buf.put_u16(1);                                                                       // radius
+        //         buf.put_string(tank.second->name + " - Level " + to_string(int(tank.second->level))); // tank name
+        //         buf.put_string("");                                                                   // empty message
+        //         census_size++;
+        //         leaderboard_pos++;
+        //     }
+        // }
 
         buf.offset = 0;
         buf.put_u8((unsigned char) Packet::Census);
