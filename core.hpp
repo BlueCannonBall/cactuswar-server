@@ -41,7 +41,7 @@ leveldb::Options options; // NOLINT
 tp::ThreadPool pool; // NOLINT
 #endif
 
-enum class Packet {
+enum class Packet: unsigned char {
     InboundInit = 0,
     Input = 1,
     Census = 2,
@@ -49,7 +49,8 @@ enum class Packet {
     Mockups = 3,
     Chat = 4,
     Death = 5,
-    Respawn = 6
+    Respawn = 6,
+    Leaderboard = 7
 };
 
 struct ClientInfo {
@@ -809,6 +810,38 @@ public:
             task->await();
         }
 #endif
+
+        // Leaderboard
+        {
+            vector<Tank*> leaderboard;
+            leaderboard.reserve(entities.tanks.size());
+            std::transform(
+                entities.tanks.begin(),
+                entities.tanks.end(),
+                std::back_inserter(leaderboard),
+                [](const decltype(entities.tanks)::value_type& tank) {
+                    return tank.second;
+                });
+            std::sort(leaderboard.begin(), leaderboard.end(), [](const Tank* tank1, const Tank* tank2) {
+                return tank1->level > tank2->level;
+            });
+
+            StreamPeerBuffer buf;
+            buf.put_u8((unsigned char) Packet::Leaderboard);
+            unsigned char lb_size = min(leaderboard.size(), 10ul);
+            buf.put_u8(lb_size);
+            for (unsigned char i = 0; i < lb_size; i++) {
+                buf.put_string(leaderboard[i]->name);
+                buf.put_float(leaderboard[i]->level);
+                buf.put_u8(leaderboard[i]->mockup);
+            }
+
+            for (const auto& tank : entities.tanks) {
+                if (tank.second->type == TankType::Remote) {
+                    tank.second->client->Send((const char*) buf.data(), buf.size(), 0x2);
+                }
+            }
+        }
     }
 
     void run() {
