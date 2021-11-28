@@ -23,6 +23,8 @@
 #ifdef THREADING
 #include "threadpool.hpp"
 #endif
+#include <iterator>
+#include <list>
 #include <typeinfo>
 #include <unistd.h>
 #include <unordered_map>
@@ -41,7 +43,7 @@ leveldb::Options options; // NOLINT
 tp::ThreadPool pool; // NOLINT
 #endif
 
-enum class Packet: unsigned char {
+enum class Packet : unsigned char {
     InboundInit = 0,
     Input = 1,
     Census = 2,
@@ -673,6 +675,38 @@ public:
         }
     }
 
+    void update_lb(StreamPeerBuffer& buf) {
+        std::list<Tank*> leaderboard;
+        std::transform(
+            this->entities.tanks.begin(),
+            this->entities.tanks.end(),
+            std::back_inserter(leaderboard),
+            [](const decltype(this->entities.tanks)::value_type& tank) {
+                return tank.second;
+            });
+        leaderboard.remove_if([](const Tank* tank) {
+            return tank->state == TankState::Dead;
+        });
+        leaderboard.sort([](const Tank* tank1, const Tank* tank2) {
+            return tank1->level > tank2->level;
+        });
+
+        buf.put_u8((unsigned char) Packet::Leaderboard);
+        unsigned char lb_size = min(leaderboard.size(), decltype(leaderboard)::size_type(10));
+        buf.put_u8(lb_size);
+        for (auto entry = leaderboard.begin(); entry != std::next(leaderboard.begin(), 10); entry++) {
+            buf.put_string((*entry)->name);
+            buf.put_float((*entry)->level);
+            buf.put_u8((*entry)->mockup);
+        }
+
+        for (const auto& tank : entities.tanks) {
+            if (tank.second->type == TankType::Remote) {
+                tank.second->client->Send((const char*) buf.data(), buf.size(), 0x2);
+            }
+        }
+    }
+
     void update() __attribute__((hot)) {
         auto this_tick = chrono::high_resolution_clock::now();
         delta = (chrono::duration_cast<chrono::microseconds>(this_tick - last_tick).count() / 1000.f) / (1000.f / DELTA_TPS);
@@ -812,35 +846,9 @@ public:
 #endif
 
         // Leaderboard
-        {
-            vector<Tank*> leaderboard;
-            leaderboard.reserve(entities.tanks.size());
-            std::transform(
-                entities.tanks.begin(),
-                entities.tanks.end(),
-                std::back_inserter(leaderboard),
-                [](const decltype(entities.tanks)::value_type& tank) {
-                    return tank.second;
-                });
-            std::sort(leaderboard.begin(), leaderboard.end(), [](const Tank* tank1, const Tank* tank2) {
-                return tank1->level > tank2->level;
-            });
-
+        if (ticks % 15 == 0) {
             StreamPeerBuffer buf;
-            buf.put_u8((unsigned char) Packet::Leaderboard);
-            unsigned char lb_size = min(leaderboard.size(), 10ul);
-            buf.put_u8(lb_size);
-            for (unsigned char i = 0; i < lb_size; i++) {
-                buf.put_string(leaderboard[i]->name);
-                buf.put_float(leaderboard[i]->level);
-                buf.put_u8(leaderboard[i]->mockup);
-            }
-
-            for (const auto& tank : entities.tanks) {
-                if (tank.second->type == TankType::Remote) {
-                    tank.second->client->Send((const char*) buf.data(), buf.size(), 0x2);
-                }
-            }
+            update_lb(buf);
         }
     }
 
