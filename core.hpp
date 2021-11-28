@@ -677,16 +677,12 @@ public:
 
     void update_lb(StreamPeerBuffer& buf) {
         std::list<Tank*> leaderboard;
-        std::transform(
-            this->entities.tanks.begin(),
-            this->entities.tanks.end(),
-            std::back_inserter(leaderboard),
-            [](const decltype(this->entities.tanks)::value_type& tank) {
-                return tank.second;
-            });
-        leaderboard.remove_if([](const Tank* tank) {
-            return tank->state == TankState::Dead;
-        });
+        for (const auto& tank : entities.tanks) {
+            if (tank.second->state == TankState::Alive) {
+                leaderboard.push_back(tank.second);
+            }
+        }
+
         leaderboard.sort([](const Tank* tank1, const Tank* tank2) {
             return tank1->level > tank2->level;
         });
