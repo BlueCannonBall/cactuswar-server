@@ -1273,7 +1273,7 @@ void Tank::next_tick(Arena* arena) { // NOLINT
             health = max_health;
     }
 
-    this->radius = 50 + (level * 0.25);
+    this->radius = 50 + (min(level, 100.f) * 0.25);
 
     this->velocity *= Vector2(this->friction, this->friction);
     this->position += this->velocity * Vector2(arena->delta, arena->delta) / Vector2(this->mass, this->mass);
