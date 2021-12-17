@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include "logger.hpp"
 
 #pragma once
 #define PI M_PI

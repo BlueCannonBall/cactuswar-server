@@ -6,6 +6,7 @@ compile_commands.json
 bans/
 .DS_Store
 *perf.data*
+*.log
 
 *.slo
 *.lo

@@ -22,7 +22,7 @@ $(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json
 	mkdir -p build
 	$(CC) $(OBJDIR)/*.o $(OBJDIR)/ws28/*.o $(LDLIBS) $(CFLAGS) -o $@
 
-$(OBJDIR)/main.o: main.cpp core.hpp entityconfig.hpp fazo.h bcblog.hpp json.hpp streampeerbuffer.hpp
+$(OBJDIR)/main.o: main.cpp core.hpp entityconfig.hpp fazo.h bcblog.hpp json.hpp streampeerbuffer.hpp logger.hpp
 	@mkdir -p build
 	@mkdir -p $(OBJDIR)
 	$(CC) -c main.cpp $(CFLAGS) -o $@

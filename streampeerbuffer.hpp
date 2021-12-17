@@ -1,9 +1,9 @@
+#pragma once
+
 #include <array>
 #include <string.h>
 #include <string>
 #include <vector>
-
-#pragma once
 
 namespace spb {
     template <typename T>

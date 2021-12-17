@@ -1,3 +1,4 @@
+#include "logger.hpp"
 #include <algorithm>
 #include <ctime>
 #include <iostream>
@@ -24,34 +25,60 @@
 #define BOLDCYAN    "\033[1m\033[36m"
 #define BOLDWHITE   "\033[1m\033[37m"
 
-#define INFO(log)                                              \
-    bcblog::mtx.lock();                                        \
-    std::cout << BOLDBLUE << "[" << bcblog::get_time() << "] " \
-              << "[INFO] " << RESET << log << std::endl;       \
-    bcblog::mtx.unlock()
-#define SUCCESS(log)                                            \
-    bcblog::mtx.lock();                                         \
-    std::cout << BOLDGREEN << "[" << bcblog::get_time() << "] " \
-              << "[SUCCESS] " << RESET << log << std::endl;     \
-    bcblog::mtx.unlock()
-#define ERR(log)                                              \
-    bcblog::mtx.lock();                                       \
-    std::cerr << BOLDRED << "[" << bcblog::get_time() << "] " \
-              << "[ERR] " << RESET << log << std::endl;       \
-    bcblog::mtx.unlock()
-#define WARN(log)                                                \
-    bcblog::mtx.lock();                                          \
-    std::cerr << BOLDYELLOW << "[" << bcblog::get_time() << "] " \
-              << "[WARN] " << RESET << log << std::endl;         \
-    bcblog::mtx.unlock()
-#define BRUH(log)                                                 \
-    bcblog::mtx.lock();                                           \
-    std::cout << BOLDMAGENTA << "[" << bcblog::get_time() << "] " \
-              << "[BRUH] " << RESET << log << std::endl;          \
-    bcblog::mtx.unlock()
+#define INFO(log)                                                  \
+    {                                                              \
+        std::stringstream ss;                                      \
+        ss << log;                                                 \
+        bcblog::mtx.lock();                                        \
+        std::cout << BOLDBLUE << "[" << bcblog::get_time() << "] " \
+                  << "[INFO] " << RESET << ss.str() << std::endl;  \
+        bcblog::mtx.unlock();                                      \
+        bcblog::logger.info(ss.str());                             \
+    }
+#define SUCCESS(log)                                                 \
+    {                                                                \
+        std::stringstream ss;                                        \
+        ss << log;                                                   \
+        bcblog::mtx.lock();                                          \
+        std::cout << BOLDGREEN << "[" << bcblog::get_time() << "] "  \
+                  << "[SUCCESS] " << RESET << ss.str() << std::endl; \
+        bcblog::mtx.unlock();                                        \
+        bcblog::logger.info(ss.str());                               \
+    }
+#define ERR(log)                                                  \
+    {                                                             \
+        std::stringstream ss;                                     \
+        ss << log;                                                \
+        bcblog::mtx.lock();                                       \
+        std::cerr << BOLDRED << "[" << bcblog::get_time() << "] " \
+                  << "[ERR] " << RESET << ss.str() << std::endl;  \
+        bcblog::mtx.unlock();                                     \
+        bcblog::logger.error(ss.str());                           \
+    }
+#define WARN(log)                                                    \
+    {                                                                \
+        std::stringstream ss;                                        \
+        ss << log;                                                   \
+        bcblog::mtx.lock();                                          \
+        std::cerr << BOLDYELLOW << "[" << bcblog::get_time() << "] " \
+                  << "[WARN] " << RESET << ss.str() << std::endl;    \
+        bcblog::mtx.unlock();                                        \
+        bcblog::logger.warn(ss.str());                               \
+    }
+#define BRUH(log)                                                     \
+    {                                                                 \
+        std::stringstream ss;                                         \
+        ss << log;                                                    \
+        bcblog::mtx.lock();                                           \
+        std::cout << BOLDMAGENTA << "[" << bcblog::get_time() << "] " \
+                  << "[BRUH] " << RESET << ss.str() << std::endl;     \
+        bcblog::mtx.unlock();                                         \
+        bcblog::logger.info(ss.str());                                \
+    }
 
 namespace bcblog {
-    std::mutex mtx; // NOLINT
+    std::mutex mtx;              // NOLINT
+    Logger logger("server.log"); // NOLINT
 
     std::string get_time() { // NOLINT
         time_t t = time(0);
