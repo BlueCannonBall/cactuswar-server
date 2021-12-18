@@ -93,7 +93,7 @@ private:
         std::string original_logs = "";
         std::unique_lock<std::mutex> lock(this->mtx);
         {
-            std::ifstream logfile(logfile_name);
+            std::ifstream logfile(this->logfile_name);
             if (logfile.is_open()) {
                 logfile.seekg(0, std::ios::end);
                 size_t size = logfile.tellg();
@@ -104,7 +104,7 @@ private:
             }
         }
 
-        std::ofstream logfile(logfile_name);
+        std::ofstream logfile(this->logfile_name);
         if (logfile.is_open()) {
             logfile << "[" << timef << "] " << message << std::endl;
             logfile << original_logs;
