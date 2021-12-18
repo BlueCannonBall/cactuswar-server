@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cerrno>
+#include <cstring>
 #include <ctime>
 #include <fstream>
 #include <mutex>
@@ -103,10 +105,14 @@ private:
         }
 
         std::ofstream logfile(logfile_name);
-        logfile << "[" << timef << "] " << message << std::endl;
-        logfile << original_logs;
-        logfile.flush();
-        logfile.close();
+        if (logfile.is_open()) {
+            logfile << "[" << timef << "] " << message << std::endl;
+            logfile << original_logs;
+            logfile.flush();
+            logfile.close();
+        } else {
+            throw std::runtime_error(strerror(errno));
+        }
     }
 
 public:
