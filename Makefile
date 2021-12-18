@@ -18,7 +18,7 @@ ifdef DEBUG_MAINLOOP_SPEED
 CFLAGS += -DDEBUG_MAINLOOP_SPEED
 endif
 
-$(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json.hpp.gch fazo.h.gch
+$(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json.hpp.gch fazo.h.gch logger.hpp.gch threadpool.hpp.gch
 	mkdir -p build
 	$(CC) $(OBJDIR)/*.o $(OBJDIR)/ws28/*.o $(LDLIBS) $(CFLAGS) -o $@
 
@@ -39,10 +39,16 @@ $(OBJDIR)/ws28/*.o: ws28/src/*
 	cd $(OBJDIR)/ws28 && $(CC) -c ../../../ws28/src/*.cpp $(CFLAGS)
 
 json.hpp.gch: json.hpp
-	$(CC) json.hpp $(CFLAGS)
+	$(CC) $< $(CFLAGS)
 
 fazo.h.gch: fazo.h
-	$(CC) fazo.h $(CFLAGS)
+	$(CC) $< $(CFLAGS)
+
+logger.hpp.gch: logger.hpp
+	$(CC) $< $(CFLAGS)
+
+threadpool.hpp.gch: threadpool.hpp
+	$(CC) $< $(CFLAGS)
 
 .PHONY: run clean
 

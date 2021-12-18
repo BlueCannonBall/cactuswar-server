@@ -1,4 +1,5 @@
-#pragma once
+#ifndef LOGGER_HPP
+#define LOGGER_HPP
 
 #include <cerrno>
 #include <cstring>
@@ -152,4 +153,5 @@ public:
 #undef TIMEBUF_SIZE
 #else
 #undef TIMEBUF_SIZE_DEFINED
+#endif
 #endif
