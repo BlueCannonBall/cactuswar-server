@@ -12,17 +12,17 @@ OBJDIR = build/obj
 PORT = 8000
 
 ifdef THREADING
-CFLAGS += -DTHREADING -pthread
+CFLAGS += -DTHREADING=$(THREADING) -pthread
 endif
 ifdef DEBUG_MAINLOOP_SPEED
-CFLAGS += -DDEBUG_MAINLOOP_SPEED
+CFLAGS += -DDEBUG_MAINLOOP_SPEED=$(DEBUG_MAINLOOP_SPEED)
 endif
 
 $(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o json.hpp.gch fazo.h.gch logger.hpp.gch threadpool.hpp.gch
 	mkdir -p build
 	$(CC) $(OBJDIR)/*.o $(OBJDIR)/ws28/*.o $(LDLIBS) $(CFLAGS) -o $@
 
-$(OBJDIR)/main.o: main.cpp core.hpp entityconfig.hpp fazo.h bcblog.hpp json.hpp streampeerbuffer.hpp logger.hpp
+$(OBJDIR)/main.o: main.cpp core.hpp entityconfig.hpp fazo.h bcblog.hpp json.hpp streampeerbuffer.hpp logger.hpp threadpool.hpp
 	@mkdir -p build
 	@mkdir -p $(OBJDIR)
 	$(CC) -c main.cpp $(CFLAGS) -o $@
