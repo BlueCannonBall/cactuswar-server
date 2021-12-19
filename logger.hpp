@@ -66,7 +66,8 @@ LogLevel& operator&=(LogLevel& lhs, LogLevel rhs) { // NOLINT
 
 LogLevel& operator^=(LogLevel& lhs, LogLevel rhs) { // NOLINT
     lhs = static_cast<LogLevel>(
-        static_cast<std::underlying_type<LogLevel>::type>(lhs) ^ static_cast<std::underlying_type<LogLevel>::type>(rhs));
+        static_cast<std::underlying_type<LogLevel>::type>(lhs) ^
+        static_cast<std::underlying_type<LogLevel>::type>(rhs));
 
     return lhs;
 }
