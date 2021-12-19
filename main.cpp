@@ -22,8 +22,8 @@ using namespace spb;
 using json = nlohmann::json;
 
 map<string, Arena*> arenas = {
-    {"/ffa-1", new Arena},
-    {"/ffa-2", new Arena}};
+    {"/ffa", new Arena},
+};
 json server_info;
 
 void kick(ws28::Client* client, bool destroy = true) {
@@ -89,7 +89,8 @@ int main(int argc, char** argv) {
                 }
             }
         },
-        "entityconfig.json", 0);
+        "entityconfig.json",
+        0);
 
     atexit(atexit_handler);
     signal(SIGTERM, signal_handler);
