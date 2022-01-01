@@ -1293,7 +1293,6 @@ void Tank::next_tick(Arena* arena) { // NOLINT
         this->velocity.y = 0;
     }
 
-    this->fazo_entity.id = this->id;
     this->fazo_entity.radius = this->radius;
 
     if (this->fazo_entity.x != this->position.x - this->radius ||
@@ -1328,7 +1327,6 @@ void Bullet::next_tick(Arena* arena) { // NOLINT
         this->velocity.y = 0;
     }
 
-    this->fazo_entity.id = this->id;
     this->fazo_entity.radius = this->radius;
 
     if (this->fazo_entity.x != this->position.x - this->radius ||
@@ -1363,7 +1361,6 @@ void Shape::next_tick(Arena* arena) { // NOLINT
         this->velocity.y = 0;
     }
 
-    this->fazo_entity.id = this->id;
     this->fazo_entity.radius = this->radius;
 
     if (this->fazo_entity.x != this->position.x - this->radius ||
