@@ -13,8 +13,6 @@
 #include <unordered_map>
 #include <uv.h>
 
-#define UNUSED(expr) \
-    do { (void) (expr); } while (0)
 #define MESSAGE_SIZE 1024
 
 using namespace std;

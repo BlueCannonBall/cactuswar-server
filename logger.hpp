@@ -1,5 +1,5 @@
-#ifndef LOGGER_HPP
-#define LOGGER_HPP
+#ifndef _LOGGER_HPP
+#define _LOGGER_HPP
 
 #include <cerrno>
 #include <cstring>
@@ -13,9 +13,9 @@
 #include <unordered_map>
 
 #ifndef TIMEBUF_SIZE
-#define TIMEBUF_SIZE 1024
+    #define TIMEBUF_SIZE 1024
 #else
-#define TIMEBUF_SIZE_DEFINED
+    #define TIMEBUF_SIZE_DEFINED
 #endif
 
 enum class LogLevel : unsigned int {
@@ -151,8 +151,8 @@ public:
 };
 
 #ifndef TIMEBUF_SIZE_DEFINED
-#undef TIMEBUF_SIZE
+    #undef TIMEBUF_SIZE
 #else
-#undef TIMEBUF_SIZE_DEFINED
+    #undef TIMEBUF_SIZE_DEFINED
 #endif
 #endif
