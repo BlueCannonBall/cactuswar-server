@@ -30,7 +30,6 @@
 #include <unordered_map>
 #include <uv.h>
 #include <vector>
-#include <boost/circular_buffer.hpp>
 
 using namespace std;
 using namespace spb;
@@ -422,7 +421,8 @@ public:
     unsigned int target_shape_count = size * size / 700000;
 
     uv_timer_t timer;
-    boost::circular_buffer<float> delta_trend{TARGET_TPS};
+    std::vector<float> delta_trend;
+    size_t cursor = 0;
     float delta;
     chrono::high_resolution_clock::time_point last_tick;
 
@@ -716,7 +716,11 @@ public:
     void update() __attribute__((hot)) {
         auto this_tick = chrono::high_resolution_clock::now();
         delta = (chrono::duration_cast<chrono::microseconds>(this_tick - last_tick).count() / 1000.f) / (1000.f / DELTA_TPS);
-        delta_trend.push_back(delta);
+        if (delta_trend.size() < TARGET_TPS) {
+            delta_trend.push_back(delta);
+        } else {
+            delta_trend[cursor = cursor % TARGET_TPS] = delta;
+        }
         last_tick = this_tick;
 
         bool found_player = false;
