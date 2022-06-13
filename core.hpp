@@ -719,7 +719,7 @@ public:
         if (delta_trend.size() < TARGET_TPS) {
             delta_trend.push_back(delta);
         } else {
-            delta_trend[cursor = cursor % TARGET_TPS] = delta;
+            delta_trend[cursor = (cursor + 1) % TARGET_TPS] = delta;
         }
         last_tick = this_tick;
 
