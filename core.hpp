@@ -30,6 +30,7 @@
 #include <unordered_map>
 #include <uv.h>
 #include <vector>
+#include <boost/circular_buffer.hpp>
 
 using namespace std;
 using namespace spb;
@@ -294,7 +295,7 @@ struct Barrel: public BarrelConfig {
 
 struct ChatMessage {
     string content;
-    unsigned long time = 0;
+    unsigned long long time = 0;
 };
 
 enum class TankType {
@@ -336,7 +337,7 @@ public:
     void next_tick(Arena* arena);
     void collision_response(Arena* arena) __attribute__((hot));
 
-    void take_census(StreamPeerBuffer& buf, unsigned long time) {
+    void take_census(StreamPeerBuffer& buf, unsigned long long time) {
         buf.put_u8(0);                 // id
         buf.put_u32(this->id);         // game id
         buf.put_i16(this->position.x); // position
@@ -413,7 +414,7 @@ public:
         unordered_map<unsigned int, Bullet*> bullets;
     };
 
-    unsigned long ticks = 0;
+    unsigned long long ticks = 0;
     Entities entities;
     unsigned short target_bot_count = 23;
     unsigned short size = target_bot_count * 1000 + 5000;
@@ -421,6 +422,7 @@ public:
     unsigned int target_shape_count = size * size / 700000;
 
     uv_timer_t timer;
+    boost::circular_buffer<float> delta_trend{TARGET_TPS};
     float delta;
     chrono::high_resolution_clock::time_point last_tick;
 
@@ -445,6 +447,14 @@ public:
         FazoSolverFree(solver);
 
         uv_timer_stop(&timer);
+    }
+
+    float avg_delta() {
+        float sum = 0.f;
+        for (float f : delta_trend) {
+            sum += f;
+        }
+        return sum / delta_trend.size();
     }
 
     inline void set_size(unsigned short _size) {
@@ -706,6 +716,7 @@ public:
     void update() __attribute__((hot)) {
         auto this_tick = chrono::high_resolution_clock::now();
         delta = (chrono::duration_cast<chrono::microseconds>(this_tick - last_tick).count() / 1000.f) / (1000.f / DELTA_TPS);
+        delta_trend.push_back(delta);
         last_tick = this_tick;
 
         bool found_player = false;
@@ -1225,24 +1236,18 @@ void Bullet::collision_response(Arena* arena) { // NOLINT
 }
 
 void Tank::next_tick(Arena* arena) { // NOLINT
-    if (this->input.W) {
-        this->velocity.y -= this->movement_speed;
-    } else if (this->input.S) {
-        this->velocity.y += this->movement_speed;
-    }
+    this->velocity.y -= this->movement_speed * (bool) this->input.W;
+    this->velocity.y += this->movement_speed * (bool) this->input.S;
 
-    if (this->input.A) {
-        this->velocity.x -= this->movement_speed;
-    } else if (this->input.D) {
-        this->velocity.x += this->movement_speed;
-    }
+    this->velocity.x -= this->movement_speed * (bool) this->input.A;
+    this->velocity.x += this->movement_speed * (bool) this->input.D;
 
     for (const auto& barrel : barrels) {
         if (this->input.mousedown) {
             if (!barrel->cooling_down) {
                 barrel->cooling_down = true;
 
-                barrel->target_time.time = arena->ticks + barrel->reload_delay / arena->delta;
+                barrel->target_time.time = arena->ticks + barrel->reload_delay / arena->avg_delta();
                 barrel->target_time.target = BarrelTarget::ReloadDelay;
             }
         }
@@ -1252,7 +1257,7 @@ void Tank::next_tick(Arena* arena) { // NOLINT
                     case BarrelTarget::ReloadDelay: {
                         barrel->fire(this, arena); // SAFETY: `this` and `arena` are supposedly always valid.
                         barrel->cooling_down = true;
-                        barrel->target_time.time = arena->ticks + barrel->full_reload / arena->delta;
+                        barrel->target_time.time = arena->ticks + barrel->full_reload / arena->avg_delta();
                         barrel->target_time.target = BarrelTarget::CoolingDown;
                         break;
                     }

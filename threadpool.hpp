@@ -1,3 +1,6 @@
+#ifndef _THREADPOOL_HPP
+#define _THREADPOOL_HPP
+
 #include <condition_variable>
 #include <exception>
 #include <functional>
@@ -39,9 +42,6 @@ namespace tp {
 
         CommandStatus await() {
             std::unique_lock<std::mutex> lock(mutex);
-            if (status != CommandStatus::Running) {
-                return status;
-            }
             while (status == CommandStatus::Running) {
                 condition.wait(lock);
             }
@@ -95,7 +95,7 @@ namespace tp {
 
                             std::unique_lock<std::mutex> lock(cmd->mutex);
                             cmd->status = CommandStatus::Success;
-                        } catch (std::exception& e) {
+                        } catch (const std::exception& e) {
                             std::unique_lock<std::mutex> lock(cmd->mutex);
                             cmd->status = CommandStatus::Failure;
                             cmd->error = e;
@@ -190,3 +190,5 @@ namespace tp {
         }
     };
 } // namespace tp
+
+#endif

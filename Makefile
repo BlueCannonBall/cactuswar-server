@@ -1,6 +1,6 @@
-CC = g++
+CXX = g++
 LIBS = -luv -lssl -lcrypto -lleveldb -lfazo
-CFLAGS = -std=c++14 -Wall -Llib -s -Ofast -march=native \
+CXXFLAGS = -std=c++14 -Wall -Llib -s -Ofast -march=native \
 	-fno-signed-zeros -fno-trapping-math -finline-functions \
 	-frename-registers -funroll-loops -fmerge-all-constants \
 	-fno-semantic-interposition -fdiagnostics-color=always \
@@ -12,30 +12,30 @@ OBJDIR = build/obj
 PORT = 8000
 
 ifdef THREADING
-	CFLAGS += -DTHREADING=$(THREADING) -pthread
+	CXXFLAGS += -DTHREADING=$(THREADING) -pthread
 endif
 ifdef DEBUG_MAINLOOP_SPEED
-	CFLAGS += -DDEBUG_MAINLOOP_SPEED=$(DEBUG_MAINLOOP_SPEED)
+	CXXFLAGS += -DDEBUG_MAINLOOP_SPEED=$(DEBUG_MAINLOOP_SPEED)
 endif
 
 $(TARGET): $(OBJDIR)/main.o $(OBJDIR)/ws28/*.o $(OBJDIR)/streampeerbuffer.o
 	mkdir -p build
-	$(CC) $^ $(LIBS) $(CFLAGS) -o $@
+	$(CXX) $^ $(LIBS) $(CXXFLAGS) -o $@
 
 $(OBJDIR)/main.o: main.cpp core.hpp entityconfig.hpp fazo.h bcblog.hpp json.hpp.gch streampeerbuffer.hpp logger.hpp threadpool.hpp
 	@mkdir -p $(OBJDIR)
-	$(CC) -c $< $(CFLAGS) -o $@
+	$(CXX) -c $< $(CXXFLAGS) -o $@
 
 $(OBJDIR)/streampeerbuffer.o: streampeerbuffer.cpp streampeerbuffer.hpp
 	@mkdir -p $(OBJDIR)
-	$(CC) -c $< $(CFLAGS) -o $@
+	$(CXX) -c $< $(CXXFLAGS) -o $@
 
 $(OBJDIR)/ws28/*.o: ws28/src/*
 	@mkdir -p $(OBJDIR)/ws28
-	cd $(OBJDIR)/ws28 && $(CC) -c ../../../ws28/src/*.cpp $(CFLAGS)
+	cd $(OBJDIR)/ws28 && $(CXX) -c ../../../ws28/src/*.cpp $(CXXFLAGS)
 
 json.hpp.gch: json.hpp
-	$(CC) $< $(CFLAGS)
+	$(CXX) $< $(CXXFLAGS)
 
 .PHONY: run clean
 
