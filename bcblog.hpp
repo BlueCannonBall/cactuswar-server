@@ -83,7 +83,7 @@ namespace bcblog {
     std::string get_time() { // NOLINT
         time_t t = time(0);
         struct tm* now = localtime(&t);
-        char time_cstr[25];
+        char time_cstr[25] = {0};
         strftime(time_cstr, 25, "%a %b %d %H:%M:%S %Y", now);
         return time_cstr;
     }
